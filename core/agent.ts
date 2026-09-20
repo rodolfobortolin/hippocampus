@@ -2,7 +2,7 @@ import { query, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
 import { config, today, dayOf } from './config.ts'
 import { all } from './db.ts'
-import { dayReport, rangeReport, heatmap } from './metrics.ts'
+import { dayReport, rangeReport, heatmap, onThisDay } from './metrics.ts'
 import { dossier } from './rollup.ts'
 import { searchEpisodes, lastTime, type Episodio } from './episodes.ts'
 
@@ -67,6 +67,21 @@ const tools = [
         antes.length ? '\nAntes disso:\n' + antes.map((e) => descreve(e)).join('\n') : '',
         depois.length ? '\nDepois:\n' + depois.map((e) => descreve(e)).join('\n') : '',
       ].filter(Boolean).join('\n'))
+    },
+  },
+  {
+    name: 'neste_dia',
+    description: 'O que aconteceu nesta mesma data em semanas, meses e anos anteriores. Use quando ele perguntar sobre o passado, quiser comparar com antes, ou pedir uma retrospectiva.',
+    inputSchema: { data: z.string().describe('AAAA-MM-DD; use "hoje" para o dia corrente') },
+    handler: async ({ data }: { data: string }) => {
+      const antes = onThisDay(data === 'hoje' ? today() : data)
+      if (!antes.length) return say('Ainda não há nenhuma data anterior medida para comparar.')
+      return say(antes.map((entrada) =>
+        `${entrada.rotulo} (${entrada.day}): ${hours(entrada.active)} ativo` +
+        (entrada.topApp ? `, mais em ${entrada.topApp}` : '') +
+        (entrada.projetos.length ? `, projetos: ${entrada.projetos.join(', ')}` : '') +
+        (entrada.narrative ? `\n  ${entrada.narrative.replace(/\s+/g, ' ').slice(0, 300)}` : '')
+      ).join('\n\n'))
     },
   },
   {
@@ -193,7 +208,12 @@ Fale português do Brasil, direto, na segunda pessoa. Sem bajulação, sem "óti
 Consulte as ferramentas antes de afirmar qualquer coisa sobre o dia dele: o valor aqui é o número real, não o palpite.
 Se o dado não existir no período pedido, diga que não existe em vez de estimar.
 Respostas curtas por padrão. Quando ele pedir recap, roast ou análise, aí sim se estenda e tenha graça.
-Os dados nunca saem desta máquina; não sugira mandar nada para lugar nenhum.`
+Os dados nunca saem desta máquina; não sugira mandar nada para lugar nenhum.
+
+O tom é o de um \`git log\`: registro, não avaliação. Nada de elogio, nada de repreensão,
+nada de nota ou meta implícita. Ninguém faz oito horas concentradas — tratar um dia curto
+ou picado como falha é mentira e é o que faz gente desinstalar este tipo de app. Se faltou
+medição, diga que faltou medição, nunca deixe parecer que ele não fez nada.`
 }
 
 export type AgentEvent =

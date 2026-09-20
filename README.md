@@ -18,6 +18,36 @@ Nada sai desta máquina. As chaves são suas e ficam num `.env` que o git ignora
 Sem chave nenhuma o app continua medindo, desenhando e guardando: só a
 classificação, a narrativa e a conversa ficam desligadas.
 
+## Texto e eventos, não pixels
+
+Quase todo app desta categoria grava a tela e manda para um modelo de visão.
+É por isso que eles custam caro (um concorrente popular queima por volta de
+dez dólares num expediente, com cerca de um milhão de tokens de entrada por
+hora), comem bateria, acendem o ícone laranja de compartilhamento de tela e
+não podem ser vendidos na União Europeia.
+
+O Hipocampo não tira um único screenshot. Ele lê o que já é texto: o título da
+janela em foco, a URL da aba, os comandos, os commits, o que você pediu ao
+Claude Code. Sai mais barato em duas ordens de grandeza, roda com um helper
+nativo de alguns milissegundos por amostra — e "nunca tirei um screenshot" é
+uma frase que os outros não conseguem dizer.
+
+Também não existe servidor, nem conta, nem painel de administrador. Não há
+nada que um empregador possa ligar para olhar o seu dia: o medo mais comum
+nessa categoria aqui é impossível por construção, não por política.
+
+## O tom
+
+O diário é escrito como um `git log`: registro do que aconteceu, não avaliação
+de quem fez. Sem elogio, sem repreensão, sem nota, sem meta implícita.
+
+Isso é decisão de projeto, não estilo. A causa número um de abandono em
+rastreador de tempo é **culpa**: a medição revela que ninguém faz oito horas
+concentradas — faz de duas a cinco — e quase todo app trata isso como falha.
+Dia curto, dia picado e dia de reunião são fatos sobre o mundo. E quando o
+coletor fica fora do ar, o texto diz que faltou medição, em vez de deixar
+parecer um dia em que você não fez nada.
+
 ## Começando
 
 ```bash
@@ -67,6 +97,31 @@ O tempo vira **bloco**: um trecho contínuo no mesmo app e na mesma janela. O bl
 é gravado quando começa e estendido a cada amostra, então uma queda custa no
 máximo uma amostra. Acima de dois minutos parado vira bloco ocioso, que não
 conta como tempo ativo.
+
+Cada bloco carrega também **teclas, cliques e rolagem** — os contadores do
+sistema, que não custam permissão nenhuma — e se o **microfone esteve em uso**.
+O primeiro separa ler de escrever; o segundo detecta chamada sem depender de
+reconhecer Zoom, Teams ou Meet pelo nome do processo.
+
+Blocos contíguos do mesmo projeto viram **episódio**, que é a unidade que dá
+para procurar: quatro segundos no Chrome não casam com pergunta nenhuma, mas
+"quarenta minutos no atende, com estes commits e estes comandos" casa. Os
+episódios são indexados em FTS5, e é o que responde *"onde eu parei no X"*.
+
+## O que ele mede
+
+**Trabalho concentrado** é tempo em categorias de código, IA, escrita, design
+e pesquisa — uma fração de tempo de verdade, e não a média de uma
+probabilidade. **Sessão de foco** é o trecho em que isso se sustentou: janela
+deslizante de 15 minutos exigindo 75%, com quebra de até 2 minutos tolerada.
+É a diferença entre quatro horas de foco em duas sessões e as mesmas quatro
+horas picadas em dez — que todo total diário mostra igual.
+
+**Trocas de aplicativo** vêm separadas: a que muda de projeto custa resíduo de
+atenção, a que não muda é o próprio trabalho.
+
+Os limiares são convenção, e o que importa é que fiquem congelados: o número
+serve para comparar você com você, nunca com outra pessoa nem com outro app.
 
 O Computer History é um cache que a própria OpenAI apaga em poucas horas. O
 Hipocampo colhe antes de sumir e arquiva em `archive/` compactado — é por isso

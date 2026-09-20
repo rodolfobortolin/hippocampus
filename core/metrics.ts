@@ -327,3 +327,42 @@ export function focusShape(sessoes: Sessao[]) {
     sessoes: duracoes.length,
   }
 }
+
+/**
+ * O que aconteceu nesta mesma data, antes.
+ *
+ * É o recurso que mais segura gente em diário — voltar e reconhecer o próprio
+ * passado. Aqui ele é de graça: o dado já está no banco, só faltava perguntar.
+ */
+export function onThisDay(day: string) {
+  const [ano, mes, dia] = day.split('-').map(Number)
+  const marcos = [
+    { rotulo: 'há uma semana', data: new Date(ano, mes - 1, dia - 7) },
+    { rotulo: 'há um mês', data: new Date(ano, mes - 2, dia) },
+    { rotulo: 'há três meses', data: new Date(ano, mes - 4, dia) },
+    { rotulo: 'há um ano', data: new Date(ano - 1, mes - 1, dia) },
+  ]
+
+  return marcos.map(({ rotulo, data }) => {
+    const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
+    const salvo = one<any>(
+      `select day, active_seconds, top_app, narrative from days where day = ?`, chave)
+    const medido = one<any>(
+      `select sum(case when idle = 0 then seconds else 0 end) ativo from blocks where day = ?`, chave)
+    const projetos = all<any>(
+      `select project, sum(minutes) minutos from episodes where day = ? and project is not null
+        group by project order by minutos desc limit 3`, chave)
+    if (!medido?.ativo) return null
+    return {
+      rotulo,
+      day: chave,
+      active: medido.ativo as number,
+      topApp: salvo?.top_app ?? null,
+      narrative: salvo?.narrative ?? null,
+      projetos: projetos.map((p) => p.project as string),
+    }
+  }).filter(Boolean) as {
+    rotulo: string; day: string; active: number
+    topApp: string | null; narrative: string | null; projetos: string[]
+  }[]
+}
