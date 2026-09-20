@@ -37,6 +37,9 @@ export type Dia = {
   commits: { repo: string; subject: string; ts: number; insertions: number; deletions: number }[]
   hosts: { name: string; n: number }[]
   visits: number
+  entrada: { teclas: number; cliques: number; rolagem: number }
+  entradaPorApp: { app: string; teclas: number; cliques: number; rolagem: number }[]
+  telas: Fatia[]
   aiTurns: { project: string; prompt: string; tools: string; ts: number }[]
   stored: { narrative: string; recap: string; built_at: number } | null
 }

@@ -194,6 +194,43 @@ export function Hoje({ status }: { status: Status | null }) {
             </div>
           </div>
 
+          <div className="painel">
+            <h3>
+              as suas mãos
+              <em>
+                {dados.entrada.teclas.toLocaleString('pt-BR')} teclas ·{' '}
+                {dados.entrada.cliques.toLocaleString('pt-BR')} cliques ·{' '}
+                {dados.entrada.rolagem.toLocaleString('pt-BR')} gestos de rolagem
+              </em>
+            </h3>
+            <div className="linhas">
+              {dados.entradaPorApp.map((linha) => {
+                const total = linha.teclas + linha.cliques + linha.rolagem
+                const escrevendo = total ? linha.teclas / total : 0
+                return (
+                  <div key={linha.app} className="linha">
+                    <span className="nome">{linha.app}</span>
+                    <span className="valor">
+                      {escrevendo > 0.4 ? 'escrevendo' : escrevendo > 0.12 ? 'misto' : 'lendo'}
+                    </span>
+                    <span className="trilho" title={`${linha.teclas} teclas, ${linha.cliques} cliques, ${linha.rolagem} de rolagem`}>
+                      <i style={{
+                        width: `${Math.round(escrevendo * 100)}%`,
+                        background: 'var(--ouro)', boxShadow: '0 0 9px var(--ouro)', opacity: 0.85,
+                      }} />
+                    </span>
+                  </div>
+                )
+              })}
+              {!dados.entradaPorApp.length && <p className="vazio">Sem sinal de teclado ainda.</p>}
+            </div>
+            <div className="nota">
+              a barra é a fatia de teclas sobre o total — cheia é escrever, vazia é ler.
+              São contagens de eventos do sistema, não distância: rolagem é quantas vezes
+              você rolou, não quanto. E o que foi digitado não é guardado aqui, só quanto.
+            </div>
+          </div>
+
           <div className="grade g2">
             <div className="painel">
               <h3>o que saiu das mãos <em>{plural(dados.commits.length, 'commit', 'commits')} · {plural(dados.aiTurns.length, 'pedido de IA', 'pedidos de IA')}</em></h3>
@@ -244,6 +281,20 @@ export function Hoje({ status }: { status: Status | null }) {
                 <div className="nota" style={{ marginTop: 16 }}>
                   {dados.typing.chars.toLocaleString('pt-BR')} caracteres digitados em {dados.typing.samples} campos
                 </div>
+              )}
+
+              {dados.telas.length > 1 && (
+                <>
+                  <h3 style={{ marginTop: 22 }}>telas</h3>
+                  <div className="linhas">
+                    {dados.telas.map((tela) => (
+                      <div key={tela.name} className="linha">
+                        <span className="nome">{tela.name}</span>
+                        <span className="valor">{duracao(tela.seconds)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>

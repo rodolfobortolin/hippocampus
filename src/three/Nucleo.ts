@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import { simplex3 } from './noise.glsl.ts'
 
 export type EstadoNucleo = 'parado' | 'ouvindo' | 'pensando' | 'ferramenta' | 'falando' | 'erro'
@@ -17,6 +18,32 @@ const VISUAIS: Record<EstadoNucleo, Visual> = {
   ferramenta: { a: '#4dd8c0', b: '#dffdf7', energia: 0.7, giro: 5.2 },
   falando: { a: '#ffc861', b: '#fff6e2', energia: 0.32, giro: 1.4 },
   erro: { a: '#f87171', b: '#ffe1e6', energia: 0.5, giro: 2.0 },
+}
+
+/**
+ * Transparência a partir do brilho.
+ *
+ * O composer devolve preto onde não há nada, e preto opaco desenha um
+ * retângulo. Misturar em modo tela resolve sobre painel escuro, mas lava tudo
+ * numa janela flutuante por cima do desktop claro. Aqui o alfa sai da
+ * luminância: escuro vira transparente, aceso vira sólido, e o núcleo flutua
+ * sobre qualquer fundo.
+ */
+const ALFA_POR_BRILHO = {
+  uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse; varying vec2 vUv;
+    void main() {
+      vec4 cor = texture2D(tDiffuse, vUv);
+      float brilho = dot(cor.rgb, vec3(0.299, 0.587, 0.114));
+      // Limiar suave em vez de curva de potência: pow levantava o quase-preto
+      // a uns 20% de opacidade, e isso desenhava um quadrado cinza em volta.
+      // Aqui o fundo do composer vai mesmo a zero e o corpo fica sólido.
+      gl_FragColor = vec4(cor.rgb, smoothstep(0.012, 0.22, brilho));
+    }`,
 }
 
 const amortece = (de: number, para: number, lambda: number, dt: number) =>
@@ -55,7 +82,9 @@ export class Nucleo {
   private readonly alvoB = new THREE.Color(VISUAIS.parado.b)
 
   constructor(private readonly tela: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({ canvas: tela, antialias: true, alpha: true })
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: tela, antialias: true, alpha: true, premultipliedAlpha: false,
+    })
     this.renderer.setClearColor(0x000000, 0)
     // Acima de 2 o custo cresce e ninguém enxerga a diferença.
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -160,6 +189,9 @@ export class Nucleo {
     this.composer.addPass(new RenderPass(this.cena, this.camera))
     this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.75, 0.2)
     this.composer.addPass(this.bloom)
+    const alfa = new ShaderPass(ALFA_POR_BRILHO)
+    alfa.renderToScreen = true
+    this.composer.addPass(alfa)
 
     this.redimensiona()
     this.desenha()

@@ -31,6 +31,11 @@ export function App() {
 
   return (
     <div className="app">
+      {/* Faixa de arrasto no topo inteiro da janela. Sem ela só a barra lateral
+          pegava, e mover a janela virava caça ao pixel certo. Fica acima de
+          tudo e nada interativo mora embaixo dela. */}
+      <div className="arrasto" />
+
       <aside className="rail">
         <div className="marca">
           <Emblema />

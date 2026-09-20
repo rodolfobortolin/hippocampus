@@ -172,6 +172,20 @@ export function dayReport(day: string) {
     hosts: all<any>(
       `select host as name, count(*) n from visits where day = ? and host <> '' group by host order by n desc limit 10`, day),
     visits: one<any>(`select count(*) n from visits where day = ?`, day)?.n ?? 0,
+    // Teclas, cliques e rolagem contados pelo sistema — sem permissão e sem
+    // guardar o que foi digitado. É o que separa escrever de ler.
+    entrada: one<any>(
+      `select coalesce(sum(keys),0) teclas, coalesce(sum(clicks),0) cliques,
+              coalesce(sum(scroll),0) rolagem from blocks where day = ?`, day),
+    entradaPorApp: all<any>(
+      `select app, sum(keys) teclas, sum(clicks) cliques, sum(scroll) rolagem
+         from blocks where day = ? and idle = 0
+        group by app having teclas + cliques + rolagem > 20
+        order by teclas + cliques desc limit 8`, day),
+    telas: all<any>(
+      `select tela as name, sum(seconds) seconds from blocks
+        where day = ? and idle = 0 and tela is not null
+        group by tela order by seconds desc`, day),
     aiTurns: all<any>(
       `select project, prompt, tools, ts from ai_turns where day = ? order by ts`, day),
     stored: one<any>(

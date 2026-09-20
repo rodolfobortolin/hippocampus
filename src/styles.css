@@ -79,9 +79,17 @@ input, textarea { font: inherit; color: inherit; }
 
 .app { position: relative; z-index: 2; display: grid; grid-template-columns: var(--rail) 1fr; height: 100%; }
 
+/* A faixa que move a janela. Cobre a largura toda, inclusive por cima do
+   conteúdo, então o recheio do topo precisa deixar essa altura livre. */
+.arrasto {
+  position: fixed; top: 0; left: 0; right: 0; height: 36px;
+  -webkit-app-region: drag;
+  z-index: 40;
+}
+
 .rail {
   display: flex; flex-direction: column; gap: 4px;
-  padding: 22px 14px; border-right: 1px solid var(--borda);
+  padding: 40px 14px 22px; border-right: 1px solid var(--borda);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent 40%);
   -webkit-app-region: drag;
 }
@@ -126,14 +134,14 @@ input, textarea { font: inherit; color: inherit; }
 .ponto.morno { background: var(--comunicacao); box-shadow: 0 0 8px var(--comunicacao); }
 @keyframes pulsa { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
 
-.tela { overflow-y: auto; padding: 26px 32px 40px; }
+.tela { overflow-y: auto; padding: 44px 32px 40px; }
 
 .topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
 .topo h2 { font-size: 27px; font-weight: 300; letter-spacing: -0.6px; }
 .topo h2 b { font-weight: 600; }
 .topo p { color: var(--texto-fraco); font-size: 12.5px; margin-top: 3px; }
 
-.navega { display: flex; gap: 6px; align-items: center; }
+.navega { display: flex; gap: 6px; align-items: center; -webkit-app-region: no-drag; }
 .navega button {
   padding: 7px 13px; border-radius: 9px; border: 1px solid var(--borda);
   background: var(--painel); color: var(--texto-medio); font-size: 12.5px;
@@ -224,15 +232,11 @@ input, textarea { font: inherit; color: inherit; }
 /* ---------- o núcleo ---------- */
 
 .nucleo { position: relative; flex: none; pointer-events: none; }
-/* Duas coisas escondem a moldura do canvas: mistura de tela, que apaga o
-   preto no fundo escuro, e uma máscara radial, que esmaece o que chega perto
-   da borda em vez de cortá-lo reto. */
-.nucleo canvas {
-  width: 100%; height: 100%; display: block;
-  mix-blend-mode: screen;
-  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 48%, transparent 80%);
-  mask-image: radial-gradient(circle at 50% 50%, #000 48%, transparent 80%);
-}
+/* O canvas já sai transparente: o último passe do shader tira o alfa do
+   brilho, então o escuro do composer não desenha nada. Sem mistura de tela,
+   que funcionava sobre painel escuro mas lavava a janela flutuante quando o
+   fundo atrás era claro. */
+.nucleo canvas { width: 100%; height: 100%; display: block; }
 .nucleo.grande { width: 260px; height: 260px; margin: 0 auto 6px; }
 .nucleo.pequeno { width: 34px; height: 34px; align-self: flex-end; margin-bottom: 1px; }
 
@@ -289,7 +293,8 @@ body[data-modo='solto']::after { display: none; }
   height: 100vh;
   display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
   padding: 4px 10px 12px;
-  -webkit-app-region: drag;   /* arrasta pela área vazia */
+  /* A janela inteira arrasta; só a esfera e a legenda respondem ao clique. */
+  -webkit-app-region: drag;
   user-select: none;
 }
 
@@ -308,15 +313,20 @@ body[data-modo='solto']::after { display: none; }
   -webkit-app-region: no-drag;
   max-height: 120px; overflow-y: auto;
 }
-.solto-legenda p {
-  font-size: 12.5px; line-height: 1.5; color: var(--texto-medio);
-  /* Sombra em vez de caixa: o texto fica legível sobre qualquer fundo sem
-     desenhar um retângulo por cima do que a pessoa está fazendo. */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.8);
+/* A janela flutua sobre qualquer coisa — código claro, foto, terminal escuro.
+   Só sombra não resolve: a legenda precisa do próprio fundo para ser legível
+   em todos eles, e o desfoque evita que ele pese na tela. */
+.solto-legenda {
+  background: rgba(10, 11, 14, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  padding: 9px 13px;
 }
+.solto-legenda p { font-size: 12.5px; line-height: 1.5; color: #dde3ec; }
 .solto-legenda b {
-  display: block; font-size: 11px; font-weight: 500; color: var(--texto-fraco);
-  margin-bottom: 5px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  display: block; font-size: 11px; font-weight: 500; color: #8d95a5; margin-bottom: 5px;
 }
 .solto-legenda.longa p { text-align: left; }
 .solto-legenda::-webkit-scrollbar { width: 0; }
@@ -328,7 +338,7 @@ body[data-modo='solto']::after { display: none; }
 .tela > * { max-width: 1440px; margin-left: auto; margin-right: auto; }
 
 @media (min-width: 1700px) {
-  .tela { padding: 34px 48px 56px; }
+  .tela { padding: 52px 48px 56px; }
   .g4 { grid-template-columns: repeat(4, 1fr); }
 .g5 { grid-template-columns: repeat(5, 1fr); }
 }
