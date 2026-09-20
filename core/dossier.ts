@@ -33,10 +33,10 @@ export const DOSSIER: Record<Language, Dossier> = {
   'pt-BR': {
     header: (d, a) => `Dia ${d}. Nas mãos dele: ${a}.`,
     delegated: (d, a) =>
-      `Trabalho delegated: ${d} em que um agente estava produzindo enquanto ele estava longe do ` +
+      `Trabalho delegado: ${d} em que um agente estava produzindo enquanto ele estava longe do ` +
       `teclado. Isso NÃO é ociosidade — é resultado que saiu sem ele na frente, e vale ser contado ` +
       `como parte do dia. Fora isso, ${a} de ausência de verdade.`,
-    idle: (o) => `Tempo idle: ${o}, sem agente trabalhando no meio.`,
+    idle: (o) => `Tempo parado: ${o}, sem agente trabalhando no meio.`,
     window: (i, f) => `Começou ${i}, parou ${f}.`,
     switches: (t, p) => `${t} trocas de aplicativo, das quais ${p} mudaram de projeto (só essas custam resíduo de atenção).`,
     focus: (f, a, p) => `Trabalho concentrado: ${f} de ${a} ativos (${p}%), em categorias de código, IA, escrita, design e pesquisa.`,
@@ -73,10 +73,10 @@ export const DOSSIER: Record<Language, Dossier> = {
   'es-ES': {
     header: (d, a) => `Día ${d}. De sus propias manos: ${a}.`,
     delegated: (d, a) =>
-      `Trabajo delegated: ${d} en los que un agente estaba produciendo mientras él estaba lejos del ` +
+      `Trabajo delegado: ${d} en los que un agente estaba produciendo mientras él estaba lejos del ` +
       `teclado. Eso NO es ociosidad — es resultado que salió sin él delante, y cuenta como parte del ` +
       `día. Aparte de eso, ${a} de ausencia real.`,
-    idle: (o) => `Tiempo idle: ${o}, sin ningún agente trabajando de por medio.`,
+    idle: (o) => `Tiempo detenido: ${o}, sin ningún agente trabajando de por medio.`,
     window: (i, f) => `Empezó ${i}, paró ${f}.`,
     switches: (t, p) => `${t} cambios de aplicación, de los cuales ${p} cambiaron de proyecto (solo esos dejan residuo de atención).`,
     focus: (f, a, p) => `Trabajo concentrado: ${f} de ${a} activos (${p}%), en categorías de código, IA, escritura, diseño e investigación.`,

@@ -43,9 +43,9 @@ test('no text in the core is empty or left with a placeholder', () => {
   for (const language of languages) {
     const who = PERSONAS[language]
     const texts = [
-      HOW_TO_WRITE[language], who.tom,
-      who.conversa('Someone', '2026-09-20', 'Sunday', '14:00', 4),
-      who.diario('Someone'), who.resumo('2026-09-20'), who.recap('2026-09-20'),
+      HOW_TO_WRITE[language], who.tone,
+      who.chat('Someone', '2026-09-20', 'Sunday', '14:00', 4),
+      who.journal('Someone'), who.summary('2026-09-20'), who.recap('2026-09-20'),
       ...Object.values(JEV_QUESTIONS[language]),
     ]
     for (const text of texts) {
@@ -55,10 +55,10 @@ test('no text in the core is empty or left with a placeholder', () => {
     // The vault heading is a heading, not prose — it gets its own check.
     assert.ok(VAULT_HEADING[language].trim(), `${language} has no vault heading`)
 
-    // %DADOS% is where the day's material goes in. Without it the model gets
+    // %DATA% is where the day's material goes in. Without it the model gets
     // the instruction and no data at all — and answers by inventing.
-    assert.ok(who.resumo('x').includes('%DADOS%'), `${language}'s summary lost its %DADOS%`)
-    assert.ok(who.recap('x').includes('%DADOS%'), `${language}'s recap lost its %DADOS%`)
+    assert.ok(who.summary('x').includes('%DATA%'), `${language}'s summary lost its %DATA%`)
+    assert.ok(who.recap('x').includes('%DATA%'), `${language}'s recap lost its %DATA%`)
   }
 })
 
@@ -70,5 +70,40 @@ test('the dossier speaks of delegated work in every language', () => {
     assert.ok(sentence.includes('1h20') && sentence.includes('0h30'),
       `${language}'s dossier does not use both numbers it is given`)
     assert.ok(sentence.length > 80, `${language}'s dossier shortened the delegated-work explanation`)
+  }
+})
+
+/**
+ * English words that a bulk rename left sitting inside the other languages.
+ *
+ * Renaming identifiers across the repository reaches into string literals too,
+ * and the damage is invisible: the app compiles, the screens render, and a
+ * Brazilian reads "Trabalho delegated" in his own journal. These are the exact
+ * words that leaked, so the next sweep cannot put them back quietly.
+ */
+const ENGLISH_LEAKS = [
+  'delegated', 'measured', 'window', 'idle:', 'screen', 'sound', 'playing',
+  'keys', 'clicks', 'from', 'day ', 'the ',
+]
+
+test('no English word is left sitting inside the other languages', async () => {
+  const { DOSSIER } = await import('../core/dossier.ts')
+  const { PERSONAS } = await import('../core/personas.ts')
+
+  for (const language of ['pt-BR', 'es-ES', 'fr-FR', 'de-DE'] as const) {
+    const sample = (value: unknown): string =>
+      typeof value === 'function' ? String((value as (...a: any[]) => string)('1', '2', '3', '4', '5'))
+      : typeof value === 'string' ? value : ''
+    const text = [
+      ...Object.values(DOSSIER[language] ?? {}).map(sample),
+      PERSONAS[language].tone,
+      PERSONAS[language].chat('Someone', '2026-09-20', 'Sunday', '14:00', 4),
+      PERSONAS[language].journal('Someone'),
+    ].join(' ').toLowerCase()
+
+    for (const word of ENGLISH_LEAKS) {
+      assert.ok(!text.includes(word),
+        `${language} contains the English "${word.trim()}" — a rename reached into its text`)
+    }
   }
 })
