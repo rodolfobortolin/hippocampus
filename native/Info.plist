@@ -10,9 +10,14 @@
   <key>CFBundleVersion</key><string>1.0</string>
   <key>CFBundleShortVersionString</key><string>1.0</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
-  <!-- Agente: não aparece no Dock nem no alternador de apps. -->
+  <!-- Agente: não aparece no Dock nem no alternador de apps.
+       Sem LSBackgroundOnly de propósito: app marcado como "somente segundo
+       plano" é tratado à parte pelo TCC e não segura bem a Acessibilidade.
+       LSUIElement sozinho é o que usam os utilitários de barra de menus que
+       precisam dessa permissão. -->
   <key>LSUIElement</key><true/>
-  <key>LSBackgroundOnly</key><true/>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>O Hipocampo pergunta ao sistema se algum microfone está em uso, para reconhecer uma chamada sem depender de identificar o app. Ele não grava áudio.</string>
   <key>NSAccessibilityUsageDescription</key>
   <string>O Hipocampo lê o título da janela em foco para saber em que você está trabalhando. Nada sai desta máquina.</string>
 </dict>

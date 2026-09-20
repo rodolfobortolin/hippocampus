@@ -87,9 +87,13 @@ coletor em Node a lançá-lo, quem apareceria na lista seria o `node`, e autoriz
 o `node` daria Acessibilidade a qualquer script Node da máquina. Lançado direto
 pelo `launchd`, ele responde por si mesmo e aparece como "Hipocampo Focus".
 
-Enquanto a assinatura for ad hoc, **recompilar o helper invalida a autorização**
-(o hash do código muda). É só rodar `npm run permissao` de novo. Com um
-Developer ID isso para de acontecer.
+O build usa o **Developer ID** do chaveiro quando existe, e isso não é sobre
+distribuição: a autorização fica amarrada à identidade do certificado, que não
+muda entre compilações. Com assinatura ad hoc ela fica amarrada ao hash do
+código, e aí cada `npm run build:native` derruba a permissão **em silêncio** —
+o interruptor continua ligado na tela enquanto o sistema nega por dentro. Sem
+Developer ID no chaveiro o build avisa e cai para ad hoc; `npm run permissao`
+reconcede quando isso acontecer.
 
 ## O que ele coleta
 

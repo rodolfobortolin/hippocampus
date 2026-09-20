@@ -172,6 +172,45 @@ func field(_ key: String, _ value: String?) -> String? {
     return "\"\(key)\":\"\(escape(value))\""
 }
 
+/// Gancho de depuração: se o arquivo-marca existir, despeja a árvore de
+/// acessibilidade do app em foco e apaga a marca. Serve para descobrir onde um
+/// app guarda o que interessa sem ficar recompilando às cegas — e só o helper
+/// consegue fazer isso, porque só ele tem a permissão.
+func despejaArvoreSePedido(_ janela: AXUIElement, app: String) {
+    let marca = "/tmp/hipocampo-arvore"
+    guard FileManager.default.fileExists(atPath: marca) else { return }
+    try? FileManager.default.removeItem(atPath: marca)
+
+    var linhas: [String] = ["APP: \(app)"]
+    var fila: [(AXUIElement, Int)] = [(janela, 0)]
+    var vistos = 0
+
+    while !fila.isEmpty, vistos < 900 {
+        let (elemento, nivel) = fila.removeFirst()
+        vistos += 1
+        if nivel > 12 { continue }
+
+        let papel = stringAttribute(elemento, kAXRoleAttribute as String) ?? "?"
+        let titulo = stringAttribute(elemento, kAXTitleAttribute as String) ?? ""
+        let descricao = stringAttribute(elemento, kAXDescriptionAttribute as String) ?? ""
+        let valor = stringAttribute(elemento, kAXValueAttribute as String) ?? ""
+        let selecionado = (attribute(elemento, kAXSelectedAttribute as String) as? Bool) == true
+
+        if !titulo.isEmpty || !descricao.isEmpty || !valor.isEmpty || selecionado {
+            let recuo = String(repeating: "  ", count: nivel)
+            linhas.append("\(recuo)\(papel)\(selecionado ? " [SELECIONADO]" : "")"
+                + " | t=\(titulo.prefix(70)) | d=\(descricao.prefix(70)) | v=\(valor.prefix(70))")
+        }
+
+        if let filhos = attribute(elemento, kAXChildrenAttribute as String) as? [AXUIElement] {
+            for filho in filhos.prefix(60) { fila.append((filho, nivel + 1)) }
+        }
+    }
+
+    try? linhas.joined(separator: "\n").write(
+        toFile: "/tmp/hipocampo-arvore.txt", atomically: true, encoding: .utf8)
+}
+
 let formatter = ISO8601DateFormatter()
 formatter.formatOptions = [.withInternetDateTime]
 
@@ -201,6 +240,7 @@ func sample() {
                 window = windows.first
             }
             if let window {
+                despejaArvoreSePedido(window, app: app.localizedName ?? "?")
                 if let title = field("title", stringAttribute(window, kAXTitleAttribute as String)) {
                     parts.append(title)
                 }
