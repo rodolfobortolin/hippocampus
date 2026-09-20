@@ -234,21 +234,21 @@ export function serve(collector?: Collector): http.Server {
     socket.on('message', async (raw) => {
       let payload: any
       try { payload = JSON.parse(String(raw)) } catch { return }
-      if (payload.tipo !== 'pergunta' || !payload.text) return
+      if (payload.type !== 'question' || !payload.text) return
 
       const send = (event: unknown) => socket.readyState === socket.OPEN && socket.send(JSON.stringify(event))
-      send({ tipo: 'pensando' })
+      send({ type: 'thinking' })
       try {
         for await (const event of chat(String(payload.text), session)) {
-          if (event.type === 'modelo') send({ tipo: 'modelo', modelo: event.modelo, level: event.level })
-          else if (event.type === 'delta') send({ tipo: 'delta', text: event.text })
-          else if (event.type === 'end') send({ tipo: 'end', text: event.text })
-          else if (event.type === 'text') send({ tipo: 'text', text: event.text })
-          else if (event.type === 'ferramenta') send({ tipo: 'ferramenta', name: event.name })
-          else send({ tipo: 'erro', erro: event.erro })
+          if (event.type === 'model') send({ type: 'model', model: event.model, level: event.level })
+          else if (event.type === 'delta') send({ type: 'delta', text: event.text })
+          else if (event.type === 'end') send({ type: 'end', text: event.text })
+          else if (event.type === 'text') send({ type: 'text', text: event.text })
+          else if (event.type === 'tool') send({ type: 'tool', name: event.name })
+          else send({ type: 'error', error: event.error })
         }
       } catch (error) {
-        send({ tipo: 'erro', erro: (error as Error).message })
+        send({ type: 'error', error: (error as Error).message })
       }
     })
   })
@@ -262,7 +262,7 @@ export function serve(collector?: Collector): http.Server {
   return server
 }
 
-/** Liga o coletor ao servidor já no ar, para o /api/status enxergar o estado. */
+/** Attaches the collector to the already-running server, so /api/status can see it. */
 export function attachCollector(collector: Collector): void {
   attached = collector
 }

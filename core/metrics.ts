@@ -9,20 +9,21 @@ export type TimelineBlock = {
   delegado: boolean
 }
 
-// A key do rótulo normaliza dígitos, então a junção com o jev acontece em JS,
-// pelo mesmo normalizador que gravou o rótulo.
+// The label's key normalises digits, so the join with jev happens in JS, by
+// the same normaliser that wrote the label.
 import { labelKey, cachedLabel } from './jev.ts'
 
 /**
  * Categorias onde trabalho concentrado acontece.
  *
- * O focus é definido aqui, em código, e não pela probabilidade `deep_work` do
+ * Focus is defined here, in code, and not by jev's `deep_work` probability.
  * jev. Medindo de verdade, aquela probabilidade fica espremida entre 0,34 e
- * 0,67 — até "código" tira 0,65 — porque o título de uma janela não basta para
- * julgar concentração, e o modelo responde com a incerteza que realmente tem.
- * Usar a méday dela como "% de focus" seria apresentar méday de probabilidade
- * como fração de tempo, que é coisa diferente. A categoria, essa o jev acerta
- * com confiança alta, e a regra abaixo é legível e discutível.
+ * That probability sits around 0.67 — even "code" scores 0.65 — because a
+ * window title is not enough to judge concentration, and the model answers
+ * with the uncertainty it genuinely has. Using its average as "% focus" would
+ * present an average of probabilities as a fraction of time, which is a
+ * different thing. The category, though, jev gets right with high confidence,
+ * and the rule below is readable and arguable.
  */
 const FOCUS_CATEGORIES = new Set(['code', 'ai', 'writing', 'design', 'research'])
 
@@ -36,9 +37,10 @@ function labelOf(row: { app: string | null; title: string | null; host: string |
 /**
  * Os minutes em que um agente estava trabalhando naquele day.
  *
- * Serve para separar duas coisas que o relógio confunde: tempo parado porque
- * você saiu, e tempo parado porque você delegou. Quem trabalha com agents
- * produz muito fora do teclado, e chamar isso de ociosidade é medir errado.
+ * This separates two things the clock confuses: time at a standstill because
+ * you left, and time at a standstill because you delegated. Whoever works with
+ * agents produces plenty away from the keyboard, and calling that idleness is
+ * measuring it wrong.
  */
 function agentMinutes(day: string): Set<number> {
   return new Set(
@@ -94,9 +96,9 @@ export function dayReport(day: string) {
   }
 
   // Trocas de app: quantas vezes o focus mudou de aplicativo ao longo do day.
-  // O first block não é uma troca — começar a trabalhar não é trocar.
-  // Além do total, separa a troca barata (mesmo project) da cara (muda o project),
-  // que é a única que corresponde ao resíduo de atenção.
+  // The first block is not a switch — starting work is not switching. Beyond
+  // the total, this separates the cheap switch (same project) from the costly
+  // one (changes project), which is the only one that maps to attention residue.
   let switches = 0
   let switchesProject = 0
   let previous: string | null = null
@@ -111,7 +113,7 @@ export function dayReport(day: string) {
     previousProject = project
   }
 
-  // A fita do day: blocks curtos viram ruído, então some neighbours do mesmo app.
+  // The day's ribbon: short blocks become noise, so neighbours of the same app merge.
   const timeline: TimelineBlock[] = []
   for (const block of blocks) {
     const label = block.idle ? null : labelOf(block)
@@ -123,7 +125,7 @@ export function dayReport(day: string) {
     timeline.push({
       start: block.started_at, end: block.ended_at, app: block.app, title: block.title,
       category: label?.category ?? null, idle: block.idle, focus: label?.deep_work ?? null,
-      // Faixa ociosa com agente ativo se desenha diferente: não é buraco no day.
+      // An idle stretch with an agent working is drawn differently: it is not a hole in the day.
       delegado: block.idle
         ? delegatedSeconds(block.started_at, block.ended_at, agents) > (block.seconds * 0.4)
         : false,
@@ -140,7 +142,7 @@ export function dayReport(day: string) {
   return {
     day,
     sessions,
-    forma: focusShape(sessions),
+    focusShape: focusShape(sessions),
     activeSeconds,
     idleSeconds,
     delegatedSeconds: delegated,
@@ -158,8 +160,9 @@ export function dayReport(day: string) {
     windows: [...windows].map(([key, value]) => ({
       title: key.split('|').slice(1).join('|'), app: value.app, seconds: value.seconds,
     })).sort((a, b) => b.seconds - a.seconds).slice(0, 12),
-    // Abaixo de 20s o trecho não chega a um pixel na fita; some do desenho,
-    // mas a contagem fica visível para o day não parecer mais limpo do que foi.
+    // Under 20s a stretch does not reach a pixel on the ribbon; it drops out of
+    // the drawing, but the count stays visible so the day never looks tidier
+    // than it was.
     timeline: timeline.filter((b) => b.end - b.start >= 20),
     timelineOcultos: timeline.filter((b) => b.end - b.start < 20).length,
     shortcuts: all<any>(
@@ -172,7 +175,7 @@ export function dayReport(day: string) {
     hosts: all<any>(
       `select host as name, count(*) n from visits where day = ? and host <> '' group by host order by n desc limit 10`, day),
     visits: one<any>(`select count(*) n from visits where day = ?`, day)?.n ?? 0,
-    // Teclas, cliques e rolagem contados pelo sistema — sem permissão e sem
+    // Keys, clicks and scroll as the system counts them — no permission and no
     // guardar o que foi digitado. É o que separa escrever de ler.
     entry: one<any>(
       `select coalesce(sum(keys),0) teclas, coalesce(sum(clicks),0) cliques,
@@ -182,8 +185,9 @@ export function dayReport(day: string) {
          from blocks where day = ? and idle = 0
         group by app having teclas + cliques + rolagem > 20
         order by teclas + cliques desc limit 8`, day),
-    // Som tocando com microfone parado é míday; com microfone ativo é chamada.
-    // O microfone da escuta própria já foi descontado na coleta.
+    // Sound playing with the microphone idle is media; with the microphone
+    // active it is a call. Our own listener's microphone was already discounted
+    // at collection time.
     trilha: one<any>(
       `select coalesce(sum(case when som = 1 and mic = 0 then seconds else 0 end), 0) segundos,
               coalesce(sum(case when mic = 1 then seconds else 0 end), 0) emChamada
@@ -205,7 +209,7 @@ export function dayReport(day: string) {
 
 export type DayReport = ReturnType<typeof dayReport>
 
-/** Totais por day num intervalo, para tendência e listagem. */
+/** Totals per day over a range, for the trend and the listing. */
 export function rangeReport(from: string, to: string) {
   const days = all<any>(
     `select day,
@@ -236,7 +240,7 @@ export function heatmap(from: string, to: string) {
   return grid
 }
 
-/** Projetos conhecidos: repositórios do disco mais o que o Claude Code tocou. */
+/** Known projects: repositories on disk plus whatever Claude Code touched. */
 export function knownProjects(): string[] {
   const fromAi = all<any>(
     `select project, count(*) n from ai_turns where project is not null group by project order by n desc limit 20`)
@@ -260,7 +264,7 @@ export function overview() {
   return { day, counts, span, dayStartHour: config.dayStartHour }
 }
 
-/** Agregado de um intervalo inteiro: onde o tempo foi na semana, no mês. */
+/** A whole range aggregated: where the time went over a week, over a month. */
 export function periodSummary(from: string, to: string) {
   const blocks = all<any>(
     `select app, title, host, seconds from blocks where day between ? and ? and idle = 0`, from, to)
@@ -301,26 +305,26 @@ export function periodSummary(from: string, to: string) {
       `select coalesce(sum(chars),0) chars, count(*) samples from typing where day between ? and ?`, from, to),
     commits: one<any>(`select count(*) n from commits where day between ? and ?`, from, to)?.n ?? 0,
     aiTurns: one<any>(`select count(*) n from ai_turns where day between ? and ?`, from, to)?.n ?? 0,
-    // Trabalho de agente por name: a máquina usa Claude Code e Codex, e somar
-    // os dois num rótulo só ("pedidos ao Claude Code") conta mentira.
+    // Agent work by name: this machine uses both Claude Code and Codex, and
+    // adding them under one label ("Claude Code requests") tells a lie.
     agents: all<any>(
       `select agent as name, count(*) as minutes from agent_minutes
         where day between ? and ? group by agent order by minutes desc`, from, to),
   }
 }
 
-export type Sessao = { start: number; end: number; minutes: number }
+export type Session = { start: number; end: number; minutes: number }
 
 /**
- * Sessão de focus: trecho em que o trabalho concentrado se sustentou.
+ * A focus session: the stretch where concentrated work held together.
  *
  * O day vira minutes; um minute conta como focus when o block que o cobre cai
  * numa categoria de trabalho concentrado. Uma janela deslizante de 15 minutes
- * precisa de 75% desses minutes para valer, e uma quebra menor que 2 minutes não
- * encerra a sessão. Os limiares são convenção — o que importa é que fiquem
- * congelados, porque o número só serve para comparar você com você.
+ * needs 75% of those minutes to count, and a break shorter than 2 minutes does
+ * not end the session. The thresholds are a convention — what matters is that
+ * they stay frozen, because the number is only for comparing you with you.
  */
-export function focusSessions(day: string): Sessao[] {
+export function focusSessions(day: string): Session[] {
   const blocks = all<any>(
     `select started_at, ended_at, app, title, host from blocks
       where day = ? and idle = 0 order by started_at`, day)
@@ -351,7 +355,7 @@ export function focusSessions(day: string): Sessao[] {
     }
   }
 
-  const sessions: Sessao[] = []
+  const sessions: Session[] = []
   let start = -1
   for (let m = 0; m <= total; m++) {
     const inside = m < total && dense[m] === 1
@@ -360,7 +364,7 @@ export function focusSessions(day: string): Sessao[] {
       const previous = sessions[sessions.length - 1]
       const realStart = (first + start) * 60
       const realEnd = (first + m) * 60
-      // Quebra curta demais não separa duas sessões: é respirar, não parar.
+      // A break too short does not separate two sessions: it is breathing, not stopping.
       if (previous && realStart - previous.end < 120) {
         previous.end = realEnd
         previous.minutes = Math.round((previous.end - previous.start) / 60)
@@ -378,8 +382,8 @@ const BANDS: [string, number, number][] = [
   ['50–90', 50, 90], ['90+', 90, Infinity],
 ]
 
-/** A forma do focus do day: quantos minutes vieram de sessões de cada size. */
-export function focusShape(sessions: Sessao[]) {
+/** The shape of the day's focus: how many minutes came from sessions of each length. */
+export function focusShape(sessions: Session[]) {
   const bands = BANDS.map(([name, de, to]) => {
     const inside = sessions.filter((s) => s.minutes >= de && s.minutes < to)
     return { name: name, minutes: inside.reduce((sum, s) => sum + s.minutes, 0), n: inside.length }
@@ -388,9 +392,9 @@ export function focusShape(sessions: Sessao[]) {
   return {
     bands,
     total: durations.reduce((sum, m) => sum + m, 0),
-    maior: durations[durations.length - 1] ?? 0,
-    // Mediana, não méday: a cauda de sessões longas puxaria a méday para cima.
-    mediana: durations.length ? durations[Math.floor(durations.length / 2)] : 0,
+    longest: durations[durations.length - 1] ?? 0,
+    // Median, not mean: the tail of long sessions would drag the mean upwards.
+    median: durations.length ? durations[Math.floor(durations.length / 2)] : 0,
     sessions: durations.length,
   }
 }
@@ -398,8 +402,9 @@ export function focusShape(sessions: Sessao[]) {
 /**
  * O que aconteceu nesta mesma data, before.
  *
- * É o recurso que mais segura gente em diário — voltar e reconhecer o próprio
- * passado. Aqui ele é de graça: o dado já está no banco, só faltava perguntar.
+ * This is the feature that keeps people in a journal more than any other —
+ * coming back and recognising your own past. Here it is free: the data is
+ * already in the database, it only had to be asked for.
  */
 export function onThisDay(day: string) {
   const [year, month, dayOfMonth] = day.split('-').map(Number)

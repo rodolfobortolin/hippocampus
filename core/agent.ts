@@ -6,7 +6,7 @@ import { config, today, dayOf } from './config.ts'
 import { all } from './db.ts'
 import { dayReport, rangeReport, heatmap, onThisDay } from './metrics.ts'
 import { dossier } from './rollup.ts'
-import { searchEpisodes, lastTime, type Episodio } from './episodes.ts'
+import { searchEpisodes, lastTime, type Episode } from './episodes.ts'
 import { pickModel } from './jev.ts'
 
 const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.round((seconds % 3600) / 60)).padStart(2, '0')}`
@@ -21,7 +21,7 @@ const range = { de: z.string().describe('AAAA-MM-DD'), to: z.string().describe('
 const when = (ts: number) =>
   new Date(ts * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
-function describe(episodio: Episodio, detalhado = false): string {
+function describe(episodio: Episode, detalhado = false): string {
   const list = (raw: string) => JSON.parse(raw) as string[]
   const lines = [
     `${when(episodio.started_at)} · ${episodio.minutes}min · ` +
@@ -46,7 +46,7 @@ function describe(episodio: Episodio, detalhado = false): string {
 const tools = [
   {
     name: 'procurar',
-    description: 'Procura MOMENTOS por text em tudo que foi measured — título de janela, site, project, commit, comando e o que foi request ao Claude Code. Use sempre que a pergunta for sobre "when eu…", "onde eu vi…", "aquele day que…".',
+    description: 'Searches MOMENTS by text across everything measured — window title, site, project, commit, command and what was asked of Claude Code. Use it whenever the question is about "when did I…", "where did I see…", "that day when…".',
     inputSchema: { termo: z.string().describe('palavras livres, em linguagem natural'), limite: z.number().optional() },
     handler: async ({ termo, limite }: { termo: string; limite?: number }) => {
       const found = searchEpisodes(termo, Math.min(limite ?? 10, 25))
@@ -56,7 +56,7 @@ const tools = [
   },
   {
     name: 'ultima_vez',
-    description: 'A última vez que a pessoa mexeu em algo (um project, file, site, assunto), com o que estava acontecendo em volta. Use para retomar contexto: "onde eu parei no X", "o que eu estava fazendo when mexi nisso".',
+    description: 'The last time the person touched something (a project, a file, a site, a subject), with what was happening around it. Use it to pick context back up: "where did I leave off on X", "what was I doing when I touched this".',
     inputSchema: { termo: z.string() },
     handler: async ({ termo }: { termo: string }) => {
       const found = lastTime(termo)
@@ -78,7 +78,7 @@ const tools = [
     inputSchema: { data: z.string().describe('AAAA-MM-DD; use "hoje" para o day corrente') },
     handler: async ({ data }: { data: string }) => {
       const before = onThisDay(data === 'hoje' ? today() : data)
-      if (!before.length) return say('Ainda não há nenhuma data previous medida para comparar.')
+      if (!before.length) return say('There is no earlier measured date to compare against yet.')
       return say(before.map((entry) =>
         `${entry.label} (${entry.day}): ${hours(entry.active)} ativo` +
         (entry.topApp ? `, mais em ${entry.topApp}` : '') +
@@ -89,17 +89,17 @@ const tools = [
   },
   {
     name: 'day',
-    description: 'O que foi measured num day. Por padrão vem o resumo — tempo ativo, focus, sessões, trocas, tempo por app, categoria e project —, que responde quase tudo. Peça detalhe só when precisar de janelas, commits, sites, pedidos a agents e amostras de escrita.',
+    description: 'What was measured on a day. By default it returns the summary — active time, focus, sessions, switches, time per app, per category and per project — which answers almost everything. Ask for detail only when you need windows, commits, sites, agent requests and writing samples.',
     inputSchema: {
       data: z.string().describe('AAAA-MM-DD; use "hoje" para o day corrente'),
-      detalhe: z.boolean().optional().describe('true traz o day inteiro; custa mais e raramente é preciso'),
+      detail: z.boolean().optional().describe('true returns the whole day; it costs more and is rarely needed'),
     },
     handler: async ({ data, detalhe }: { data: string; detalhe?: boolean }) =>
       say(dossier(data === 'hoje' ? today() : data, detalhe ? 'completo' : 'resumo')),
   },
   {
     name: 'periodo',
-    description: 'Tempo ativo e focus por day num intervalo. Use para tendência, semana, mês e comparação entre days.',
+    description: 'Active time and focus per day over a range. Use it for trends, a week, a month, and comparisons between days.',
     inputSchema: range,
     handler: async ({ de, to }: { de: string; to: string }) => {
       const rows = rangeReport(de, to)
@@ -111,11 +111,11 @@ const tools = [
   },
   {
     name: 'ritmo',
-    description: 'Mapa hora × day da semana com os segundos ativos — mostra em que horários a pessoa trabalha.',
+    description: 'An hour × weekday map of active seconds — shows what times of day the person works.',
     inputSchema: range,
     handler: async ({ de, to }: { de: string; to: string }) => {
       const grid = heatmap(de, to)
-      const names = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+      const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
       return say(grid.map((row, day) => {
         const busy = row.map((seconds, hour) => ({ hour, seconds })).filter((h) => h.seconds > 120)
         if (!busy.length) return `${names[day]}: —`
@@ -125,7 +125,7 @@ const tools = [
   },
   {
     name: 'buscar_janelas',
-    description: 'Procura por título de janela ou name de app e sum o tempo. Use para "quanto tempo gastei no X".',
+    description: 'Searches by window title or app name and adds up the time. Use it for "how long did I spend on X".',
     inputSchema: { termo: z.string(), de: z.string().optional(), to: z.string().optional() },
     handler: async ({ termo, de, to }: { termo: string; de?: string; to?: string }) => {
       const rows = all<any>(
@@ -143,7 +143,7 @@ const tools = [
   },
   {
     name: 'sites',
-    description: 'Sites mais visitados no período, pelo histórico do navegador.',
+    description: 'Most visited sites in the period, from the browser history.',
     inputSchema: range,
     handler: async ({ de, to }: { de: string; to: string }) => say(
       all<any>(`select host, count(*) n from visits where day between ? and ? and host <> ''
@@ -152,7 +152,7 @@ const tools = [
   },
   {
     name: 'pedidos_ia',
-    description: 'O que a pessoa pediu ao Claude Code no período, com as ferramentas que ele usou. Revela no que ela estava trabalhando de verdade.',
+    description: 'What the person asked Claude Code during the period, with the tools it used. It reveals what they were actually working on.',
     inputSchema: { de: z.string(), to: z.string(), termo: z.string().optional() },
     handler: async ({ de, to, termo }: { de: string; to: string; termo?: string }) => {
       const rows = all<any>(
@@ -165,7 +165,7 @@ const tools = [
   },
   {
     name: 'commits',
-    description: 'Commits feitos no período, por repositório.',
+    description: 'Commits made in the period, by repository.',
     inputSchema: range,
     handler: async ({ de, to }: { de: string; to: string }) => say(
       all<any>(`select day, repo, subject, insertions, deletions from commits
@@ -175,7 +175,7 @@ const tools = [
   },
   {
     name: 'escrita',
-    description: 'Amostras do que a pessoa digitou (já sem segredos) e o volume por app. Use para falar do estilo de escrita.',
+    description: 'Samples of what the person typed (already stripped of secrets) and the volume per app. Use it to talk about writing style.',
     inputSchema: range,
     handler: async ({ de, to }: { de: string; to: string }) => {
       const volume = all<any>(
@@ -191,7 +191,7 @@ const tools = [
   },
   {
     name: 'atalhos',
-    description: 'Atalhos de teclado mais usados no período.',
+    description: 'Most used keyboard shortcuts in the period.',
     inputSchema: range,
     handler: async ({ de, to }: { de: string; to: string }) => say(
       all<any>(`select detail, app, count(*) n from events where kind = 'shortcut' and day between ? and ?
@@ -201,12 +201,12 @@ const tools = [
 ]
 
 const server = createSdkMcpServer({
-  name: 'hipocampo',
+  name: 'hippocampus',
   version: '1.0.0',
   tools: tools as any,
   // Sem isto o SDK adia as ferramentas e o modelo gasta uma ida e volta
-  // inteira só para descobrir que elas existem — measured em 4,1s before de
-  // chegar na primeira lookup de verdade. São dez ferramentas pequenas;
+  // whole round trip just to find out they exist — measured at 4.1s before it
+  // reached the first real lookup. They are ten small tools;
   // cabem no prompt sem drama.
   alwaysLoad: true,
 })
@@ -232,30 +232,30 @@ function persona(): string {
 }
 
 export type AgentEvent =
-  | { type: 'modelo'; modelo: string; level: number }
+  | { type: 'model'; model: string; level: number }
   | { type: 'delta'; text: string }
   | { type: 'text'; text: string }
-  | { type: 'ferramenta'; name: string }
+  | { type: 'tool'; name: string }
   | { type: 'end'; text: string }
-  | { type: 'erro'; erro: string }
+  | { type: 'error'; error: string }
 
 /** Conversa com o Claude Code, com as ferramentas do banco local. */
 export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<AgentEvent> {
-  // Um modelo à altura do request: o jev julga a complexidade before de começar.
-  // Com HIPOCAMPO_MODEL definido, a escolha é sua e o roteamento sai do path.
+  // A model that fits the request: jev judges the complexity before it starts.
+  // With HIPPOCAMPUS_MODEL set, the choice is yours and the routing steps aside.
   const route = config.claudeModel ? null : await pickModel(prompt)
-  if (route) yield { type: 'modelo', modelo: route.modelo, level: route.level }
+  if (route) yield { type: 'model', model: route.model, level: route.level }
 
   const run = query({
     prompt,
     options: {
       cwd: config.dataDir,
-      ...(config.claudeModel ? { model: config.claudeModel } : route ? { model: route.modelo } : {}),
+      ...(config.claudeModel ? { model: config.claudeModel } : route ? { model: route.model } : {}),
       ...(sessionId ? { resume: sessionId } : {}),
       permissionMode: 'bypassPermissions',
-      // Sem isto a response só aparece when o block inteiro termina. Medido
+      // Without this the answer only shows up when the whole block finishes. Measured
       // numa pergunta trivial: a primeira letra existe aos 3s e o block close
-      // aos 6,4s — metade da espera era só esperar.
+      // at 6.4s — half the wait was just waiting.
       includePartialMessages: true,
       systemPrompt: { type: 'preset', preset: 'claude_code', append: persona() },
       mcpServers: { hipocampo: server },
@@ -267,8 +267,8 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
   let final = ''
   try {
     for await (const message of run as any) {
-      // O text chega em pedaços; o block completo que vem after repetiria
-      // tudo, então dele só interessa o uso de ferramenta.
+      // The text arrives in pieces; the complete block that follows would
+      // repeat all of it, so only its tool use matters.
       if (message.type === 'stream_event') {
         const delta = message.event?.delta
         if (delta?.type === 'text_delta' && delta.text) {
@@ -281,20 +281,20 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
         for (const block of message.message?.content ?? []) {
           if (block.type === 'tool_use') {
             const name = String(block.name)
-            // Ferramenta interna do SDK (busca de esquema) não é lookup ao
+            // The SDK's internal tool (schema lookup) is not a query against the
             // banco; o painel mostra "pensando" em vez de um name sem sentido.
-            yield { type: 'ferramenta', name: name.startsWith('mcp__hipocampo__')
-              ? name.replace('mcp__hipocampo__', '') : '' }
+            yield { type: 'tool', name: name.startsWith('mcp__hippocampus__')
+              ? name.replace('mcp__hippocampus__', '') : '' }
           }
         }
       }
       if (message.type === 'result') {
         final = message.subtype === 'success' ? message.result ?? '' : ''
-        if (message.subtype !== 'success') yield { type: 'erro', erro: 'O Claude Code não concluiu a response.' }
+        if (message.subtype !== 'success') yield { type: 'error', error: 'Claude Code did not finish the answer.' }
       }
     }
   } catch (error) {
-    yield { type: 'erro', erro: (error as Error).message }
+    yield { type: 'error', error: (error as Error).message }
     return
   }
   yield { type: 'end', text: final }

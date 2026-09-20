@@ -90,7 +90,7 @@ export async function harvestCodexSessions(): Promise<{ turns: number; minutes: 
         markMinute.run(Math.floor(ts / 60), dayOf(ts), project)
         minutes++
 
-        // A message de papel `user` é o request humano; `developer` é o sistema.
+        // A message with role `user` is the human request; `developer` is the system.
         if (payload.type === 'message' && payload.role === 'user') {
           const request = redact(textOf(payload.content).replace(/\s+/g, ' ').trim())
           if (request) {

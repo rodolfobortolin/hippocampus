@@ -32,9 +32,9 @@ export function dossier(day: string, level: 'resumo' | 'completo' = 'completo'):
     d.window(clock(report.firstAt), clock(report.lastAt)),
     d.switches(report.switches, report.switchesProject),
     d.focus(hours(report.focusSeconds), hours(report.activeSeconds), Math.round(report.focusRatio * 100)),
-    report.forma.sessions
-      ? d.sessions(report.forma.sessions, report.forma.maior, report.forma.mediana,
-          report.forma.bands.filter((f) => f.minutes).map((f) => `${f.name}min → ${f.minutes}min`).join(', '))
+    report.focusShape.sessions
+      ? d.sessions(report.focusShape.sessions, report.focusShape.longest, report.focusShape.median,
+          report.focusShape.bands.filter((f) => f.minutes).map((f) => `${f.name}min → ${f.minutes}min`).join(', '))
       : d.noSession,
     '',
     d.byApp,
@@ -122,11 +122,11 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
   let vaultFile: string | null = null
   if (narrative) {
     const body = [
-      `**${hours(report.activeSeconds)} nas suas mãos**` +
+      `**${hours(report.activeSeconds)} from your own hands**` +
       (report.delegatedSeconds > 300 ? ` · ${hours(report.delegatedSeconds)} delegado a agents` : '') +
       ` · ${clock(report.firstAt)}–${clock(report.lastAt)} · ` +
-      `${hours(report.focusSeconds)} concentrado em ${report.forma.sessions} sessões ` +
-      `(maior ${report.forma.maior}min) · ${report.switches} trocas, ${report.switchesProject} de project`,
+      `${hours(report.focusSeconds)} focused across ${report.focusShape.sessions} sessions ` +
+      `(maior ${report.focusShape.longest}min) · ${report.switches} trocas, ${report.switchesProject} de project`,
       '',
       narrative,
       '',
@@ -143,7 +143,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const day = arg ?? dayOf(Date.now() / 1000 - 86_400)
   const narrate = !process.argv.includes('--sem-narrativa')
   rollup(day, { narrate }).then((result) => {
-    console.log(`day ${result.day}: ${result.classified} janelas classificadas, ${result.episodes} episódios`)
+    console.log(`day ${result.day}: ${result.classified} windows classified, ${result.episodes} episodes`)
     if (result.narrative) console.log('\n' + result.narrative)
     if (result.recap) console.log('\n' + result.recap)
     if (result.vaultFile) console.log('\nvault:', result.vaultFile)

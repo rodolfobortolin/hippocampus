@@ -159,9 +159,9 @@ const LADDER = [
 ] as const
 
 
-export type Roteamento = { modelo: string; level: number; confidence: number }
+export type Routing = { model: string; level: number; confidence: number }
 
-export async function pickModel(request: string): Promise<Roteamento | null> {
+export async function pickModel(request: string): Promise<Routing | null> {
   if (!jevReady()) return null
 
   try {
@@ -191,7 +191,7 @@ export async function pickModel(request: string): Promise<Roteamento | null> {
     // When in doubt, go one step up: erring stronger costs time; erring
     // weaker costs a bad answer, which is worse.
     const adjusted = confidence < 0.5 ? Math.min(2, level + 1) : level
-    return { modelo: LADDER[Math.max(0, Math.min(2, adjusted))], level: adjusted, confidence }
+    return { model: LADDER[Math.max(0, Math.min(2, adjusted))], level: adjusted, confidence }
   } catch {
     return null
   }

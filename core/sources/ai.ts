@@ -46,7 +46,7 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
   for (const entry of await fs.readdir(root, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
     const dir = path.join(root, entry.name)
-    // O name da pasta é o path do project com as barras trocadas por hífen.
+    // The folder's name is the project path with slashes swapped for hyphens.
     const project = entry.name.split('-').filter(Boolean).pop() ?? entry.name
 
     for (const name of await fs.readdir(dir)) {

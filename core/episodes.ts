@@ -131,19 +131,19 @@ export function buildAllEpisodes(): { day: string; episodes: number }[] {
     .filter((r) => r.episodes > 0)
 }
 
-export type Episodio = {
+export type Episode = {
   id: number; started_at: number; ended_at: number; minutes: number; day: string
   project: string | null; category: string | null
   apps: string; titles: string; hosts: string; commits: string; prompts: string; shell: string
 }
 
 /** Full-text search over episodes, newest first. */
-export function searchEpisodes(termo: string, limite = 12): Episodio[] {
+export function searchEpisodes(termo: string, limite = 12): Episode[] {
   // Doubled quotes become a literal: people write in plain language.
   const lookup = termo.replace(/["']/g, ' ').trim().split(/\s+/)
     .filter(Boolean).map((palavra) => `"${palavra}"`).join(' OR ')
   if (!lookup) return []
-  return all<Episodio>(
+  return all<Episode>(
     `select e.* from busca b join episodes e on e.id = b.episode_id
       where busca match ? order by bm25(busca), e.started_at desc limit ?`,
     lookup, limite)
@@ -154,7 +154,7 @@ export function lastTime(termo: string) {
   const found = searchEpisodes(termo, 40)
   if (!found.length) return null
   const target = found.reduce((a, b) => (b.started_at > a.started_at ? b : a))
-  const neighbours = all<Episodio>(
+  const neighbours = all<Episode>(
     `select * from episodes where started_at between ? and ? and id <> ? order by started_at`,
     target.started_at - 7200, target.ended_at + 7200, target.id)
   return { target, neighbours, day: dayOf(target.started_at) }
