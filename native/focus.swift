@@ -122,6 +122,75 @@ func escutaPropriaAtiva() -> Bool {
     return Date().timeIntervalSince(modificado) < 90
 }
 
+/// Sites que são fonte de música ou vídeo. Serve para escolher, entre as abas
+/// abertas, qual é a que provavelmente está tocando.
+/// Em dois níveis porque o navegador não diz qual aba tem áudio: com YouTube
+/// e um serviço de música abertos ao mesmo tempo, a aposta certa é a música.
+let SITES_DE_MUSICA = [
+    "flowmusic.app", "open.spotify.com", "music.youtube.com", "soundcloud.com",
+    "deezer.com", "tidal.com", "music.apple.com", "bandcamp.com",
+]
+let SITES_DE_VIDEO = ["youtube.com", "twitch.tv", "netflix.com", "vimeo.com"]
+
+/// Pergunta ao app o que está tocando. Exige permissão de Automação.
+///
+/// Só roda quando há som de fato e quando o app está aberto: `osascript` contra
+/// um app fechado pode travar por minutos, e travar a amostragem por causa de
+/// um nome de faixa seria um péssimo negócio.
+func consultaPorAppleScript(_ script: String) -> String? {
+    var erro: NSDictionary?
+    guard let resultado = NSAppleScript(source: script)?.executeAndReturnError(&erro),
+          erro == nil, let texto = resultado.stringValue, !texto.isEmpty
+    else { return nil }
+    return texto
+}
+
+func appEstaAberto(_ bundle: String) -> Bool {
+    NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundle }
+}
+
+/// O que está tocando: primeiro os players, depois a aba do navegador.
+func oQueEstaTocando() -> String? {
+    if appEstaAberto("com.spotify.client"),
+       let faixa = consultaPorAppleScript(
+        "tell application \"Spotify\" to if player state is playing "
+        + "then return name of current track & \" — \" & artist of current track") {
+        return faixa
+    }
+
+    if appEstaAberto("com.apple.Music"),
+       let faixa = consultaPorAppleScript(
+        "tell application \"Music\" to if player state is playing "
+        + "then return name of current track & \" — \" & artist of current track") {
+        return faixa
+    }
+
+    // A música do Rodolfo toca em aba de navegador, que nenhum player reporta.
+    // Entre as abas abertas, a de um site de mídia é a aposta.
+    for (bundle, nome) in [("com.google.Chrome", "Google Chrome"),
+                           ("company.thebrowser.Browser", "Arc")] {
+        guard appEstaAberto(bundle) else { continue }
+        // Pedir todos os títulos de uma vez cola tudo num texto só, sem
+        // separador, e não dá para saber qual título pertence a qual endereço.
+        // Então a busca acontece dentro do próprio AppleScript, aba por aba.
+        for lista in [SITES_DE_MUSICA, SITES_DE_VIDEO] {
+            let condicoes = lista.map { "(u contains \"\($0)\")" }.joined(separator: " or ")
+            let script = """
+            tell application "\(nome)"
+              repeat with j in windows
+                repeat with a in tabs of j
+                  set u to URL of a
+                  if \(condicoes) then return title of a
+                end repeat
+              end repeat
+            end tell
+            """
+            if let titulo = consultaPorAppleScript(script) { return titulo }
+        }
+    }
+    return nil
+}
+
 /// Alguma SAÍDA de áudio está tocando agora?
 ///
 /// Sozinho isso não prova música: fone aberto para uma chamada também acende,
@@ -289,6 +358,17 @@ func despejaArvoreSePedido(_ janela: AXUIElement, app: String) {
         toFile: "/tmp/hipocampo-arvore.txt", atomically: true, encoding: .utf8)
 }
 
+var tocandoCache: (valor: String?, quando: Date) = (nil, .distantPast)
+
+/// A consulta por AppleScript é cara e pede permissão; faz sentido repetir de
+/// vez em quando, não a cada amostra de 4 segundos.
+func tocandoAgora(_ temSom: Bool) -> String? {
+    guard temSom else { tocandoCache = (nil, Date()); return nil }
+    if Date().timeIntervalSince(tocandoCache.quando) < 30 { return tocandoCache.valor }
+    tocandoCache = (oQueEstaTocando(), Date())
+    return tocandoCache.valor
+}
+
 let formatter = ISO8601DateFormatter()
 formatter.formatOptions = [.withInternetDateTime]
 
@@ -307,7 +387,9 @@ func sample() {
     let escutaPropria = escutaPropriaAtiva()
     parts.append("\"mic\":\(microfoneEmUso())")
     parts.append("\"escuta\":\(escutaPropria)")
-    parts.append("\"som\":\(somTocando())")
+    let temSom = somTocando()
+    parts.append("\"som\":\(temSom)")
+    if let faixa = field("tocando", tocandoAgora(temSom)) { parts.append(faixa) }
     // O app de mídia aberto é pista fraca, não fonte: um player aberto e parado
     // aparece igual, e som de aba de navegador não aparece aqui de jeito nenhum.
     if let midia = field("midiaAberta", appDeMidiaAberto()) { parts.append(midia) }

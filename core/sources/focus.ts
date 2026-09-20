@@ -20,6 +20,8 @@ type Sample = {
   escuta?: boolean
   /** App de mídia aberto — pista fraca: aberto não é tocando. */
   midiaAberta?: string
+  /** O que está tocando, quando dá para perguntar ao player ou achar a aba. */
+  tocando?: string
   /** Nome da tela onde a janela em foco está. */
   tela?: string
   app?: string
@@ -157,7 +159,7 @@ export class FocusCollector {
     // estava escrito na barra de título, não.
     const sigiloso = !idle && ehSigiloso(sample.app, sample.title, sample.url)
     const title = idle || sigiloso ? null : sample.title ?? null
-    const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}|${sample.tela ?? ''}`
+    const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}|${sample.tela ?? ''}|${sample.tocando ?? ''}`
 
     // Buraco grande (sono, coletor parado) fecha o bloco aberto.
     const gap = this.open ? ts - this.open.endedAt : 0
@@ -178,7 +180,7 @@ export class FocusCollector {
       sample.som ? 1 : 0,
       // Com a escuta ligada o microfone está sempre aberto por nossa causa;
       // marcar chamada nesse estado seria inventar reunião todo dia.
-      sample.escuta ? null : sample.midiaAberta ?? null,
+      sample.escuta ? null : sample.midiaAberta ?? null, sample.tocando ?? null,
     )
     this.open = { id: Number(result.lastInsertRowid), key, startedAt: ts, endedAt: ts }
   }

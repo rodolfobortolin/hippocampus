@@ -174,6 +174,7 @@ for (const [coluna, tipo] of [
   ['tela', 'text'],
   ['som', 'integer not null default 0'],
   ['midia', 'text'],
+  ['tocando', 'text'],
 ] as const) {
   if (!colunasExistentes.has(coluna)) db.exec(`alter table blocks add column ${coluna} ${tipo}`)
 }
