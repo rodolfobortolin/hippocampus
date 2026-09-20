@@ -1,5 +1,5 @@
 // A casca do Hipocampo: uma janela, um ícone na barra e o núcleo vivo por trás.
-const { app, BrowserWindow, Tray, Menu, shell, nativeImage } = require('electron')
+const { app, BrowserWindow, Tray, Menu, shell, nativeImage, session } = require('electron')
 const { spawn } = require('node:child_process')
 const path = require('node:path')
 const http = require('node:http')
@@ -101,6 +101,15 @@ function montaBandeja() {
 }
 
 app.whenReady().then(async () => {
+  // Sem isto o Electron nega getUserMedia em silêncio e o microfone parece
+  // simplesmente não funcionar. Só a própria interface, em 127.0.0.1, é
+  // atendida; qualquer outra origem continua negada.
+  session.defaultSession.setPermissionRequestHandler((conteudo, permissao, permitir) => {
+    const origem = new URL(conteudo.getURL()).hostname
+    const local = origem === '127.0.0.1' || origem === 'localhost'
+    permitir(local && (permissao === 'media' || permissao === 'audioCapture'))
+  })
+
   // O ícone do Dock vem do .icns, que traz todas as resoluções; o da barra de
   // menus é máscara monocromática, recolorida pelo próprio sistema.
   if (process.platform === 'darwin') {

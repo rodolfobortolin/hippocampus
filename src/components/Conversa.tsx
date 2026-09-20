@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, type Status } from '../lib/api.ts'
 import { Markdown } from '../lib/markdown.tsx'
 import { useNivelAudio } from '../hooks/useNivelAudio.ts'
+import { useEscuta } from '../hooks/useEscuta.ts'
 import { useSocket } from '../hooks/useSocket.ts'
 import { Nucleo, type EstadoNucleo } from './Nucleo.tsx'
 import { IconeEnviar, IconeMicrofone, IconeSom } from './Icons.tsx'
@@ -21,11 +22,13 @@ export function Conversa({ status }: { status: Status | null }) {
   const [texto, setTexto] = useState('')
   const [pensando, setPensando] = useState(false)
   const [ferramenta, setFerramenta] = useState('')
-  const [ouvindo, setOuvindo] = useState(false)
   const [estado, setEstado] = useState<EstadoNucleo>('parado')
   const fio = useRef<HTMLDivElement>(null)
-  const reconhecimento = useRef<any>(null)
-  const { nivel, ouveMicrofone, ouveAudio, pulsaSozinho, encerra } = useNivelAudio()
+  const { nivel: nivelResposta, ouveAudio, pulsaSozinho, encerra } = useNivelAudio()
+  // A escuta grava e transcreve; o nível dela é o do seu microfone.
+  const escuta = useEscuta((frase) => envia(frase))
+  const ouvindo = escuta.estado === 'ouvindo'
+  const nivel = ouvindo ? escuta.nivel : nivelResposta
 
   const { ligado, envia: mandaAoNucleo } = useSocket(api.socket, (dados) => {
       if (dados.tipo === 'pensando') { setPensando(true); setFerramenta(''); setEstado('pensando') }
@@ -59,6 +62,12 @@ export function Conversa({ status }: { status: Status | null }) {
     fio.current?.scrollTo({ top: fio.current.scrollHeight, behavior: 'smooth' })
   }, [falas, pensando])
 
+  useEffect(() => {
+    if (escuta.estado === 'ouvindo') setEstado('ouvindo')
+    else if (escuta.estado === 'transcrevendo') setEstado('pensando')
+    else if (!pensando) setEstado('parado')
+  }, [escuta.estado, pensando])
+
   const envia = (pergunta: string) => {
     const limpa = pergunta.trim()
     if (!limpa || pensando) return
@@ -73,36 +82,6 @@ export function Conversa({ status }: { status: Status | null }) {
     }
     setFalas((atuais) => [...atuais, { de: 'eu', texto: limpa }])
     setTexto('')
-  }
-
-  const escuta = () => {
-    const Motor = (window as any).webkitSpeechRecognition ?? (window as any).SpeechRecognition
-    if (!Motor) return
-    if (ouvindo) {
-      reconhecimento.current?.stop()
-      setOuvindo(false)
-      setEstado('parado')
-      encerra()
-      return
-    }
-
-    const motor = new Motor()
-    motor.lang = 'pt-BR'
-    motor.interimResults = true
-    motor.continuous = false
-    const encerraEscuta = () => { setOuvindo(false); setEstado('parado'); encerra() }
-    motor.onresult = (evento: any) => {
-      const frase = Array.from(evento.results).map((r: any) => r[0].transcript).join('')
-      setTexto(frase)
-      if (evento.results[evento.results.length - 1].isFinal) { encerraEscuta(); envia(frase) }
-    }
-    motor.onerror = encerraEscuta
-    motor.onend = encerraEscuta
-    motor.start()
-    reconhecimento.current = motor
-    setOuvindo(true)
-    setEstado('ouvindo')
-    void ouveMicrofone()
   }
 
   const fala = async (conteudo: string) => {
@@ -171,6 +150,12 @@ export function Conversa({ status }: { status: Status | null }) {
           </div>
         ))}
 
+        {escuta.erro && (
+          <div className="fala dele aparece" style={{ color: 'var(--comunicacao)' }}>
+            {escuta.erro}
+          </div>
+        )}
+
         {pensando && (
           <div className="ferramenta aparece">
             {ferramenta ? `consultando ${ferramenta}…` : 'pensando…'}
@@ -188,13 +173,18 @@ export function Conversa({ status }: { status: Status | null }) {
           }}
           placeholder={
             !ligado ? 'reconectando ao núcleo…'
-              : ouvindo ? 'ouvindo…'
+              : ouvindo ? 'ouvindo… pare de falar que eu envio'
+              : escuta.estado === 'transcrevendo' ? 'transcrevendo…'
               : 'pergunte qualquer coisa sobre o seu tempo'
           }
           rows={1}
           style={{ height: Math.min(160, 24 + texto.split('\n').length * 20) }}
         />
-        <button className={`icone ${ouvindo ? 'ativo' : ''}`} onClick={escuta} title="falar">
+        <button
+          className={`icone ${ouvindo ? 'ativo' : ''}`}
+          onClick={escuta.alterna}
+          disabled={escuta.estado === 'transcrevendo'}
+          title={ouvindo ? 'parar de ouvir' : 'falar'}>
           <IconeMicrofone />
         </button>
         <button className="icone" onClick={() => envia(texto)}

@@ -108,6 +108,34 @@ export function serve(collector?: Collector): http.Server {
         return response.end()
       }
 
+      if (route === '/api/transcrever' && request.method === 'POST') {
+        // A API de voz do navegador não funciona no Electron: ela depende de um
+        // serviço do Google que só o Chrome tem credencial para usar, e falha
+        // na hora com erro de rede. Aqui o áudio é gravado e transcrito.
+        if (!config.openaiKey) return json(response, { erro: 'sem chave' }, 400)
+        const pedacos: Buffer[] = []
+        for await (const pedaco of request) pedacos.push(pedaco as Buffer)
+        const audio = Buffer.concat(pedacos)
+        if (!audio.length) return json(response, { erro: 'áudio vazio' }, 400)
+
+        const formulario = new FormData()
+        formulario.append('file', new Blob([audio], { type: 'audio/webm' }), 'fala.webm')
+        formulario.append('model', 'gpt-4o-mini-transcribe')
+        // Sem a dica de idioma o modelo confunde português com italiano.
+        formulario.append('language', config.lang.split('-')[0])
+
+        const resposta = await fetch(`${config.openaiBaseUrl}/audio/transcriptions`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${config.openaiKey}` },
+          body: formulario,
+        })
+        if (!resposta.ok) {
+          return json(response, { erro: (await resposta.text()).slice(0, 300) }, 502)
+        }
+        const dados = (await resposta.json()) as { text?: string }
+        return json(response, { texto: (dados.text ?? '').trim() })
+      }
+
       if (route === '/api/voz' && request.method === 'POST') {
         // Fala o texto com a voz da OpenAI. Sem chave, o app usa a voz do sistema.
         if (!config.openaiKey) return json(response, { erro: 'sem chave' }, 400)

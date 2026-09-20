@@ -84,6 +84,13 @@ export const api = {
     pega<{ narrative: string; recap: string; classified: number }>(
       `/api/rollup?dia=${dia}&narrar=${narrar ? 1 : 0}`, { method: 'POST' }),
   socket: () => new WebSocket(`ws://127.0.0.1:${(globalThis as any).HIPOCAMPO_PORT ?? 7878}/ws`),
+  transcrever: async (audio: Blob): Promise<string> => {
+    const resposta = await fetch(`${BASE}/api/transcrever`, {
+      method: 'POST', headers: { 'content-type': 'audio/webm' }, body: audio,
+    })
+    if (!resposta.ok) throw new Error((await resposta.json()).erro ?? 'falha ao transcrever')
+    return (await resposta.json()).texto as string
+  },
   voz: (texto: string) => fetch(`${BASE}/api/voz`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texto }),
   }),
