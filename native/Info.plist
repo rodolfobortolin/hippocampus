@@ -2,12 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>Hipocampo Focus</string>
-  <key>CFBundleDisplayName</key><string>Hipocampo Focus</string>
-  <key>CFBundleIdentifier</key><string>com.hipocampo.focus</string>
-  <key>CFBundleExecutable</key><string>hipocampo-focus</string>
+  <key>CFBundleName</key><string>Hippocampus Focus</string>
+  <key>CFBundleDisplayName</key><string>Hippocampus Focus</string>
+  <key>CFBundleIdentifier</key><string>com.hippocampus.focus</string>
+  <key>CFBundleExecutable</key><string>hippocampus-focus</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleIconFile</key><string>hipocampo</string>
+  <key>CFBundleIconFile</key><string>hippocampus</string>
   <key>CFBundleVersion</key><string>1.0</string>
   <key>CFBundleShortVersionString</key><string>1.0</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
@@ -18,8 +18,8 @@
        precisam dessa permissão. -->
   <key>LSUIElement</key><true/>
   <key>NSMicrophoneUsageDescription</key>
-  <string>O Hipocampo pergunta ao sistema se algum microfone está em uso, para reconhecer uma chamada sem depender de identificar o app. Ele não grava áudio.</string>
+  <string>O Hippocampus pergunta ao sistema se algum microfone está em uso, para reconhecer uma chamada sem depender de identificar o app. Ele não grava áudio.</string>
   <key>NSAccessibilityUsageDescription</key>
-  <string>O Hipocampo lê o título da janela em foco para saber em que você está trabalhando. Nada sai desta máquina.</string>
+  <string>O Hippocampus lê o título da janela em foco para saber em que você está trabalhando. Nada sai desta máquina.</string>
 </dict>
 </plist>

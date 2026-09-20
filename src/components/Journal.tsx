@@ -61,7 +61,7 @@ export function Journal({ status }: { status: Status | null }) {
 
       {!linhas.length ? (
         <div className="painel" style={{ padding: '40px 20px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-medio)' }}>{t.journal.noDays}</p>
+          <p style={{ color: 'var(--text-mid)' }}>{t.journal.noDays}</p>
           <p className="nota">{t.journal.fillsTomorrow}</p>
         </div>
       ) : (
@@ -73,7 +73,7 @@ export function Journal({ status }: { status: Status | null }) {
                 <button className="dia-cabeca" onClick={() => setAberto(isOpen ? null : linha.day)}>
                   <span style={{
                     transform: isOpen ? 'rotate(90deg)' : 'none',
-                    transition: 'transform .2s', color: 'var(--text-fraco)', display: 'grid',
+                    transition: 'transform .2s', color: 'var(--text-dim)', display: 'grid',
                   }}>
                     <IconOpen />
                   </span>
@@ -81,10 +81,10 @@ export function Journal({ status }: { status: Status | null }) {
                     {linha.day}
                     <span>{longDate(linha.day)}</span>
                   </span>
-                  <span style={{ color: 'var(--ouro)', fontVariantNumeric: 'tabular-nums', minWidth: 68 }}>
+                  <span style={{ color: 'var(--gold)', fontVariantNumeric: 'tabular-nums', minWidth: 68 }}>
                     {duration(linha.active)}
                   </span>
-                  <span style={{ flex: 1, color: 'var(--text-fraco)', fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ flex: 1, color: 'var(--text-dim)', fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {linha.saved?.narrative
                       ? linha.saved.narrative.replace(/[*#-]/g, '').trim().slice(0, 110)
                       : linha.saved?.top_app ?? t.journal.notWritten}
@@ -108,20 +108,20 @@ export function Journal({ status }: { status: Status | null }) {
                           disabled={gerando === linha.day}
                           style={{
                             marginTop: 18, padding: '7px 13px', borderRadius: 9, fontSize: 12.5,
-                            border: '1px solid var(--borda)', color: 'var(--text-medio)',
+                            border: '1px solid var(--border)', color: 'var(--text-mid)',
                           }}>
                           {gerando === linha.day ? t.journal.rewriting : t.journal.rewrite}
                         </button>
                       </>
                     ) : (
                       <div style={{ paddingTop: 16 }}>
-                        <p style={{ color: 'var(--text-medio)', fontSize: 13 }}>{t.journal.notWrittenYet}</p>
+                        <p style={{ color: 'var(--text-mid)', fontSize: 13 }}>{t.journal.notWrittenYet}</p>
                         <button
                           onClick={() => generate(linha.day)}
                           disabled={gerando === linha.day || !status?.claude}
                           style={{
                             marginTop: 12, padding: '8px 15px', borderRadius: 9, fontSize: 13,
-                            border: '1px solid rgba(255,209,102,.35)', color: 'var(--ouro)',
+                            border: '1px solid rgba(255,209,102,.35)', color: 'var(--gold)',
                           }}>
                           {gerando === linha.day ? t.journal.writing : t.journal.writeThisDay}
                         </button>

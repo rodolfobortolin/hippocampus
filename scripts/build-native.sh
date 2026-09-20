@@ -1,54 +1,54 @@
 #!/bin/sh
-# Compila o helper que amostra o foco do Mac e o empacota como um .app mínimo.
+# Builds the helper that samples the Mac's focus and packages it as a minimal .app.
 #
-# O empacotamento não é capricho: um Mach-O solto não tem identidade de bundle,
-# e o macOS trata mal a permissão de Acessibilidade de um binário assim — ele
+# The packaging is not a flourish: a bare Mach-O has no bundle identity, and
+# macOS treats the Accessibility grant of such a binary badly — it
 # nem aparece com nome na lista dos Ajustes. Dentro de um .app com identificador
-# próprio e assinatura estável, a autorização é dada uma vez e sobrevive aos
-# próximos builds.
+# identifier and a stable signature, the grant is given once and survives the
+# builds that follow.
 set -e
 cd "$(dirname "$0")/.."
 
-APP="native/Hipocampo Focus.app"
+APP="native/Hippocampus Focus.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp native/Info.plist "$APP/Contents/Info.plist"
 mkdir -p "$APP/Contents/Resources"
 [ -f build/hipocampo.icns ] && cp build/hipocampo.icns "$APP/Contents/Resources/hipocampo.icns"
 
-swiftc -O -o "$APP/Contents/MacOS/hipocampo-focus" native/focus.swift \
+swiftc -O -o "$APP/Contents/MacOS/hippocampus-focus" native/focus.swift \
   -framework AppKit -framework ApplicationServices -framework CoreGraphics -framework CoreAudio
 
-# Assina com o Developer ID quando existir. Isso não é sobre distribuição: a
-# autorização de Acessibilidade fica amarrada à identidade do certificado, que
-# não muda entre compilações. Com assinatura ad hoc ela é amarrada ao hash do
-# código, então cada `npm run build:native` derrubava a permissão em silêncio —
+# Signs with the Developer ID when one exists. This is not about distribution:
+# the Accessibility grant binds to the certificate identity, which does not
+# change between builds. With an ad-hoc signature it binds to the code hash, so
+# every `npm run build:native` used to drop the permission silently —
 # o interruptor seguia ligado na tela e o sistema negava por dentro.
 IDENTIDADE=$(security find-identity -v -p codesigning 2>/dev/null \
   | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
 
 if [ -n "$IDENTIDADE" ]; then
-  # Sem --options runtime de propósito: o runtime endurecido só é exigido para
-  # notarização, e aqui ele fazia o sistema cobrar entitlement de microfone para
-  # uma consulta que não grava nada, só pergunta se algum dispositivo está ativo.
+  # No --options runtime on purpose: the hardened runtime is only required for
+  # notarisation, and here it made the system demand a microphone entitlement
+  # for a query that records nothing and only asks whether a device is active.
   codesign --sign "$IDENTIDADE" --force --deep "$APP"
   echo "assinado com: $IDENTIDADE"
 else
   codesign --sign - --force --deep "$APP"
-  echo "assinado ad hoc (sem Developer ID no chaveiro) — a permissão vai cair a cada build"
+  echo "signed ad hoc (no Developer ID in the keychain) — the grant will drop every build"
 fi
 
 # Atalho fora do bundle para chamadas diretas de linha de comando.
-ln -sf "Hipocampo Focus.app/Contents/MacOS/hipocampo-focus" native/hipocampo-focus
+ln -sf "Hippocampus Focus.app/Contents/MacOS/hippocampus-focus" native/hippocampus-focus
 
-# O ouvido é um programa à parte: permissão de microfone própria, e desligar
-# a escuta não desliga a medição.
-OUVIDO="native/Hipocampo Ouvido.app"
+# The listener is a separate program: a microphone permission of its own, and
+# turning the listening off does not turn the measuring off.
+OUVIDO="native/Hippocampus Listener.app"
 rm -rf "$OUVIDO"
 mkdir -p "$OUVIDO/Contents/MacOS" "$OUVIDO/Contents/Resources"
-cp native/InfoOuvido.plist "$OUVIDO/Contents/Info.plist"
+cp native/InfoListener.plist "$OUVIDO/Contents/Info.plist"
 [ -f build/hipocampo.icns ] && cp build/hipocampo.icns "$OUVIDO/Contents/Resources/hipocampo.icns"
-swiftc -O -o "$OUVIDO/Contents/MacOS/hipocampo-ouvido" native/ouvido.swift \
+swiftc -O -o "$OUVIDO/Contents/MacOS/hippocampus-listener" native/listener.swift \
   -framework AVFoundation -framework Speech -framework Foundation
 if [ -n "$IDENTIDADE" ]; then
   codesign --sign "$IDENTIDADE" --force --deep "$OUVIDO"
@@ -56,13 +56,13 @@ else
   codesign --sign - --force --deep "$OUVIDO"
 fi
 
-# O registrador dos agentes. Mora em Contents/MacOS do app principal, e não
-# aqui, porque é de lá que Bundle.main resolve para o app — que é o que o
-# SMAppService consulta para saber de quem são os agentes.
+# The agent registrar. It lives in the main app's Contents/MacOS rather than
+# here, because that is where Bundle.main resolves to the app — which is what
+# SMAppService consults to know whose agents these are.
 mkdir -p native/bin
-swiftc -O -o native/bin/hipocampo-agentes native/agentes.swift -framework ServiceManagement
-echo "registrador de agentes pronto"
+swiftc -O -o native/bin/hippocampus-agents native/agents.swift -framework ServiceManagement
+echo "agent registrar ready"
 
-echo "$APP pronto e assinado"
-echo "$OUVIDO pronto e assinado"
+echo "$APP ready and signed"
+echo "$OUVIDO ready and signed"
 codesign -dv "$APP" 2>&1 | grep -E "Identifier|Signature" || true

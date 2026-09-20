@@ -41,7 +41,7 @@ export type Strings = {
     whatCameOut: string; commits: string; aiRequests: string; nothingRecorded: string
     signals: string; visits: string; sites: string; shortcuts: string
     charactersTypedIn: string; sound: string; somethingPlaying: string; call: string; screens: string
-    missingAccessibility: string; missingAccessibilityText: string; permissionShortcut: string
+    missingAccessibility: string; missingAccessibilityText: string; openAccessibility: string
     others: string
   }
   rhythm: {
@@ -142,7 +142,7 @@ const pt: Strings = {
     call: 'microfone aberto — chamada', screens: 'telas',
     missingAccessibility: 'Falta a permissão de Acessibilidade.',
     missingAccessibilityText: 'Sem ela eu vejo qual aplicativo está na frente, mas não o título da janela — então não dá para saber em que você estava trabalhando, só onde.',
-    permissionShortcut: 'O atalho, na pasta do projeto:',
+    openAccessibility: 'abrir os Ajustes de Acessibilidade',
     others: 'outros',
   },
   rhythm: {
@@ -271,7 +271,7 @@ const en: Strings = {
     call: 'microphone open — a call', screens: 'screens',
     missingAccessibility: 'Accessibility permission is missing.',
     missingAccessibilityText: 'Without it I see which app is in front, but not the window title — so there is no way to know what you were working on, only where.',
-    permissionShortcut: 'The shortcut, in the project folder:',
+    openAccessibility: 'open the Accessibility settings',
     others: 'others',
   },
   rhythm: {
@@ -400,7 +400,7 @@ const es: Strings = {
     call: 'micrófono abierto — llamada', screens: 'pantallas',
     missingAccessibility: 'Falta el permiso de accesibilidad.',
     missingAccessibilityText: 'Sin él veo qué aplicación está delante, pero no el título de la ventana — así que no hay forma de saber en qué trabajabas, solo dónde.',
-    permissionShortcut: 'El atajo, en la carpeta del proyecto:',
+    openAccessibility: 'abrir los ajustes de Accesibilidad',
     others: 'otros',
   },
   rhythm: {
@@ -529,7 +529,7 @@ const fr: Strings = {
     call: 'micro ouvert — un appel', screens: 'écrans',
     missingAccessibility: 'La permission d’accessibilité manque.',
     missingAccessibilityText: 'Sans elle je vois quelle application est au premier plan, mais pas le titre de la fenêtre — impossible donc de savoir sur quoi tu travaillais, seulement où.',
-    permissionShortcut: 'Le raccourci, dans le dossier du projet :',
+    openAccessibility: 'ouvrir les réglages d’Accessibilité',
     others: 'autres',
   },
   rhythm: {
@@ -658,7 +658,7 @@ const de: Strings = {
     call: 'Mikrofon offen — ein Anruf', screens: 'Bildschirme',
     missingAccessibility: 'Die Berechtigung für Bedienungshilfen fehlt.',
     missingAccessibilityText: 'Ohne sie sehe ich, welche App vorn ist, aber nicht den Fenstertitel — es lässt sich also nicht sagen, woran du gearbeitet hast, nur wo.',
-    permissionShortcut: 'Die Abkürzung, im Projektordner:',
+    openAccessibility: 'die Bedienungshilfen-Einstellungen öffnen',
     others: 'andere',
   },
   rhythm: {

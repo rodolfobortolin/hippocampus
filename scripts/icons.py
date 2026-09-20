@@ -1,19 +1,19 @@
-"""Prepara os ícones a partir da arte em assets/.
+"""Prepares the icons from the art in assets/.
 
-O ícone do app sangra até a borda, de propósito.
+The app icon bleeds to the edge, on purpose.
 
-A grade clássica do macOS reservava 824 de 1024 para o conteúdo e o resto para
-a sombra que o sistema desenhava. Do macOS 26 em diante o sistema aplica a
-própria máscara em todo ícone — e aí a margem da arte vira margem *dentro* do
-recorte do sistema: o desenho aparece pequeno, boiando num quadrado vazio.
-Sangrando até a borda, quem define a forma é o macOS, que é o que ele quer.
+The classic macOS grid reserved 824 of 1024 for the content and the rest for
+the shadow the system drew. From macOS 26 onwards the system applies its own
+mask to every icon — and then the art's own margin becomes a margin *inside*
+the system's clip: the drawing shows up small, floating in an empty square.
+Bleeding to the edge leaves the shape to macOS, which is what it wants.
 
-O fundo é pintado opaco antes de colar a arte. Se o raio do canto da arte não
-bater exatamente com o do sistema, a diferença fica preenchida com a mesma cor
-escura em vez de virar um respingo transparente na quina.
+The background is painted opaque before the art is pasted. If the corner radius
+of the art does not match the system's exactly, the difference is filled with
+the same dark colour instead of becoming a transparent nick in the corner.
 
-A silhueta vira máscara monocromática para a barra de menus, onde o que importa
-é só o canal alfa: o macOS recolore conforme o tema.
+The silhouette becomes a monochrome mask for the menu bar, where only the alpha
+channel matters: macOS recolours it according to the theme.
 """
 from PIL import Image
 import pathlib
@@ -26,8 +26,9 @@ bruto = bruto.crop(bruto.getbbox())
 MESTRE = 1024
 corpo = bruto.resize((MESTRE, MESTRE), Image.LANCZOS)
 
-# A cor do fundo vem da própria arte, num ponto dentro da forma e longe do
-# desenho — assim o preenchimento é o mesmo preto, venha de onde vier a arte.
+# The background colour comes from the art itself, at a point inside the shape
+# and away from the drawing — so the fill is the same black, wherever the art
+# came from.
 fundo = corpo.convert('RGB').getpixel((int(MESTRE * 0.06), int(MESTRE * 0.5)))
 quadro = Image.new('RGBA', (MESTRE, MESTRE), (*fundo, 255))
 quadro.alpha_composite(corpo)

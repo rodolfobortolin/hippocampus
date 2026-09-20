@@ -11,14 +11,14 @@ const WebSocket = require('ws')
 const { execFile } = require('node:child_process')
 
 const RAIZ = path.join(__dirname, '..')
-const DEV = process.env.HIPOCAMPO_DEV === '1'
-const PORTA = Number(process.env.HIPOCAMPO_PORT || 7878)
+const DEV = process.env.HIPPOCAMPUS_DEV === '1'
+const PORTA = Number(process.env.HIPPOCAMPUS_PORT || 7878)
 const ENDERECO = DEV ? 'http://localhost:5179' : `http://127.0.0.1:${PORTA}`
 
 const PRELOAD = path.join(__dirname, 'preload.cjs')
 // O registrador dos agentes só existe no app empacotado; rodando do código, os
 // agentes continuam vindo do `npm run install:agent`.
-const REGISTRADOR = path.join(process.resourcesPath ?? '', '..', 'MacOS', 'hipocampo-agentes')
+const REGISTRADOR = path.join(process.resourcesPath ?? '', '..', 'MacOS', 'hippocampus-agents')
 
 /**
  * Chama o registrador e devolve o que ele imprimiu.

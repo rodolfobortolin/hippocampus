@@ -6,7 +6,7 @@
 // sistema tem que caber nesta lista.
 const { contextBridge, ipcRenderer } = require('electron')
 
-contextBridge.exposeInMainWorld('hipocampo', {
+contextBridge.exposeInMainWorld('hippocampus', {
   /** Abre o seletor de pastas do sistema. Devolve null se a pessoa desistir. */
   chooseFolder: () => ipcRenderer.invoke('choose-folder'),
 

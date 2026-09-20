@@ -1,15 +1,15 @@
 #!/bin/sh
-# Liga (ou desliga) a palavra de ativação.
+# Turns the wake word on (or off).
 #
-# É um agente separado de propósito: o microfone fica com ele, e desligar a
-# escuta não desliga a medição. O reconhecimento roda no próprio macOS, em
-# modo local — nenhum áudio é gravado nem enviado a lugar nenhum.
+# A separate agent on purpose: it is the one holding the microphone, and
+# turning the listening off does not turn the measuring off. Recognition runs
+# on macOS itself, on-device — no audio is recorded and none is sent anywhere.
 set -e
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
-ETIQUETA="com.hipocampo.ouvido"
+ETIQUETA="com.hippocampus.listener"
 PLIST="$HOME/Library/LaunchAgents/$ETIQUETA.plist"
-APP="$RAIZ/native/Hipocampo Ouvido.app/Contents/MacOS/hipocampo-ouvido"
-LOGS="$HOME/Library/Logs/Hipocampo"
+APP="$RAIZ/native/Hippocampus Listener.app/Contents/MacOS/hippocampus-listener"
+LOGS="$HOME/Library/Logs/Hippocampus"
 
 ligar() {
   [ -x "$APP" ] || { echo "ouvido ausente — rode npm run build:native"; exit 1; }
@@ -35,7 +35,7 @@ ligar() {
 </plist>
 PLISTEOF
   launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
-  pkill -f "hipocampo-ouvido" 2>/dev/null || true
+  pkill -f "hippocampus-listener" 2>/dev/null || true
   sleep 1
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
   echo "ouvido ligado — diga \"Hipocampo\""
@@ -45,7 +45,7 @@ PLISTEOF
 
 desligar() {
   launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
-  pkill -f "hipocampo-ouvido" 2>/dev/null || true
+  pkill -f "hippocampus-listener" 2>/dev/null || true
   rm -f "$PLIST"
   echo "ouvido desligado"
 }

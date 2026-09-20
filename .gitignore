@@ -19,3 +19,4 @@ build/icone-*.png
 # Bundle assinado: sai do `npm run dist`, e a assinatura é de quem compila.
 release/
 native/bin/
+public/intro.mp4

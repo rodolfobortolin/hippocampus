@@ -1,36 +1,37 @@
 #!/bin/sh
-# Instala (ou remove) o coletor como agente do launchd, escrevendo plists à mão
+# Installs (or removes) the collector as a launchd agent, writing plists by hand
 # em ~/Library/LaunchAgents.
 #
-# Este é o caminho de desenvolvimento. O app empacotado não usa isto: lá os três
-# agentes são login items registrados pelo SMAppService, com os plists dentro do
-# próprio bundle, e aparecem em Ajustes → Geral → Itens de Início. Os dois usam
-# as mesmas etiquetas, então não convivem — desligue um antes de ligar o outro.
+# This is the development path. The packaged app does not use it: there the
+# three agents are login items registered through SMAppService, with the plists
+# inside the bundle itself, and they show up in Settings → General → Login
+# Items. Both use the same labels, so they do not coexist — turn one off before
+# turning the other on.
 set -e
 
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Dentro do bundle empacotado os pedaços ficam em pastas irmãs: o código em
+# Inside the packaged bundle the pieces sit in sibling folders: the code in
 # Contents/Resources/app e os recursos extras em Contents/Resources. No
-# repositório tudo divide a mesma raiz. Procurar nos dois evita um instalador
-# que só funciona de um jeito.
+# the repository everything shares one root. Looking in both avoids an
+# installer that only works one way.
 if [ -f "$RAIZ/core/index.ts" ]; then
   RAIZ_CODIGO="$RAIZ"
 elif [ -f "$RAIZ/app/core/index.ts" ]; then
   RAIZ_CODIGO="$RAIZ/app"
 else
-  echo "não achei core/index.ts a partir de $RAIZ"; exit 1
+  echo "could not find core/index.ts from $RAIZ"; exit 1
 fi
-ETIQUETA="com.hipocampo.coletor"
-ETIQUETA_FOCO="com.hipocampo.foco"
+ETIQUETA="com.hippocampus.collector"
+ETIQUETA_FOCO="com.hippocampus.focus"
 PLIST="$HOME/Library/LaunchAgents/$ETIQUETA.plist"
 PLIST_FOCO="$HOME/Library/LaunchAgents/$ETIQUETA_FOCO.plist"
-APP_FOCO="$RAIZ/native/Hipocampo Focus.app/Contents/MacOS/hipocampo-focus"
-LOGS="$HOME/Library/Logs/Hipocampo"
+APP_FOCO="$RAIZ/native/Hippocampus Focus.app/Contents/MacOS/hippocampus-focus"
+LOGS="$HOME/Library/Logs/Hippocampus"
 NODE="$(command -v node)"
 
 instalar() {
-  [ -x "$NODE" ] || { echo "node não encontrado no PATH"; exit 1; }
+  [ -x "$NODE" ] || { echo "node not found on PATH"; exit 1; }
   [ -x "$APP_FOCO" ] || { echo "helper nativo ausente — rode npm run build:native"; exit 1; }
 
   mkdir -p "$LOGS" "$HOME/Library/LaunchAgents"
@@ -62,10 +63,11 @@ instalar() {
 </plist>
 PLISTEOF
 
-  # O helper tem agente próprio de propósito: lançado pelo launchd, ele responde
-  # por si mesmo no TCC e a permissão de Acessibilidade fica com ele. Lançado
+  # The helper has an agent of its own on purpose: launched by launchd, it
+  # answers for itself in the TCC and the Accessibility grant belongs to it.
+  # Launched
   # pelo coletor, quem apareceria pedindo seria o node — e autorizar o node daria
-  # Acessibilidade a qualquer script Node da máquina.
+  # Accessibility to every Node script on the machine.
   cat > "$PLIST_FOCO" <<FOCOEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -90,24 +92,25 @@ FOCOEOF
 
   launchctl bootout "gui/$(id -u)/$ETIQUETA_FOCO" 2>/dev/null || true
   launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
-  # bootout mata o processo principal, mas um filho vivo é reparentado no
-  # launchd em vez de morrer junto. Dois coletores no mesmo banco é problema.
+  # bootout kills the main process, but a surviving child gets reparented to
+  # launchd instead of dying with it. Two collectors on one database is trouble.
   pkill -f "$RAIZ_CODIGO/core/index.ts" 2>/dev/null || true
   sleep 1
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
   launchctl bootstrap "gui/$(id -u)" "$PLIST_FOCO"
-  echo "coletor e helper de foco instalados — sobem junto com a sessão"
+  echo "collector and focus helper installed — they start with the session"
   echo
   echo "Na primeira vez o macOS vai pedir Acessibilidade para 'Hipocampo Focus'."
-  echo "Agora o pedido vem dele mesmo, não do node — é esse nome que aparece na lista."
+  echo "The prompt now comes from it, not from node — that is the name in the list."
   echo "registro: $LOGS/collector.log"
 }
 
 remover() {
-  # O helper tem agente próprio de propósito: lançado pelo launchd, ele responde
-  # por si mesmo no TCC e a permissão de Acessibilidade fica com ele. Lançado
+  # The helper has an agent of its own on purpose: launched by launchd, it
+  # answers for itself in the TCC and the Accessibility grant belongs to it.
+  # Launched
   # pelo coletor, quem apareceria pedindo seria o node — e autorizar o node daria
-  # Acessibilidade a qualquer script Node da máquina.
+  # Accessibility to every Node script on the machine.
   cat > "$PLIST_FOCO" <<FOCOEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -134,7 +137,7 @@ FOCOEOF
   launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
   pkill -f "$RAIZ_CODIGO/core/index.ts" 2>/dev/null || true
   rm -f "$PLIST"
-  echo "coletor removido (os dados já guardados ficam onde estão)"
+  echo "collector removed (whatever was already stored stays where it is)"
 }
 
 case "${1:-install}" in

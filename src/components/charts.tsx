@@ -60,7 +60,7 @@ export function Donut({ slices, total }: { slices: Slice[]; total: number }) {
           style={{ fontVariantNumeric: 'tabular-nums' }}>
           {duration(highlighted ? highlighted.seconds : total)}
         </text>
-        <text x="80" y="94" textAnchor="middle" fill="var(--text-fraco)" fontSize="10.5"
+        <text x="80" y="94" textAnchor="middle" fill="var(--text-dim)" fontSize="10.5"
           style={{ letterSpacing: '0.07em', textTransform: 'uppercase' }}>
           {highlighted ? category(highlighted.name) : t.common.active}
         </text>
@@ -96,17 +96,17 @@ export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; d
 
   return (
     <div>
-      <div style={{ height: 22, marginBottom: 6, fontSize: 12, color: 'var(--text-medio)' }}>
+      <div style={{ height: 22, marginBottom: 6, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered ? (
           <span className="aparece">
-            <b style={{ color: hovered.delegated ? 'var(--ia)' : 'var(--text)', fontWeight: 500 }}>
+            <b style={{ color: hovered.delegated ? 'var(--ai)' : 'var(--text)', fontWeight: 500 }}>
               {hovered.delegated ? t.common.agentWorking : hovered.app}
             </b>
             {!hovered.delegated && hovered.title ? ` · ${hovered.title.slice(0, 70)}` : ''}
-            <span style={{ color: 'var(--text-fraco)' }}> · {duration(hovered.end - hovered.start)}</span>
+            <span style={{ color: 'var(--text-dim)' }}> · {duration(hovered.end - hovered.start)}</span>
           </span>
         ) : (
-          <span style={{ color: 'var(--text-fraco)' }}>{t.today.hoverRibbon}</span>
+          <span style={{ color: 'var(--text-dim)' }}>{t.today.hoverRibbon}</span>
         )}
       </div>
 
@@ -119,7 +119,7 @@ export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; d
           const w = Math.max(1.4, position(block.end) - x)
           // Tempo delegado é trabalho acontecendo, só que não pelas suas mãos:
           // ganha a colour da IA e height própria, entre o active e o vazio.
-          const tone = block.delegated ? 'var(--ia)' : block.idle ? 'var(--sem-rotulo)' : colour(block.category)
+          const tone = block.delegated ? 'var(--ai)' : block.idle ? 'var(--unlabelled)' : colour(block.category)
           const height = block.delegated ? 22 : block.idle ? 16 : 30
           const top = block.delegated ? 8 : block.idle ? 13 : 3
           return (
@@ -167,18 +167,18 @@ export function Gauge({ value, seconds }: { value: number; seconds?: number }) {
       <path d={`M13 66A${radius} ${radius} 0 0 1 117 66`} fill="none"
         stroke="rgba(255,255,255,.07)" strokeWidth="9" strokeLinecap="round" />
       <path d={`M13 66A${radius} ${radius} 0 0 1 117 66`} fill="none"
-        stroke="var(--ouro)" strokeWidth="9" strokeLinecap="round"
+        stroke="var(--gold)" strokeWidth="9" strokeLinecap="round"
         strokeDasharray={`${(percent / 100) * circumference} ${circumference}`}
         style={{ filter: 'drop-shadow(0 0 7px rgba(255,209,102,.5))', transition: 'stroke-dasharray .7s cubic-bezier(.22,1,.36,1)' }} />
       {hours ? (
         <>
-          <text x="65" y="56" textAnchor="middle" fill="var(--ouro)" fontSize="27" fontWeight="300"
+          <text x="65" y="56" textAnchor="middle" fill="var(--gold)" fontSize="27" fontWeight="300"
             style={{ fontVariantNumeric: 'tabular-nums' }}>{hours}</text>
-          <text x="65" y="70" textAnchor="middle" fill="var(--text-fraco)" fontSize="11"
+          <text x="65" y="70" textAnchor="middle" fill="var(--text-dim)" fontSize="11"
             style={{ fontVariantNumeric: 'tabular-nums' }}>{percent}% {t.common.ofActive}</text>
         </>
       ) : (
-        <text x="65" y="60" textAnchor="middle" fill="var(--ouro)" fontSize="30" fontWeight="300"
+        <text x="65" y="60" textAnchor="middle" fill="var(--gold)" fontSize="30" fontWeight="300"
           style={{ fontVariantNumeric: 'tabular-nums' }}>{percent}<tspan fontSize="15">%</tspan></text>
       )}
     </svg>
@@ -205,13 +205,13 @@ export function Heatmap({ grid }: { grid: number[][] }) {
 
   return (
     <div>
-      <div style={{ height: 18, marginBottom: 10, fontSize: 12, color: 'var(--text-medio)' }}>
+      <div style={{ height: 18, marginBottom: 10, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered ? (
           <span className="aparece">
             {WEEKDAYS[hovered.day]} {t.common.at} {String(hovered.hour).padStart(2, '0')}{t.common.h} ·{' '}
             <b style={{ fontWeight: 500 }}>{duration(grid[hovered.day][hovered.hour])}</b> {t.common.inTotal}
           </span>
-        ) : <span style={{ color: 'var(--text-fraco)' }}>{t.rhythm.sumOfPeriod}</span>}
+        ) : <span style={{ color: 'var(--text-dim)' }}>{t.rhythm.sumOfPeriod}</span>}
       </div>
 
       <div className="mapa">
@@ -229,7 +229,7 @@ export function Heatmap({ grid }: { grid: number[][] }) {
                     key={`${day}-${hour}`}
                     x={hour * (cell + gap)} y={day * (cell + gap)}
                     width={cell} height={cell} rx={6}
-                    fill="var(--brasa)"
+                    fill="var(--ember)"
                     opacity={seconds ? 0.13 + intensity * 0.87 : 0.045}
                     style={{
                       filter: intensity > 0.62 ? 'drop-shadow(0 0 6px rgba(255,138,61,.5))' : undefined,
@@ -271,26 +271,26 @@ export function Trend({ days }: { days: { day: string; active: number }[] }) {
 
   return (
     <div>
-      <div style={{ height: 18, marginBottom: 6, fontSize: 12, color: 'var(--text-medio)' }}>
+      <div style={{ height: 18, marginBottom: 6, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered != null ? (
           <span className="aparece">
             {days[hovered].day} · <b style={{ fontWeight: 500 }}>{duration(days[hovered].active)}</b>
           </span>
         ) : (
-          <span style={{ color: 'var(--text-fraco)' }}>{t.common.averageOf} {duration(mean)} {t.common.perDay}</span>
+          <span style={{ color: 'var(--text-dim)' }}>{t.common.averageOf} {duration(mean)} {t.common.perDay}</span>
         )}
       </div>
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: height }}>
         <defs>
           <linearGradient id="preenche" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--brasa)" stopOpacity="0.34" />
-            <stop offset="100%" stopColor="var(--brasa)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--ember)" stopOpacity="0.34" />
+            <stop offset="100%" stopColor="var(--ember)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <line x1="0" y1={y(mean)} x2={width} y2={y(mean)}
           stroke="rgba(255,255,255,.16)" strokeWidth="1" strokeDasharray="4 5" />
         <polygon points={`0,${height} ${points} ${width},${height}`} fill="url(#preenche)" />
-        <polyline points={points} fill="none" stroke="var(--brasa)" strokeWidth="2"
+        <polyline points={points} fill="none" stroke="var(--ember)" strokeWidth="2"
           strokeLinejoin="round" strokeLinecap="round"
           style={{ filter: 'drop-shadow(0 0 6px rgba(255,138,61,.45))' }} vectorEffect="non-scaling-stroke" />
         {days.map((day, i) => (
@@ -299,8 +299,8 @@ export function Trend({ days }: { days: { day: string; active: number }[] }) {
             onMouseEnter={() => setSobre(i)} onMouseLeave={() => setSobre(null)} />
         ))}
         {hovered != null && (
-          <circle cx={x(hovered)} cy={y(days[hovered].active)} r="3.5" fill="var(--ouro)"
-            style={{ filter: 'drop-shadow(0 0 6px var(--ouro))' }} />
+          <circle cx={x(hovered)} cy={y(days[hovered].active)} r="3.5" fill="var(--gold)"
+            style={{ filter: 'drop-shadow(0 0 6px var(--gold))' }} />
         )}
       </svg>
     </div>
@@ -356,7 +356,7 @@ export function FocusShape({ bands, median, largest }: {
 
   return (
     <div>
-      <div style={{ height: 18, marginBottom: 8, fontSize: 12, color: 'var(--text-medio)' }}>
+      <div style={{ height: 18, marginBottom: 8, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered != null ? (
           <span className="aparece">
             {bands[hovered].n} {bands[hovered].n === 1 ? t.common.session : t.common.sessions} {t.common.of}{' '}
@@ -364,7 +364,7 @@ export function FocusShape({ bands, median, largest }: {
             <b style={{ fontWeight: 500 }}>{duration(bands[hovered].minutes * 60)}</b> {t.common.inTotal}
           </span>
         ) : (
-          <span style={{ color: 'var(--text-fraco)' }}>
+          <span style={{ color: 'var(--text-dim)' }}>
             {t.today.medianOf} {median}{t.common.min} · {t.today.longestWas} {duration(largest * 60)}
           </span>
         )}
@@ -383,7 +383,7 @@ export function FocusShape({ bands, median, largest }: {
               <rect x={x} y={0} width={w} height={height - 20} fill="transparent" />
               <rect
                 x={x} y={height - 20 - h} width={w} height={Math.max(h, faixa.minutes ? 2 : 0)} rx={3}
-                fill={long ? 'var(--ouro)' : 'var(--brasa)'}
+                fill={long ? 'var(--gold)' : 'var(--ember)'}
                 opacity={hovered == null || hovered === index ? 0.9 : 0.4}
                 style={{
                   filter: long && faixa.minutes ? 'drop-shadow(0 0 8px rgba(255,209,102,.5))' : undefined,
@@ -392,11 +392,11 @@ export function FocusShape({ bands, median, largest }: {
               />
               {faixa.minutes > 0 && (
                 <text x={x + w / 2} y={height - 26 - h} textAnchor="middle"
-                  fill="var(--text-medio)" fontSize="11" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  fill="var(--text-mid)" fontSize="11" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {number(faixa.minutes)}
                 </text>
               )}
-              <text x={x + w / 2} y={height - 4} textAnchor="middle" fill="var(--text-fraco)" fontSize="11">
+              <text x={x + w / 2} y={height - 4} textAnchor="middle" fill="var(--text-dim)" fontSize="11">
                 {faixa.name}
               </text>
             </g>

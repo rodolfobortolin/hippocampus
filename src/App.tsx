@@ -111,7 +111,7 @@ export function App() {
       <main className="tela">
         {semNucleo && aba !== 'ajustes' ? (
           <div className="painel" style={{ marginTop: 60, padding: '44px 24px', textAlign: 'center' }}>
-            <p style={{ color: 'var(--text-medio)' }}>{t.status.noCore}</p>
+            <p style={{ color: 'var(--text-mid)' }}>{t.status.noCore}</p>
             <p className="nota">{t.status.startItWith} <code>npm run dev:core</code>.</p>
           </div>
         ) : aba === 'hoje' ? <Today status={status} />

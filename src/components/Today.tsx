@@ -15,6 +15,11 @@ function Card({ rotulo, children, nota }: { rotulo: string; children: React.Reac
   )
 }
 
+/** The Electron bridge, absent when the interface runs in a plain browser. */
+const bridge = (globalThis as any).hippocampus as {
+  openAccessibility?: () => void
+} | undefined
+
 export function Today({ status }: { status: Status | null }) {
   const { t, category } = useLanguage()
   const [day, setDia] = useState(diaDeHoje())
@@ -66,16 +71,19 @@ export function Today({ status }: { status: Status | null }) {
           <IconAlert />
           <div>
             <p><strong>{t.today.missingAccessibility}</strong> {t.today.missingAccessibilityText}</p>
-            <p style={{ marginTop: 8, fontSize: 12.5, color: 'var(--text-fraco)' }}>
-              {t.today.permissionShortcut} <code>npm run permissao</code>
-            </p>
+            {bridge?.openAccessibility && (
+              <button className="pilula" style={{ marginTop: 10, cursor: 'pointer' }}
+                onClick={() => bridge.openAccessibility?.()}>
+                {t.today.openAccessibility}
+              </button>
+            )}
           </div>
         </div>
       )}
 
       {noData ? (
         <div className="painel" style={{ padding: '40px 20px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-medio)' }}>
+          <p style={{ color: 'var(--text-mid)' }}>
             {data.idleSeconds > 60
               ? `${t.today.measuringNoActivity} ${duration(data.idleSeconds)} ${t.today.idleMachine}.`
               : `${t.today.nothingMeasured}.`}
@@ -155,12 +163,12 @@ export function Today({ status }: { status: Status | null }) {
           <div className="grade g32">
             <div className="painel">
               <h3>{t.today.whereTimeWent}</h3>
-              <Bars items={topSlices(data.apps)} total={data.activeSeconds} tone="var(--brasa)" />
+              <Bars items={topSlices(data.apps)} total={data.activeSeconds} tone="var(--ember)" />
             </div>
             <div className="painel">
               <h3>{t.today.projects} <em>{plural(data.projects.length, t.counts.project)}</em></h3>
               {data.projects.length
-                ? <Bars items={data.projects} total={data.activeSeconds} tone="var(--agua)" />
+                ? <Bars items={data.projects} total={data.activeSeconds} tone="var(--water)" />
                 : <p className="vazio">{t.today.noProject}</p>}
             </div>
           </div>
@@ -172,7 +180,7 @@ export function Today({ status }: { status: Status | null }) {
                 {data.windows.slice(0, 8).map((janela, i) => (
                   <div key={i} className="linha">
                     <span className="nome" title={janela.title}>
-                      <span style={{ color: 'var(--text-fraco)' }}>{janela.app}</span> · {janela.title}
+                      <span style={{ color: 'var(--text-dim)' }}>{janela.app}</span> · {janela.title}
                     </span>
                     <span className="valor">{duration(janela.seconds)}</span>
                   </div>
@@ -205,7 +213,7 @@ export function Today({ status }: { status: Status | null }) {
                       title={`${number(linha.keys)} ${t.today.keys}, ${number(linha.clicks)} ${t.today.clicks}, ${number(linha.scroll)} ${t.today.scroll}`}>
                       <i style={{
                         width: `${Math.round(writing * 100)}%`,
-                        background: 'var(--ouro)', boxShadow: '0 0 9px var(--ouro)', opacity: 0.85,
+                        background: 'var(--gold)', boxShadow: '0 0 9px var(--gold)', opacity: 0.85,
                       }} />
                     </span>
                   </div>
@@ -265,7 +273,7 @@ export function Today({ status }: { status: Status | null }) {
                   <div className="legenda" style={{ marginTop: 0 }}>
                     {data.shortcuts.slice(0, 8).map((atalho) => (
                       <span key={atalho.name} className="pilula">
-                        {atalho.name} <span style={{ color: 'var(--text-fraco)' }}>×{atalho.n}</span>
+                        {atalho.name} <span style={{ color: 'var(--text-dim)' }}>×{atalho.n}</span>
                       </span>
                     ))}
                   </div>

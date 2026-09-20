@@ -1,9 +1,9 @@
 #!/bin/sh
-# Gera o .icns, os ícones da barra de menus e a marca a partir da arte em assets/.
-# Roda uma vez; o resultado vai para build/ e public/, que o git ignora.
+# Generates the .icns, the menu bar icons and the brand mark from the art in
+# assets/. Run it once; the result lands in build/ and public/, which git ignores.
 set -e
 cd "$(dirname "$0")/.."
-python3 scripts/icones.py
+python3 scripts/icons.py
 rm -rf build/hipocampo.iconset && mkdir -p build/hipocampo.iconset
 python3 - <<'PY'
 from PIL import Image
@@ -15,4 +15,11 @@ for lado, nome in [(16,'icon_16x16'),(32,'icon_16x16@2x'),(32,'icon_32x32'),(64,
 PY
 iconutil -c icns build/hipocampo.iconset -o build/hipocampo.icns
 cp build/hipocampo.icns build/icon.icns
-echo "ícones prontos"
+# The opening video loses its audio: an app that makes noise every time it
+# opens is an app people turn off. Without audio it is also smaller.
+if [ -f assets/intro.mp4 ]; then
+  ffmpeg -v quiet -y -i assets/intro.mp4 -an -movflags +faststart -c:v copy public/intro.mp4
+  echo "opening ready"
+fi
+
+echo "icons ready"

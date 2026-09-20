@@ -46,7 +46,7 @@ export function Rhythm() {
 
       {!measured.length ? (
         <div className="painel" style={{ padding: '40px 20px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-medio)' }}>{t.rhythm.noDays}</p>
+          <p style={{ color: 'var(--text-mid)' }}>{t.rhythm.noDays}</p>
           <p className="nota">{t.rhythm.rhythmAppears}</p>
         </div>
       ) : (
@@ -93,7 +93,7 @@ export function Rhythm() {
           <div className="grade g32">
             <div className="painel">
               <h3>{t.rhythm.whereTimeWent}</h3>
-              <Bars items={topSlices(summary.apps)} total={summary.total} tone="var(--brasa)" />
+              <Bars items={topSlices(summary.apps)} total={summary.total} tone="var(--ember)" />
             </div>
             <div className="painel">
               <h3>{t.rhythm.byCategory}</h3>
@@ -105,7 +105,7 @@ export function Rhythm() {
             <div className="painel">
               <h3>{t.rhythm.projects}</h3>
               {summary.projects.length
-                ? <Bars items={summary.projects} total={summary.total} tone="var(--agua)" />
+                ? <Bars items={summary.projects} total={summary.total} tone="var(--water)" />
                 : <p className="vazio">{t.rhythm.noProject}</p>}
             </div>
 
@@ -116,7 +116,7 @@ export function Rhythm() {
                   {summary.shortcuts.map((atalho) => (
                     <span key={atalho.name} className="pilula" style={{ fontSize: 12.5, padding: '5px 11px' }}>
                       <b style={{ fontWeight: 500 }}>{atalho.name}</b>
-                      <span style={{ color: 'var(--text-fraco)' }}>×{atalho.n}</span>
+                      <span style={{ color: 'var(--text-dim)' }}>×{atalho.n}</span>
                     </span>
                   ))}
                 </div>

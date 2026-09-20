@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App.tsx'
 import { FloatingCore } from './FloatingCore.tsx'
 import { LanguageProvider } from './lib/language.tsx'
+import { Intro } from './components/Intro.tsx'
 import './styles.css'
 
 // Duas caras do mesmo app, servidas pelo mesmo endereço: o painel inteiro e o
@@ -12,6 +13,8 @@ if (floating) document.body.dataset.modo = 'floating'
 
 createRoot(document.getElementById('raiz')!).render(
   <StrictMode>
-    <LanguageProvider>{floating ? <FloatingCore /> : <App />}</LanguageProvider>
+    <LanguageProvider>
+      {floating ? <FloatingCore /> : <><Intro /><App /></>}
+    </LanguageProvider>
   </StrictMode>,
 )

@@ -1,4 +1,4 @@
-appId: com.hipocampo.app
+appId: com.hippocampus.app
 productName: Hipocampo
 copyright: Rodolfo Bortolin
 
@@ -33,19 +33,19 @@ extraResources:
   - from: scripts
     to: scripts
     filter:
-      - nucleo.sh
-      - foco.sh
-      - escuta.sh
+      - launch-core.sh
+      - launch-focus.sh
+      - launch-listener.sh
       - permissao.sh
 
 # Fora de Resources porque o macOS exige estes dois lugares exatos: os plists
 # dos agentes em Contents/Library/LaunchAgents, e o registrador em Contents/MacOS,
 # que é de onde `Bundle.main` resolve para o app.
 extraFiles:
-  - from: build/agentes
+  - from: build/agents
     to: Library/LaunchAgents
-  - from: native/bin/hipocampo-agentes
-    to: MacOS/hipocampo-agentes
+  - from: native/bin/hippocampus-agents
+    to: MacOS/hippocampus-agents
 
 mac:
   category: public.app-category.productivity
