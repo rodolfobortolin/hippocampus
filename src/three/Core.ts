@@ -39,16 +39,26 @@ const ALPHA_FROM_BRIGHTNESS = {
     uniform sampler2D tDiffuse; varying vec2 vUv;
     void main() {
       vec4 colour = texture2D(tDiffuse, vUv);
-      float brilho = dot(colour.rgb, vec3(0.299, 0.587, 0.114));
-      // A soft threshold instead of a power curve: pow lifted the near-black
-      // a uns 20% de opacidade, e isso desenhava um quadrado cinza em volta.
-      // Here the composer's background really goes to zero and the body stays solid.
-      gl_FragColor = vec4(colour.rgb, smoothstep(0.012, 0.22, brilho));
+      float brightness = dot(colour.rgb, vec3(0.299, 0.587, 0.114));
+      float alpha = smoothstep(0.045, 0.26, brightness);
+      // The bloom does not stop; it thins out and keeps going all the way to
+      // the edge of the frame, and the frame is a rectangle. Over a desktop —
+      // light or dark, it shows either way — that reads as a grey square around
+      // the sphere, because a square is exactly what it is.
+      //
+      // So the halo is faded out in a circle before it can reach any edge. The
+      // sphere sits in the middle and never comes near this, so nothing that
+      // should be lit is lost: what goes is only the wash that was giving the
+      // canvas away.
+      float radius = length(vUv - 0.5) * 2.0;
+      alpha *= 1.0 - smoothstep(0.62, 0.98, radius);
+      if (alpha < 0.004) discard;
+      gl_FragColor = vec4(colour.rgb, alpha);
     }`,
 }
 
-const damp = (de: number, para: number, lambda: number, dt: number) =>
-  THREE.MathUtils.lerp(de, para, 1 - Math.exp(-lambda * dt))
+const damp = (from: number, to: number, lambda: number, dt: number) =>
+  THREE.MathUtils.lerp(from, to, 1 - Math.exp(-lambda * dt))
 
 /**
  * The core: a plasma sphere displaced by noise, with rings around it. It reacts
@@ -169,7 +179,7 @@ export class Core {
 
     this.esfera = new THREE.Mesh(
       new THREE.IcosahedronGeometry(1, compacto ? 24 : 48), this.plasma)
-    // Menor dentro do frame: leftover margem para o halo morrer antes da borda.
+    // Smaller inside the frame: room left over for the halo to die before the edge.
     if (compacto) this.esfera.scale.setScalar(0.62)
     this.scene.add(this.esfera)
 
