@@ -1,7 +1,7 @@
 export const CORES: Record<string, string> = {
-  codigo: 'var(--codigo)', ia: 'var(--ia)', pesquisa: 'var(--pesquisa)',
-  comunicacao: 'var(--comunicacao)', escrita: 'var(--escrita)', design: 'var(--design)',
-  admin: 'var(--admin)', distracao: 'var(--distracao)', 'sem rótulo': 'var(--sem-rotulo)',
+  code: 'var(--code)', ai: 'var(--ai)', research: 'var(--research)',
+  communication: 'var(--communication)', writing: 'var(--writing)', design: 'var(--design)',
+  admin: 'var(--admin)', distraction: 'var(--distraction)', 'unlabelled': 'var(--unlabelled)',
 }
 
 /**
@@ -17,7 +17,7 @@ export function defineLocale(novo: string): void {
 }
 
 export const cor = (categoria: string | null | undefined) =>
-  CORES[categoria ?? 'sem rótulo'] ?? 'var(--sem-rotulo)'
+  CORES[categoria ?? 'unlabelled'] ?? 'var(--unlabelled)'
 
 /** 2h07, 48min, 35s — a unidade muda com a grandeza. */
 export function duracao(segundos: number): string {

@@ -1,13 +1,14 @@
 import { Collector } from './collector.ts'
 import { serve, attachCollector } from './server.ts'
-import { aplicaAjustes } from './ajustes.ts'
+import { applySettings } from './settings.ts'
 
-// O que a pessoa escolheu dentro do app vence o que veio do ambiente. Aplicar
-// antes de tudo é o que faz idioma, nome e chaves valerem já na primeira coleta.
-aplicaAjustes()
+// What the person chose inside the app beats what came from the environment.
+// Applying it before anything else is what makes the language, the name and
+// the keys count from the very first sample.
+applySettings()
 
-// O servidor sobe primeiro, de propósito: uma coleta pode ficar presa num
-// diálogo de permissão do macOS, e a interface não pode depender disso.
+// The server comes up first, on purpose: a harvest can get stuck on a macOS
+// permission dialog, and the interface cannot depend on that.
 const server = serve()
 const collector = new Collector()
 attachCollector(collector)

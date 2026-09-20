@@ -161,7 +161,7 @@ export function Conversa({ status }: { status: Status | null }) {
         ))}
 
         {escuta.erro && (
-          <div className="fala dele aparece" style={{ color: 'var(--comunicacao)' }}>
+          <div className="fala dele aparece" style={{ color: 'var(--communication)' }}>
             {escuta.erro}
           </div>
         )}

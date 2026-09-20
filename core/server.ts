@@ -11,8 +11,8 @@ import { rollup } from './rollup.ts'
 import { jevReady } from './jev.ts'
 import { claudeAvailable } from './claude.ts'
 import { vaultReady } from './vault.ts'
-import { leAjustes, salvaAjustes, gravaChave, estadoChave, type NomeChave } from './ajustes.ts'
-import { IDIOMAS } from './idiomas.ts'
+import { readSettings, saveSettings, writeKey, keyState, type KeyName } from './settings.ts'
+import { LANGUAGES } from './languages.ts'
 import type { Collector } from './collector.ts'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -71,9 +71,9 @@ export function serve(collector?: Collector): http.Server {
 
       if (route === '/api/ajustes' && request.method === 'GET') {
         return json(response, {
-          ...leAjustes(),
-          idiomas: IDIOMAS,
-          chaves: { jev: estadoChave('jev'), openai: estadoChave('openai') },
+          ...readSettings(),
+          idiomas: LANGUAGES,
+          chaves: { jev: keyState('jev'), openai: keyState('openai') },
         })
       }
 
@@ -83,16 +83,16 @@ export function serve(collector?: Collector): http.Server {
         const corpo = JSON.parse(Buffer.concat(pedacos).toString() || '{}')
         // As chaves nunca voltam pela API: só o estado delas. O que entra aqui
         // vai direto para o Chaveiro e some da memória do pedido.
-        for (const nome of ['jev', 'openai'] as NomeChave[]) {
+        for (const nome of ['jev', 'openai'] as KeyName[]) {
           const valor = corpo.chaves?.[nome]
-          if (typeof valor === 'string') await gravaChave(nome, valor.trim())
+          if (typeof valor === 'string') await writeKey(nome, valor.trim())
         }
         delete corpo.chaves
-        const ajustes = salvaAjustes(corpo)
+        const ajustes = saveSettings(corpo)
         return json(response, {
           ...ajustes,
-          idiomas: IDIOMAS,
-          chaves: { jev: estadoChave('jev'), openai: estadoChave('openai') },
+          idiomas: LANGUAGES,
+          chaves: { jev: keyState('jev'), openai: keyState('openai') },
         })
       }
 
@@ -185,7 +185,7 @@ export function serve(collector?: Collector): http.Server {
         const speech = await fetch(`${config.openaiBaseUrl}/audio/speech`, {
           method: 'POST',
           headers: { authorization: `Bearer ${config.openaiKey}`, 'content-type': 'application/json' },
-          body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: voz ?? config.voz, input: String(texto).slice(0, 4000) }),
+          body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: voz ?? config.voice, input: String(texto).slice(0, 4000) }),
         })
         if (!speech.ok) return json(response, { erro: await speech.text() }, 502)
         const audio = Buffer.from(await speech.arrayBuffer())

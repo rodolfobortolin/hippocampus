@@ -3,7 +3,7 @@ import path from 'node:path'
 import { config, dayOf } from '../config.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
-import { existe } from '../limite.ts'
+import { exists } from '../guard.ts'
 
 /**
  * As sessões do Codex, no mesmo molde das do Claude Code.
@@ -25,7 +25,7 @@ const insereTurno = db.prepare(
 )
 
 export function codexAvailable(): Promise<boolean> {
-  return existe(raiz)
+  return exists(raiz)
 }
 
 // Assíncrona como o resto: recursão síncrona por uma árvore de pastas é o jeito

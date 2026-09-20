@@ -3,7 +3,7 @@ import path from 'node:path'
 import { config, dayOf } from '../config.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
-import { existe } from '../limite.ts'
+import { exists } from '../guard.ts'
 
 // Cada sessão do Claude Code é um .jsonl que só cresce. Guardamos o deslocamento
 // já lido de cada arquivo para não reprocessar 1 GB a cada rodada.
@@ -39,7 +39,7 @@ function textOf(content: unknown): string {
  * junto, e não só esta fonte.
  */
 export async function harvestClaudeSessions(): Promise<{ turns: number }> {
-  if (!(await existe(root))) return { turns: 0 }
+  if (!(await exists(root))) return { turns: 0 }
   const offsets = JSON.parse(getMeta('claude.offsets', '{}')) as Record<string, number>
   let turns = 0
 

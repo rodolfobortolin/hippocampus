@@ -24,7 +24,7 @@ import { labelKey, cachedLabel } from './jev.ts'
  * como fração de tempo, que é coisa diferente. A categoria, essa o jev acerta
  * com confiança alta, e a regra abaixo é legível e discutível.
  */
-const CATEGORIAS_DE_FOCO = new Set(['codigo', 'ia', 'escrita', 'design', 'pesquisa'])
+const CATEGORIAS_DE_FOCO = new Set(['code', 'ai', 'writing', 'design', 'research'])
 
 export const ehFoco = (categoria: string | null | undefined) =>
   CATEGORIAS_DE_FOCO.has(categoria ?? '')
@@ -81,7 +81,7 @@ export function dayReport(day: string) {
   for (const block of active) {
     const label = labelOf(block)
     apps.set(block.app, (apps.get(block.app) ?? 0) + block.seconds)
-    const category = label?.category ?? 'sem rótulo'
+    const category = label?.category ?? 'unlabelled'
     categories.set(category, (categories.get(category) ?? 0) + block.seconds)
     if (label?.project) projects.set(label.project, (projects.get(label.project) ?? 0) + block.seconds)
     if (ehFoco(label?.category)) focusSeconds += block.seconds
@@ -275,7 +275,7 @@ export function periodSummary(from: string, to: string) {
     const label = labelOf(block)
     total += block.seconds
     apps.set(block.app, (apps.get(block.app) ?? 0) + block.seconds)
-    const category = label?.category ?? 'sem rótulo'
+    const category = label?.category ?? 'unlabelled'
     categories.set(category, (categories.get(category) ?? 0) + block.seconds)
     if (label?.project) projects.set(label.project, (projects.get(label.project) ?? 0) + block.seconds)
     if (ehFoco(label?.category)) focusSeconds += block.seconds

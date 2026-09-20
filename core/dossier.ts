@@ -1,4 +1,4 @@
-import type { Idioma } from './idiomas.ts'
+import type { Language } from './languages.ts'
 
 /**
  * O material do dia, no idioma escolhido.
@@ -29,7 +29,7 @@ export type Dossie = {
   digitou: string
 }
 
-export const DOSSIE: Record<Idioma, Dossie> = {
+export const DOSSIER: Record<Language, Dossie> = {
   'pt-BR': {
     cabecalho: (d, a) => `Dia ${d}. Nas mãos dele: ${a}.`,
     delegado: (d, a) =>

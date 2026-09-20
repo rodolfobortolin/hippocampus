@@ -1,8 +1,8 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { config, paths, dayOf } from '../config.ts'
 import { db } from '../db.ts'
-import { ehSigiloso } from '../privacidade.ts'
-import { existe } from '../limite.ts'
+import { isSecret } from '../privacy.ts'
+import { exists } from '../guard.ts'
 
 type Sample = {
   ts: string
@@ -108,7 +108,7 @@ export class FocusCollector {
   async start(): Promise<void> {
     // Assíncrono porque o helper pode morar em `~/Documents`, que o macOS
     // protege: `existsSync` ali não dá erro, congela o coletor inteiro.
-    if (!(await existe(paths.native))) {
+    if (!(await exists(paths.native))) {
       console.error('[foco] helper nativo ausente — rode `npm run build:native`')
       return
     }
@@ -175,7 +175,7 @@ export class FocusCollector {
     const app = idle ? (sample.locked ? 'Tela bloqueada' : 'Ocioso') : sample.app ?? 'Desconhecido'
     // O tempo num gerenciador de senha ou no banco continua contando; o que
     // estava escrito na barra de título, não.
-    const sigiloso = !idle && ehSigiloso(sample.app, sample.title, sample.url)
+    const sigiloso = !idle && isSecret(sample.app, sample.title, sample.url)
     const title = idle || sigiloso ? null : sample.title ?? null
     const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}|${sample.tela ?? ''}|${sample.tocando ?? ''}`
 

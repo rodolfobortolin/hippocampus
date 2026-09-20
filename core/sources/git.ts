@@ -23,7 +23,7 @@ function git(repo: string, args: string[]): string {
  * Tudo que toca o disco aqui é assíncrono de propósito. A pasta de código mora
  * em `~/Documents`, que o macOS protege: sem a permissão, um `readdirSync` não
  * devolve erro — ele para. E parado no event loop, para o coletor inteiro, com
- * o servidor já dizendo "de pé" e nenhuma rota respondendo. O `comLimite` que
+ * o servidor já dizendo "de pé" e nenhuma rota respondendo. O `withTimeout` que
  * embrulha esta função não salva disso, porque o timeout dele também precisa
  * do event loop para disparar; assíncrono é o que devolve o controle a ele.
  */

@@ -9,7 +9,7 @@ const END = '<!-- hipocampo:fim -->'
 
 /** A pasta onde o dia é escrito, criada na primeira vez que fizer falta. */
 function pastaDoDiario(): string {
-  return path.join(config.vault, config.pastaDiario)
+  return path.join(config.vault, config.journalFolder)
 }
 
 export function vaultReady(): boolean {

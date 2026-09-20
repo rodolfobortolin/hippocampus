@@ -53,14 +53,14 @@ export const config = {
    */
   vault: env('HIPOCAMPO_VAULT', ''),
   /** Subpasta do vault onde o dia é escrito. */
-  pastaDiario: env('HIPOCAMPO_DIARIO', 'Diário'),
+  journalFolder: env('HIPOCAMPO_JOURNAL', 'Journal'),
   codeRoot: env('HIPOCAMPO_CODE', path.join(home, 'Documents', 'GitHub')),
   typesafeKey: env('TYPESAFE_API_KEY'),
   typesafeModel: env('TYPESAFE_MODEL', 'jev-latest'),
   openaiKey: env('OPENAI_API_KEY'),
   openaiBaseUrl: env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
   /** A voz da OpenAI que o núcleo usa para responder. */
-  voz: env('HIPOCAMPO_VOZ', 'onyx'),
+  voice: env('HIPOCAMPO_VOICE', 'onyx'),
   claudeModel: env('HIPOCAMPO_MODEL', ''),
   /** Guardar o texto digitado (sempre redigido). Desligue se preferir só os números. */
   keepTyping: env('HIPOCAMPO_KEEP_TYPING', '1') === '1',

@@ -1,6 +1,6 @@
 import { query, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { COMO_ESCREVER, IDIOMAS, idiomaValido } from './idiomas.ts'
+import { HOW_TO_WRITE, LANGUAGES, validLanguage } from './languages.ts'
 import { PERSONAS } from './personas.ts'
 import { config, today, dayOf } from './config.ts'
 import { all } from './db.ts'
@@ -212,12 +212,12 @@ const server = createSdkMcpServer({
 })
 
 function persona(): string {
-  const idioma = idiomaValido(config.lang)
+  const idioma = validLanguage(config.lang)
   const quem = PERSONAS[idioma]
   const agora = new Date()
-  const intl = IDIOMAS[idioma].intl
+  const intl = LANGUAGES[idioma].intl
   return [
-    COMO_ESCREVER[idioma],
+    HOW_TO_WRITE[idioma],
     '',
     quem.conversa(
       config.userName,

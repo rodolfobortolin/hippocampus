@@ -1,8 +1,8 @@
 // Uma lista só de idiomas, compartilhada com o núcleo: o app e o diário
 // precisam concordar sobre o que é um idioma válido.
-import { IDIOMAS, type Idioma } from '../../core/idiomas.ts'
+import { LANGUAGES, type Language } from '../../core/languages.ts'
 
-export { IDIOMAS, type Idioma }
+export { LANGUAGES, type Language }
 
 /**
  * Os textos da interface, em cinco idiomas.
@@ -100,7 +100,7 @@ export type Textos = {
 }
 
 const pt: Textos = {
-  abas: { hoje: 'Hoje', ritmo: 'Ritmo', diario: 'Diário', conversa: 'Conversa', ajustes: 'Ajustes' },
+  abas: { hoje: 'Hoje', ritmo: 'Ritmo', diario: 'Diário', conversa: 'Conversa', ajustes: 'Settings' },
   estado: {
     marca: 'memória da máquina',
     fonte: { 'aguardando-permissao': 'esperando você permitir', 'sem-permissao': 'sem permissão', nunca: 'ainda não tentou' },
@@ -191,7 +191,7 @@ const pt: Textos = {
     ],
   },
   ajustes: {
-    titulo: 'Ajustes', subtitulo: 'tudo fica nesta máquina',
+    titulo: 'Settings', subtitulo: 'tudo fica nesta máquina',
     idioma: 'idioma', idiomaNota: 'vale para a interface, o diário, a conversa e a voz',
     nome: 'como te chamar', nomeNota: 'usado no diário e na conversa',
     vault: 'vault do Obsidian', vaultNota: 'onde o resumo de cada dia é escrito',
@@ -209,7 +209,7 @@ const pt: Textos = {
     agentesNota: 'o coletor, o leitor de janela e a escuta sobem com o Mac e voltam se caírem',
     agentesLigados: 'ligados', agentesDesligados: 'desligados',
     agentesAprovar: 'registrados — falta você aprovar',
-    agentesOnde: 'Ajustes → Geral → Itens de Início',
+    agentesOnde: 'Settings → Geral → Itens de Início',
   },
   contagem: {
     trecho: ['trecho', 'trechos'], sessao: ['sessão sustentada', 'sessões sustentadas'],
@@ -224,7 +224,7 @@ const pt: Textos = {
     sessao: 'sessão', sessoes: 'sessões', mediaDe: 'média de', porDia: 'por dia medido',
     outros: (n) => `outros ${n}`,
     restoNaTela: '… o resto está escrito na tela.', naoEntendi: 'Não entendi o que você falou.',
-    microfoneNegado: 'O microfone foi negado. Autorize em Ajustes → Privacidade e Segurança → Microfone.',
+    microfoneNegado: 'O microfone foi negado. Autorize em Settings → Privacidade e Segurança → Microfone.',
   },
 }
 
@@ -358,7 +358,7 @@ const en: Textos = {
 }
 
 const es: Textos = {
-  abas: { hoje: 'Hoy', ritmo: 'Ritmo', diario: 'Diario', conversa: 'Conversación', ajustes: 'Ajustes' },
+  abas: { hoje: 'Hoy', ritmo: 'Ritmo', diario: 'Diario', conversa: 'Conversación', ajustes: 'Settings' },
   estado: {
     marca: 'la memoria de la máquina',
     fonte: { 'aguardando-permissao': 'esperando que lo permitas', 'sem-permissao': 'sin permiso', nunca: 'aún no lo intentó' },
@@ -449,7 +449,7 @@ const es: Textos = {
     ],
   },
   ajustes: {
-    titulo: 'Ajustes', subtitulo: 'todo se queda en esta máquina',
+    titulo: 'Settings', subtitulo: 'todo se queda en esta máquina',
     idioma: 'idioma', idiomaNota: 'vale para la interfaz, el diario, la conversación y la voz',
     nome: 'cómo llamarte', nomeNota: 'se usa en el diario y en la conversación',
     vault: 'vault de Obsidian', vaultNota: 'donde se escribe el resumen de cada día',
@@ -467,7 +467,7 @@ const es: Textos = {
     agentesNota: 'el recolector, el lector de ventanas y la escucha arrancan con el Mac y vuelven si se caen',
     agentesLigados: 'encendidos', agentesDesligados: 'apagados',
     agentesAprovar: 'registrados — falta que los apruebes',
-    agentesOnde: 'Ajustes → General → Ítems de inicio',
+    agentesOnde: 'Settings → General → Ítems de inicio',
   },
   contagem: {
     trecho: ['tramo', 'tramos'], sessao: ['sesión sostenida', 'sesiones sostenidas'],
@@ -482,7 +482,7 @@ const es: Textos = {
     sessao: 'sesión', sessoes: 'sesiones', mediaDe: 'media de', porDia: 'por día medido',
     outros: (n) => `otros ${n}`,
     restoNaTela: '… el resto está escrito en la pantalla.', naoEntendi: 'No entendí lo que dijiste.',
-    microfoneNegado: 'El micrófono fue denegado. Permítelo en Ajustes → Privacidad y seguridad → Micrófono.',
+    microfoneNegado: 'El micrófono fue denegado. Permítelo en Settings → Privacidad y seguridad → Micrófono.',
   },
 }
 
@@ -745,4 +745,4 @@ const de: Textos = {
 }
 
 /** Todos os idiomas, prontos para escolher. */
-export const TEXTOS: Record<Idioma, Textos> = { 'pt-BR': pt, 'en-US': en, 'es-ES': es, 'fr-FR': fr, 'de-DE': de }
+export const TEXTOS: Record<Language, Textos> = { 'pt-BR': pt, 'en-US': en, 'es-ES': es, 'fr-FR': fr, 'de-DE': de }

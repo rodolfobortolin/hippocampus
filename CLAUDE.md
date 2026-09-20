@@ -4,32 +4,33 @@ Medidor local do dia no Mac. Leia o `README.md` para o que ele é e o
 `CONTRIBUTING.md` para as duas regras que não se negociam — nunca tirar
 screenshot, e nunca dar nota em quem usa.
 
-## Mensagens de commit
+## Commit messages
 
-Uma mudança lógica por commit. Assunto no infinitivo ou imperativo, 50
-caracteres de meta e 72 de teto. Linha em branco, e então o corpo explicando
-**por quê** — o diff já mostra o quê. Se o assunto precisa de um "e" para
-caber, são dois commits.
+English, like the rest of the project. One logical change per commit. An
+imperative subject line, 50 characters as a target and 72 as the ceiling. A
+blank line, then a body explaining **why** — the diff already shows the what.
+If the subject needs an "and" to fit, it is two commits.
 
-Nada de linha de atribuição: nem `Co-Authored-By`, nem menção a qual modelo ou
-ferramenta escreveu o código. O autor do commit é quem responde por ele.
+No attribution line: no `Co-Authored-By`, no mention of which model or tool
+wrote the code. The commit's author is whoever answers for it.
 
 ```
-Esconder o núcleo em vez de fechá-lo
+Hide the floating core instead of closing it
 
-Fechar destruía a cena de WebGL, e a palavra de ativação passava a esperar o
-carregamento antes de poder ouvir.
+Closing destroyed the WebGL scene, so the wake word had to wait for it to load
+again before it could listen.
 ```
 
-Quando o motivo veio de uma medição, o número entra no corpo. "Sete segundos
-sem ninguém falar e ele fecha" vale menos que "em repouso fechado, cinco
-segundos depois da palavra aberto, quinze segundos depois fechado".
+When the reason came from a measurement, the number goes in the body. "It gives
+up after seven seconds" is worth less than "at rest closed, five seconds after
+the wake word open, fifteen seconds later closed again".
 
-## Comentários
+## Comments
 
-Explicam o porquê, não o quê, e são em português. O lugar em que mais importam
-é `native/` e `app/main.cjs`: quase todo comentário ali existe porque o macOS
-puniu uma ideia razoável, e sem o registro alguém reintroduz a ideia.
+They explain why, not what, and they are in English like the code. Where they
+matter most is `native/` and `app/main.cjs`: nearly every comment there exists
+because macOS punished a reasonable idea, and without the record someone
+reintroduces the idea.
 
 ## Antes de dizer que terminou
 

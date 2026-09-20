@@ -1,6 +1,6 @@
 import { config } from './config.ts'
 import { db, one } from './db.ts'
-import { CATEGORIAS_POR_IDIOMA, NIVEIS_POR_IDIOMA, PERGUNTAS_JEV, idiomaValido } from './idiomas.ts'
+import { CATEGORIES_BY_LANGUAGE, LEVELS_BY_LANGUAGE, JEV_QUESTIONS, validLanguage } from './languages.ts'
 
 // O jev responde perguntas tipadas com probabilidade calibrada em ~100ms.
 // Cada janela vira uma classificação guardada, então a mesma janela nunca
@@ -17,18 +17,18 @@ const ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
  * errada. YouTube não é uma categoria: depende do vídeo.
  */
 const CATEGORIAS_PT: Record<string, string> = {
-  codigo: 'Escrever, ler ou revisar código; terminal; git; banco de dados',
-  ia: 'Conversar com um assistente de IA para produzir trabalho',
-  pesquisa:
+  code: 'Escrever, ler ou revisar código; terminal; git; banco de dados',
+  ai: 'Conversar com um assistente de IA para produzir trabalho',
+  research:
     'Investigar ou aprender algo que serve ao trabalho: documentação, busca, ' +
     'artigo, fórum, e também vídeo ou tutorial sobre assunto técnico, ' +
     'ferramenta, produto concorrente ou tema do projeto. O meio não decide — ' +
     'um vídeo sobre uma tecnologia é pesquisa, não entretenimento.',
-  comunicacao: 'E-mail, chat, mensagens, reunião, chamada',
-  escrita: 'Escrever texto, documento, proposta, nota',
+  communication: 'E-mail, chat, mensagens, reunião, chamada',
+  writing: 'Escrever texto, documento, proposta, nota',
   design: 'Interface, protótipo, editar imagem ou vídeo do próprio trabalho',
   admin: 'Arquivos, ajustes, instalação, organização, burocracia, banco, contas',
-  distracao:
+  distraction:
     'Lazer: o assunto não tem relação com o trabalho da pessoa — humor, fofoca, ' +
     'esporte, jogo, compras, rede social, notícia geral. Um vídeo só entra aqui ' +
     'quando o ASSUNTO é entretenimento.',
@@ -36,7 +36,7 @@ const CATEGORIAS_PT: Record<string, string> = {
 
 /** As categorias no idioma em vigor. As chaves nunca mudam — só o que se lê. */
 export function categorias(): Record<string, string> {
-  return CATEGORIAS_POR_IDIOMA[idiomaValido(config.lang)] ?? CATEGORIAS_PT
+  return CATEGORIES_BY_LANGUAGE[validLanguage(config.lang)] ?? CATEGORIAS_PT
 }
 
 export type Label = {
@@ -85,8 +85,8 @@ export async function classify(
   if (cached) return cached
   if (!jevReady()) return null
 
-  const pergunta = PERGUNTAS_JEV[idiomaValido(config.lang)]
-  const projectOptions: Record<string, string> = { nenhum: pergunta.semProjeto }
+  const question = JEV_QUESTIONS[validLanguage(config.lang)]
+  const projectOptions: Record<string, string> = { nenhum: question.noProject }
   for (const project of projects.slice(0, 24)) projectOptions[project] = `${project}`
 
   const body = {
@@ -101,9 +101,9 @@ export async function classify(
       pessoa_trabalha_com: projects.slice(0, 12),
     },
     questions: {
-      categoria: { type: 'choice', instructions: pergunta.categoria, criteria: categorias() },
-      projeto: { type: 'choice', instructions: pergunta.projeto, criteria: projectOptions },
-      foco: { type: 'noul', instructions: pergunta.foco },
+      categoria: { type: 'choice', instructions: question.category, criteria: categorias() },
+      projeto: { type: 'choice', instructions: question.project, criteria: projectOptions },
+      foco: { type: 'noul', instructions: question.focus },
     },
   }
 
@@ -131,7 +131,7 @@ export async function classify(
   // para de confiar no resto. Abaixo de 0,55 a janela fica sem rótulo.
   const label: Label = {
     key,
-    category: confianca >= 0.55 ? data.answers?.categoria?.choice ?? 'sem rótulo' : 'sem rótulo',
+    category: confianca >= 0.55 ? data.answers?.categoria?.choice ?? 'unlabelled' : 'unlabelled',
     project: !project || project === 'nenhum' ? null : project,
     deep_work: data.answers?.foco?.noul ?? 0.5,
     confidence: confianca,
@@ -193,8 +193,8 @@ export async function escolheModelo(pedido: string): Promise<Roteamento | null> 
         questions: {
           complexidade: {
             type: 'score',
-            instructions: PERGUNTAS_JEV[idiomaValido(config.lang)].complexidade,
-            criteria: NIVEIS_POR_IDIOMA[idiomaValido(config.lang)],
+            instructions: JEV_QUESTIONS[validLanguage(config.lang)].complexity,
+            criteria: LEVELS_BY_LANGUAGE[validLanguage(config.lang)],
           },
         },
       }),
@@ -205,8 +205,8 @@ export async function escolheModelo(pedido: string): Promise<Roteamento | null> 
     if (!resposta.ok) return null
 
     const dados = (await resposta.json()) as any
-    const nivel = Math.round(dados.answers?.complexidade?.score ?? 1)
-    const confianca = dados.answers?.complexidade?.confidence ?? 0
+    const nivel = Math.round(dados.answers?.complexity?.score ?? 1)
+    const confianca = dados.answers?.complexity?.confidence ?? 0
     // Na dúvida, sobe um degrau: errar para mais forte custa tempo; errar para
     // mais fraco custa uma resposta ruim, que é pior.
     const ajustado = confianca < 0.5 ? Math.min(2, nivel + 1) : nivel

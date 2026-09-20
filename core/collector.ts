@@ -12,7 +12,7 @@ import { rollup } from './rollup.ts'
 import { all } from './db.ts'
 import { backfillAll } from './backfill.ts'
 import { buildAllEpisodes } from './episodes.ts'
-import { comLimite, estadoDasFontes } from './limite.ts'
+import { withTimeout, sourceStates } from './guard.ts'
 
 type Task = { name: string; everyMinutes: number; run: () => unknown | Promise<unknown> }
 
@@ -56,7 +56,7 @@ export class Collector {
     }, 12_000)
     setMeta('collector.started', String(Math.floor(Date.now() / 1000)))
     console.log(`[coletor] de pé — amostra a cada ${config.sampleInterval}s`)
-    void comLimite('skysight', 20_000, checkSkysight).then((tem) => {
+    void withTimeout('skysight', 20_000, checkSkysight).then((tem) => {
       if (tem === false) console.log('[coletor] Computer History ausente; seguindo sem os eventos finos')
     })
 
@@ -64,7 +64,7 @@ export class Collector {
       const tick = async () => {
         // 90s é muito mais do que qualquer coleta honesta precisa; o que passa
         // disso está preso num diálogo de permissão, não trabalhando.
-        const result = await comLimite(task.name, 90_000, async () => task.run())
+        const result = await withTimeout(task.name, 90_000, async () => task.run())
         if (result === null) return
         this.lastRun.set(task.name, Math.floor(Date.now() / 1000))
         const summary = JSON.stringify(result)
@@ -137,7 +137,7 @@ export class Collector {
       lastSample: this.focus.lastSample,
       skysight: skysightAvailable(),
       lastRun: Object.fromEntries(this.lastRun),
-      fontes: estadoDasFontes(),
+      fontes: sourceStates(),
       startedAt: Number(getMeta('collector.started', '0')),
       lastRollup: getMeta('rollup.last', ''),
     }

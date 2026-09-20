@@ -21,15 +21,15 @@
   --ouro: #ffd166;
   --agua: #4dd8c0;
 
-  --codigo: #4ade80;
-  --ia: #a78bfa;
-  --pesquisa: #38bdf8;
-  --comunicacao: #fbbf24;
-  --escrita: #f472b6;
+  --code: #4ade80;
+  --ai: #a78bfa;
+  --research: #38bdf8;
+  --communication: #fbbf24;
+  --writing: #f472b6;
   --design: #fb923c;
   --admin: #8ba0b8;
-  --distracao: #f87171;
-  --sem-rotulo: #3f4754;
+  --distraction: #f87171;
+  --unlabelled: #3f4754;
 
   --raio: 16px;
   --rail: 232px;
@@ -134,8 +134,8 @@ input, textarea { font: inherit; color: inherit; }
 .em-foco b { font-size: 12px; font-weight: 500; color: var(--texto-medio); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .em-foco i { font-style: normal; font-size: 11px; color: var(--texto-fraco); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ponto { width: 6px; height: 6px; border-radius: 50%; background: var(--texto-fraco); flex: none; }
-.ponto.vivo { background: var(--codigo); box-shadow: 0 0 8px var(--codigo); animation: pulsa 2.6s ease-in-out infinite; }
-.ponto.morno { background: var(--comunicacao); box-shadow: 0 0 8px var(--comunicacao); }
+.ponto.vivo { background: var(--code); box-shadow: 0 0 8px var(--code); animation: pulsa 2.6s ease-in-out infinite; }
+.ponto.morno { background: var(--communication); box-shadow: 0 0 8px var(--communication); }
 @keyframes pulsa { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
 
 .tela { overflow-y: auto; padding: 44px 32px 40px; }

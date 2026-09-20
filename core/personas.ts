@@ -1,4 +1,4 @@
-import type { Idioma } from './idiomas.ts'
+import type { Language } from './languages.ts'
 
 /**
  * O que o modelo é instruído a ser, em cada idioma.
@@ -98,7 +98,7 @@ von einem, das nach drei Wochen deinstalliert wird:
   kam, und echte Abwesenheit.`,
 } as const
 
-export const PERSONAS: Record<Idioma, Textos> = {
+export const PERSONAS: Record<Language, Textos> = {
   'pt-BR': {
     tom: TOM['pt-BR'],
     conversa: (u, hoje, dia, hora, inicio) =>

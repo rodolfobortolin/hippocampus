@@ -59,7 +59,7 @@ export type Status = {
   span: { de: string; ate: string }
 }
 
-export type Ajustes = {
+export type Settings = {
   idioma: 'pt-BR' | 'en-US' | 'es-ES' | 'fr-FR' | 'de-DE'
   nome: string
   vault: string
@@ -106,8 +106,8 @@ export const api = {
   fechar: (dia: string, narrar = true) =>
     pega<{ narrative: string; recap: string; classified: number }>(
       `/api/rollup?dia=${dia}&narrar=${narrar ? 1 : 0}`, { method: 'POST' }),
-  ajustes: () => pega<Ajustes>('/api/ajustes'),
-  salvaAjustes: (mudanca: Record<string, unknown>) => pega<Ajustes>('/api/ajustes', {
+  ajustes: () => pega<Settings>('/api/ajustes'),
+  saveSettings: (mudanca: Record<string, unknown>) => pega<Settings>('/api/ajustes', {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(mudanca),
   }),
   socket: () => new WebSocket(`ws://127.0.0.1:${(globalThis as any).HIPOCAMPO_PORT ?? 7878}/ws`),

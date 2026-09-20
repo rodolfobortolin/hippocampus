@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useIdioma } from '../lib/idioma.tsx'
-import { IDIOMAS, type Idioma } from '../lib/textos.ts'
+import { LANGUAGES, type Language } from '../lib/textos.ts'
 import { IconeChave, IconePasta } from './Icons.tsx'
 
 /**
@@ -36,7 +36,7 @@ function Campo({ rotulo, nota, children }: { rotulo: string; nota?: string; chil
   )
 }
 
-export function Ajustes() {
+export function Settings() {
   const { t, idioma, ajustes, salva } = useIdioma()
   const [nome, setNome] = useState('')
   const [pastaDiario, setPastaDiario] = useState('')
@@ -103,10 +103,10 @@ export function Ajustes() {
         <div className="painel">
           <h3>{t.ajustes.idioma}<em>{t.ajustes.idiomaNota}</em></h3>
           <div className="idiomas">
-            {(Object.keys(IDIOMAS) as Idioma[]).map((chave) => (
+            {(Object.keys(LANGUAGES) as Language[]).map((chave) => (
               <button key={chave} className={`pilula ${chave === idioma ? 'ativo' : ''}`}
                 onClick={() => guarda({ idioma: chave })}>
-                <b>{IDIOMAS[chave].bandeira}</b> {IDIOMAS[chave].nome}
+                <b>{LANGUAGES[chave].flag}</b> {LANGUAGES[chave].name}
               </button>
             ))}
           </div>

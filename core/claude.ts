@@ -2,8 +2,8 @@ import { query } from '@anthropic-ai/claude-agent-sdk'
 import { config } from './config.ts'
 
 /**
- * Uma pergunta ao Claude Code, sem ferramentas, devolvendo o texto final.
- * Usa o login do `claude` da máquina — nada de chave de API, nada de conta nova.
+ * One question to Claude Code, with no tools, returning the final text.
+ * Uses the machine's own `claude` login — no API key, no new account.
  */
 export async function ask(prompt: string, system: string): Promise<string> {
   const run = query({

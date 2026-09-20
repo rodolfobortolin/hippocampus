@@ -5,7 +5,7 @@ import { Hoje } from './components/Hoje.tsx'
 import { Ritmo } from './components/Ritmo.tsx'
 import { Diario } from './components/Diario.tsx'
 import { Conversa } from './components/Conversa.tsx'
-import { Ajustes } from './components/Ajustes.tsx'
+import { Settings } from './components/Ajustes.tsx'
 import {
   Emblema, IconeHoje, IconeRitmo, IconeDiario, IconeConversa, IconeAjustes,
 } from './components/Icons.tsx'
@@ -98,7 +98,7 @@ export function App() {
                   // tradução para um erro do macOS só esconde o erro.
                   const motivo = (t.estado.fonte as Record<string, string>)[estado] ?? estado
                   return (
-                    <div key={fonte} className="sinal" title={motivo} style={{ color: 'var(--comunicacao)' }}>
+                    <div key={fonte} className="sinal" title={motivo} style={{ color: 'var(--communication)' }}>
                       <i className="ponto morno" />{fonte}: {motivo}
                     </div>
                   )
@@ -117,7 +117,7 @@ export function App() {
         ) : aba === 'hoje' ? <Hoje status={status} />
           : aba === 'ritmo' ? <Ritmo />
           : aba === 'diario' ? <Diario status={status} />
-          : aba === 'ajustes' ? <Ajustes />
+          : aba === 'ajustes' ? <Settings />
           : <Conversa status={status} />}
       </main>
     </div>

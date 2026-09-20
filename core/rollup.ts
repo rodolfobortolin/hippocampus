@@ -6,9 +6,9 @@ import { buildEpisodes } from './episodes.ts'
 import { knownProjects } from './metrics.ts'
 import { ask } from './claude.ts'
 import { writeDaySection } from './vault.ts'
-import { COMO_ESCREVER, idiomaValido } from './idiomas.ts'
+import { HOW_TO_WRITE, validLanguage } from './languages.ts'
 import { PERSONAS } from './personas.ts'
-import { DOSSIE } from './dossie.ts'
+import { DOSSIER } from './dossier.ts'
 
 const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.round((seconds % 3600) / 60)).padStart(2, '0')}`
 const clock = (ts: number | null) => (ts ? new Date(ts * 1000).toTimeString().slice(0, 5) : '—')
@@ -23,7 +23,7 @@ const clock = (ts: number | null) => (ts ? new Date(ts * 1000).toTimeString().sl
  */
 export function dossier(day: string, nivel: 'resumo' | 'completo' = 'completo'): string {
   const report = dayReport(day)
-  const d = DOSSIE[idiomaValido(config.lang)]
+  const d = DOSSIER[validLanguage(config.lang)]
   const lines: string[] = [
     d.cabecalho(day, hours(report.activeSeconds)),
     report.delegatedSeconds > 300
@@ -86,9 +86,9 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
   const report = dayReport(day)
   const material = dossier(day)
 
-  const idioma = idiomaValido(config.lang)
+  const idioma = validLanguage(config.lang)
   const quem = PERSONAS[idioma]
-  const persona = [COMO_ESCREVER[idioma], '', quem.diario(config.userName), '', quem.tom].join('\n')
+  const persona = [HOW_TO_WRITE[idioma], '', quem.diario(config.userName), '', quem.tom].join('\n')
 
   let narrative = ''
   let recap = ''

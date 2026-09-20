@@ -96,7 +96,7 @@ export function Hoje({ status }: { status: Status | null }) {
 
             <Cartao rotulo={t.hoje.delegado}
               nota={dados.delegatedSeconds > 60 ? t.hoje.delegadoNota : t.hoje.semDelegado}>
-              <div className="numero" style={{ color: 'var(--ia)', textShadow: '0 0 26px rgba(167,139,250,.35)' }}>
+              <div className="numero" style={{ color: 'var(--ai)', textShadow: '0 0 26px rgba(167,139,250,.35)' }}>
                 {horas(dados.delegatedSeconds).valor}
                 <small>{horas(dados.delegatedSeconds).unidade}</small>
               </div>
@@ -226,7 +226,7 @@ export function Hoje({ status }: { status: Status | null }) {
                 {dados.commits.map((commit, i) => (
                   <div key={i} className="linha" style={{ gridTemplateColumns: '1fr auto' }}>
                     <span className="nome">
-                      <span style={{ color: 'var(--codigo)' }}>{commit.repo}</span> · {commit.subject}
+                      <span style={{ color: 'var(--code)' }}>{commit.repo}</span> · {commit.subject}
                     </span>
                     <span className="valor">+{commit.insertions}/−{commit.deletions}</span>
                   </div>
@@ -234,7 +234,7 @@ export function Hoje({ status }: { status: Status | null }) {
                 {dados.aiTurns.slice(-12).map((turno, i) => (
                   <div key={`ia-${i}`} className="linha" style={{ gridTemplateColumns: '1fr auto' }}>
                     <span className="nome" title={turno.prompt}>
-                      <span style={{ color: 'var(--ia)' }}>{turno.project}</span> · {turno.prompt}
+                      <span style={{ color: 'var(--ai)' }}>{turno.project}</span> · {turno.prompt}
                     </span>
                     <span className="valor">{relogio(turno.ts)}</span>
                   </div>
