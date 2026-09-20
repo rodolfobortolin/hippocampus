@@ -36,6 +36,15 @@ export const IconeAlerta = () => (
 export const IconeAbrir = () => (
   <svg {...base}><path d="m9 6 6 6-6 6" /></svg>
 )
+export const IconeAjustes = () => (
+  <svg {...base}><circle cx="12" cy="12" r="3.2" /><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" /></svg>
+)
+export const IconePasta = () => (
+  <svg {...base}><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" /></svg>
+)
+export const IconeChave = () => (
+  <svg {...base}><circle cx="8" cy="12" r="3.6" /><path d="M11.6 12H21M18 12v3M15 12v2.2" /></svg>
+)
 export const Emblema = () => (
   <img src="/marca.png" alt="" width={26} height={26} style={{ objectFit: 'contain' }} />
 )

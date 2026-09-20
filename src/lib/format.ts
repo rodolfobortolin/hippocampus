@@ -4,10 +4,16 @@ export const CORES: Record<string, string> = {
   admin: 'var(--admin)', distracao: 'var(--distracao)', 'sem rótulo': 'var(--sem-rotulo)',
 }
 
-export const NOMES: Record<string, string> = {
-  codigo: 'código', ia: 'IA', pesquisa: 'pesquisa', comunicacao: 'comunicação',
-  escrita: 'escrita', design: 'design', admin: 'admin', distracao: 'distração',
-  'sem rótulo': 'sem rótulo',
+/**
+ * O idioma das datas e dos números.
+ *
+ * Fica num módulo em vez de descer por propriedade porque data aparece em toda
+ * parte da tela, e passar o locale por trinta camadas só para formatar "sábado"
+ * é ruído sem retorno. O provedor de idioma define isto uma vez.
+ */
+let locale = 'pt-BR'
+export function defineLocale(novo: string): void {
+  locale = novo
 }
 
 export const cor = (categoria: string | null | undefined) =>
@@ -25,7 +31,20 @@ export function duracao(segundos: number): string {
 
 export function horas(segundos: number): { valor: string; unidade: string } {
   if (segundos < 3600) return { valor: String(Math.round(segundos / 60)), unidade: 'min' }
-  return { valor: (segundos / 3600).toFixed(1).replace('.', ','), unidade: 'h' }
+  return { valor: (segundos / 3600).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }), unidade: 'h' }
+}
+
+/** Um número com o separador de milhar do idioma. */
+export const numero = (valor: number): string => valor.toLocaleString(locale)
+
+/** Os nomes curtos dos dias da semana, na língua de quem lê. */
+export function diasDaSemana(): string[] {
+  // 4 de janeiro de 1970 foi um domingo — é a âncora para a semana começar nele.
+  // O fuso tem que ser UTC também na formatação: sem isso, num fuso a oeste a
+  // meia-noite UTC cai no dia anterior e a semana inteira sai deslocada — a
+  // linha do domingo aparecia rotulada como sábado.
+  const formato = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' })
+  return Array.from({ length: 7 }, (_, i) => formato.format(new Date(Date.UTC(1970, 0, 4 + i))).replace('.', ''))
 }
 
 export const relogio = (ts: number | null | undefined) =>
@@ -33,7 +52,7 @@ export const relogio = (ts: number | null | undefined) =>
 
 export function dataLonga(dia: string): string {
   const [ano, mes, d] = dia.split('-').map(Number)
-  const texto = new Date(ano, mes - 1, d).toLocaleDateString('pt-BR', {
+  const texto = new Date(ano, mes - 1, d).toLocaleDateString(locale, {
     weekday: 'long', day: 'numeric', month: 'long',
   })
   // Só a primeira letra sobe: "Sábado, 19 de setembro", não "19 De Setembro".
@@ -42,12 +61,18 @@ export function dataLonga(dia: string): string {
 
 export function dataCurta(dia: string): string {
   const [ano, mes, d] = dia.split('-').map(Number)
-  return new Date(ano, mes - 1, d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+  return new Date(ano, mes - 1, d).toLocaleDateString(locale, { day: '2-digit', month: 'short' })
+}
+
+/** A hora em que o dia vira, espelhada do núcleo pelo /api/ajustes. */
+let inicioDoDia = 4
+export function defineInicioDoDia(hora: number): void {
+  inicioDoDia = hora
 }
 
 export function hoje(): string {
   const agora = new Date()
-  const deslocado = new Date(agora.getTime() - 4 * 3600_000)
+  const deslocado = new Date(agora.getTime() - inicioDoDia * 3600_000)
   return `${deslocado.getFullYear()}-${String(deslocado.getMonth() + 1).padStart(2, '0')}-${String(deslocado.getDate()).padStart(2, '0')}`
 }
 
@@ -65,10 +90,11 @@ export function principais<T extends { name: string; seconds: number }>(
   const topo = relevantes.slice(0, max)
   const resto = [...relevantes.slice(max), ...itens.filter((item) => item.seconds < minimo)]
   const sobra = resto.reduce((soma, item) => soma + item.seconds, 0)
-  return sobra >= minimo ? [...topo, { name: `outros ${resto.length}`, seconds: sobra }] : topo
+  return sobra >= minimo ? [...topo, { name: `__outros__${resto.length}`, seconds: sobra }] : topo
 }
 
-export const plural = (n: number, um: string, muitos: string) => `${n} ${n === 1 ? um : muitos}`
+/** "1 sessão" / "3 sessões" — o par vem do dicionário do idioma. */
+export const plural = (n: number, par: readonly [string, string]) => `${numero(n)} ${n === 1 ? par[0] : par[1]}`
 
 /** Velocidade da fala das respostas. A voz sintética lê devagar para quem já
  *  conhece o assunto; 1,5× é o ponto em que ainda dá para acompanhar. */

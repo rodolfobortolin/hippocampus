@@ -12,7 +12,7 @@ type Estado = 'parado' | 'ouvindo' | 'transcrevendo'
  * áudio é gravado, a fala é detectada pelo volume, e o trecho vai para a
  * transcrição quando você para de falar.
  */
-export function useEscuta(aoOuvir: (texto: string) => void) {
+export function useEscuta(aoOuvir: (texto: string) => void, semFala = 'Não entendi.') {
   const [estado, setEstado] = useState<Estado>('parado')
   const [nivel, setNivel] = useState(0)
   const [erro, setErro] = useState('')
@@ -25,6 +25,8 @@ export function useEscuta(aoOuvir: (texto: string) => void) {
   const falou = useRef(false)
   const receber = useRef(aoOuvir)
   receber.current = aoOuvir
+  const naoEntendi = useRef(semFala)
+  naoEntendi.current = semFala
 
   const desmonta = useCallback(() => {
     cancelAnimationFrame(quadro.current)
@@ -72,7 +74,7 @@ export function useEscuta(aoOuvir: (texto: string) => void) {
           const texto = await api.transcrever(audio)
           setEstado('parado')
           if (texto) receber.current(texto)
-          else setErro('Não entendi o que você falou.')
+          else setErro(naoEntendi.current)
         } catch (falha) {
           setEstado('parado')
           setErro((falha as Error).message)

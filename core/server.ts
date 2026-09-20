@@ -11,6 +11,8 @@ import { rollup } from './rollup.ts'
 import { jevReady } from './jev.ts'
 import { claudeAvailable } from './claude.ts'
 import { vaultReady } from './vault.ts'
+import { leAjustes, salvaAjustes, gravaChave, estadoChave, type NomeChave } from './ajustes.ts'
+import { IDIOMAS } from './idiomas.ts'
 import type { Collector } from './collector.ts'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -62,7 +64,35 @@ export function serve(collector?: Collector): http.Server {
           vault: vaultReady(),
           voz: Boolean(config.openaiKey),
           usuario: config.userName,
+          idioma: config.lang,
           ...overview(),
+        })
+      }
+
+      if (route === '/api/ajustes' && request.method === 'GET') {
+        return json(response, {
+          ...leAjustes(),
+          idiomas: IDIOMAS,
+          chaves: { jev: estadoChave('jev'), openai: estadoChave('openai') },
+        })
+      }
+
+      if (route === '/api/ajustes' && request.method === 'POST') {
+        const pedacos: Buffer[] = []
+        for await (const pedaco of request) pedacos.push(pedaco as Buffer)
+        const corpo = JSON.parse(Buffer.concat(pedacos).toString() || '{}')
+        // As chaves nunca voltam pela API: só o estado delas. O que entra aqui
+        // vai direto para o Chaveiro e some da memória do pedido.
+        for (const nome of ['jev', 'openai'] as NomeChave[]) {
+          const valor = corpo.chaves?.[nome]
+          if (typeof valor === 'string') await gravaChave(nome, valor.trim())
+        }
+        delete corpo.chaves
+        const ajustes = salvaAjustes(corpo)
+        return json(response, {
+          ...ajustes,
+          idiomas: IDIOMAS,
+          chaves: { jev: estadoChave('jev'), openai: estadoChave('openai') },
         })
       }
 
@@ -155,7 +185,7 @@ export function serve(collector?: Collector): http.Server {
         const speech = await fetch(`${config.openaiBaseUrl}/audio/speech`, {
           method: 'POST',
           headers: { authorization: `Bearer ${config.openaiKey}`, 'content-type': 'application/json' },
-          body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: voz ?? 'onyx', input: String(texto).slice(0, 4000) }),
+          body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: voz ?? config.voz, input: String(texto).slice(0, 4000) }),
         })
         if (!speech.ok) return json(response, { erro: await speech.text() }, 502)
         const audio = Buffer.from(await speech.arrayBuffer())

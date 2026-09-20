@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { api, type DiaSalvo, type Status } from '../lib/api.ts'
 import { duracao, dataLonga, somaDias, hoje as diaDeHoje } from '../lib/format.ts'
 import { Markdown } from '../lib/markdown.tsx'
+import { useIdioma } from '../lib/idioma.tsx'
 import { IconeAbrir } from './Icons.tsx'
 
 type Linha = { day: string; active: number; salvo?: DiaSalvo }
 
 export function Diario({ status }: { status: Status | null }) {
+  const t = useIdioma().t
   const [linhas, setLinhas] = useState<Linha[]>([])
   const [aberto, setAberto] = useState<string | null>(null)
   const [gerando, setGerando] = useState<string | null>(null)
@@ -42,18 +44,15 @@ export function Diario({ status }: { status: Status | null }) {
     <>
       <div className="topo">
         <div>
-          <h2><b>Diário</b></h2>
-          <p>o que o computador viu, escrito em português pelo Claude Code</p>
+          <h2><b>{t.diario.titulo}</b></h2>
+          <p>{t.diario.subtitulo}</p>
         </div>
       </div>
 
       {status && !status.claude && (
         <div className="aviso">
           <div>
-            <p>
-              <strong>O Claude Code não respondeu.</strong> Sem ele a medição continua inteira,
-              mas o diário não é escrito. Confira se o comando <code>claude</code> está instalado e logado.
-            </p>
+            <p><strong>{t.diario.claudeNaoRespondeu}</strong> {t.diario.claudeTexto}</p>
           </div>
         </div>
       )}
@@ -62,8 +61,8 @@ export function Diario({ status }: { status: Status | null }) {
 
       {!linhas.length ? (
         <div className="painel" style={{ padding: '40px 20px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--texto-medio)' }}>Nenhum dia medido ainda.</p>
-          <p className="nota">Amanhã de manhã esta lista começa a encher sozinha.</p>
+          <p style={{ color: 'var(--texto-medio)' }}>{t.diario.semDias}</p>
+          <p className="nota">{t.diario.amanhaEnche}</p>
         </div>
       ) : (
         <div className="grade" style={{ gap: 10 }}>
@@ -88,7 +87,7 @@ export function Diario({ status }: { status: Status | null }) {
                   <span style={{ flex: 1, color: 'var(--texto-fraco)', fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {linha.salvo?.narrative
                       ? linha.salvo.narrative.replace(/[*#-]/g, '').trim().slice(0, 110)
-                      : linha.salvo?.top_app ?? 'sem narrativa'}
+                      : linha.salvo?.top_app ?? t.diario.semNarrativa}
                   </span>
                 </button>
 
@@ -96,11 +95,11 @@ export function Diario({ status }: { status: Status | null }) {
                   <div className="dia-corpo aparece">
                     {linha.salvo?.narrative ? (
                       <>
-                        <h4>resumo do dia</h4>
+                        <h4>{t.diario.resumoDoDia}</h4>
                         <div className="fala dele"><Markdown texto={linha.salvo.narrative} /></div>
                         {linha.salvo.recap && (
                           <>
-                            <h4>o recap</h4>
+                            <h4>{t.diario.oRecap}</h4>
                             <div className="fala dele"><Markdown texto={linha.salvo.recap} /></div>
                           </>
                         )}
@@ -111,14 +110,12 @@ export function Diario({ status }: { status: Status | null }) {
                             marginTop: 18, padding: '7px 13px', borderRadius: 9, fontSize: 12.5,
                             border: '1px solid var(--borda)', color: 'var(--texto-medio)',
                           }}>
-                          {gerando === linha.day ? 'reescrevendo…' : 'reescrever'}
+                          {gerando === linha.day ? t.diario.reescrevendo : t.diario.reescrever}
                         </button>
                       </>
                     ) : (
                       <div style={{ paddingTop: 16 }}>
-                        <p style={{ color: 'var(--texto-medio)', fontSize: 13 }}>
-                          Este dia foi medido mas ainda não foi escrito.
-                        </p>
+                        <p style={{ color: 'var(--texto-medio)', fontSize: 13 }}>{t.diario.naoEscrito}</p>
                         <button
                           onClick={() => gerar(linha.day)}
                           disabled={gerando === linha.day || !status?.claude}
@@ -126,7 +123,7 @@ export function Diario({ status }: { status: Status | null }) {
                             marginTop: 12, padding: '8px 15px', borderRadius: 9, fontSize: 13,
                             border: '1px solid rgba(255,209,102,.35)', color: 'var(--ouro)',
                           }}>
-                          {gerando === linha.day ? 'escrevendo…' : 'escrever este dia'}
+                          {gerando === linha.day ? t.diario.escrevendo : t.diario.escreverDia}
                         </button>
                       </div>
                     )}

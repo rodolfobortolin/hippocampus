@@ -6,6 +6,9 @@ import { buildEpisodes } from './episodes.ts'
 import { knownProjects } from './metrics.ts'
 import { ask } from './claude.ts'
 import { writeDaySection } from './vault.ts'
+import { COMO_ESCREVER, idiomaValido } from './idiomas.ts'
+import { PERSONAS } from './personas.ts'
+import { DOSSIE } from './dossie.ts'
 
 const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.round((seconds % 3600) / 60)).padStart(2, '0')}`
 const clock = (ts: number | null) => (ts ? new Date(ts * 1000).toTimeString().slice(0, 5) : '—')
@@ -20,85 +23,58 @@ const clock = (ts: number | null) => (ts ? new Date(ts * 1000).toTimeString().sl
  */
 export function dossier(day: string, nivel: 'resumo' | 'completo' = 'completo'): string {
   const report = dayReport(day)
+  const d = DOSSIE[idiomaValido(config.lang)]
   const lines: string[] = [
-    `Dia ${day}. Nas mãos dele: ${hours(report.activeSeconds)}.`,
+    d.cabecalho(day, hours(report.activeSeconds)),
     report.delegatedSeconds > 300
-      ? `Trabalho delegado: ${hours(report.delegatedSeconds)} em que um agente estava produzindo ` +
-        `enquanto ele estava longe do teclado. Isso NÃO é ociosidade — é resultado que saiu sem ele ` +
-        `na frente, e vale ser contado como parte do dia. Fora isso, ${hours(report.awaySeconds)} ` +
-        `de ausência de verdade.`
-      : `Tempo parado: ${hours(report.idleSeconds)}, sem agente trabalhando no meio.`,
-    `Começou ${clock(report.firstAt)}, parou ${clock(report.lastAt)}.`,
-    `${report.switches} trocas de aplicativo, das quais ${report.switchesProjeto} mudaram de projeto ` +
-    `(só essas custam resíduo de atenção).`,
-    `Trabalho concentrado: ${hours(report.focusSeconds)} de ${hours(report.activeSeconds)} ativos ` +
-    `(${Math.round(report.focusRatio * 100)}%), em categorias de código, IA, escrita, design e pesquisa.`,
+      ? d.delegado(hours(report.delegatedSeconds), hours(report.awaySeconds))
+      : d.parado(hours(report.idleSeconds)),
+    d.janela(clock(report.firstAt), clock(report.lastAt)),
+    d.trocas(report.switches, report.switchesProjeto),
+    d.foco(hours(report.focusSeconds), hours(report.activeSeconds), Math.round(report.focusRatio * 100)),
     report.forma.sessoes
-      ? `Isso veio em ${report.forma.sessoes} sessões sustentadas: a maior de ${report.forma.maior}min, ` +
-        `mediana de ${report.forma.mediana}min. Por tamanho: ` +
-        report.forma.faixas.filter((f) => f.minutes).map((f) => `${f.name}min → ${f.minutes}min`).join(', ') + '.'
-      : 'Nenhuma sessão de foco se sustentou por 15 minutos seguidos.',
+      ? d.sessoes(report.forma.sessoes, report.forma.maior, report.forma.mediana,
+          report.forma.faixas.filter((f) => f.minutes).map((f) => `${f.name}min → ${f.minutes}min`).join(', '))
+      : d.semSessao,
     '',
-    'Tempo por aplicativo:',
+    d.porApp,
     ...report.apps.map((a) => `- ${a.name}: ${hours(a.seconds)}`),
   ]
 
   if (report.categories.length) {
-    lines.push('', 'Por categoria:', ...report.categories.map((c) => `- ${c.name}: ${hours(c.seconds)}`))
+    lines.push('', d.porCategoria, ...report.categories.map((c) => `- ${c.name}: ${hours(c.seconds)}`))
   }
   if (report.projects.length) {
-    lines.push('', 'Por projeto:', ...report.projects.map((p) => `- ${p.name}: ${hours(p.seconds)}`))
+    lines.push('', d.porProjeto, ...report.projects.map((p) => `- ${p.name}: ${hours(p.seconds)}`))
   }
 
   if (nivel === 'resumo') {
-    lines.push('',
-      `Também medido, se precisar peça o detalhe: ${report.commits.length} commits, ` +
-      `${report.aiTurns.length} pedidos a agentes, ${report.visits} visitas de navegador, ` +
-      `${report.windows.length} janelas distintas.`)
+    lines.push('', d.tambemMedido(report.commits.length, report.aiTurns.length, report.visits, report.windows.length))
     return lines.join('\n')
   }
   if (report.windows.length) {
-    lines.push('', 'Janelas onde mais ficou:',
-      ...report.windows.slice(0, 10).map((w) => `- ${w.app} · ${w.title} (${hours(w.seconds)})`))
+    lines.push('', d.janelas, ...report.windows.slice(0, 10).map((w) => `- ${w.app} · ${w.title} (${hours(w.seconds)})`))
   }
   if (report.commits.length) {
-    lines.push('', 'Commits:', ...report.commits.map((c) => `- ${c.repo}: ${c.subject} (+${c.insertions}/-${c.deletions})`))
+    lines.push('', d.commits, ...report.commits.map((c) => `- ${c.repo}: ${c.subject} (+${c.insertions}/-${c.deletions})`))
   }
   if (report.aiTurns.length) {
-    lines.push('', `Pedidos ao Claude Code (${report.aiTurns.length}):`,
+    lines.push('', d.pedidos(report.aiTurns.length),
       ...report.aiTurns.slice(0, 25).map((t) => `- [${t.project}] ${String(t.prompt).slice(0, 180)}`))
   }
   if (report.hosts.length) {
-    lines.push('', 'Sites mais visitados:', ...report.hosts.map((h) => `- ${h.name} (${h.n})`))
+    lines.push('', d.sites, ...report.hosts.map((h) => `- ${h.name} (${h.n})`))
   }
   if (report.shortcuts.length) {
-    lines.push('', 'Atalhos:', report.shortcuts.map((s) => `${s.name}×${s.n}`).join(', '))
+    lines.push('', d.atalhos, report.shortcuts.map((s) => `${s.name}×${s.n}`).join(', '))
   }
   const typing = db.prepare(
     `select app, text from typing where day = ? and length(text) > 40 order by length(text) desc limit 8`).all(day) as any[]
   if (typing.length) {
-    lines.push('', 'Amostras do que digitou:', ...typing.map((t) => `- [${t.app}] ${t.text.slice(0, 200)}`))
+    lines.push('', d.digitou, ...typing.map((t) => `- [${t.app}] ${t.text.slice(0, 200)}`))
   }
   return lines.join('\n')
 }
-
-const PERSONA = `Você escreve o diário de computador do ${config.userName}, em português do Brasil.
-Fale direto com ele, na segunda pessoa. Use os números que recebeu — hora, duração,
-contagem — em vez de adjetivos. Quando um número for pequeno demais para sustentar uma
-conclusão, diga isso em vez de inventar.
-
-O tom é o de um \`git log\`: registro do que aconteceu, não avaliação de quem fez.
-Isto não é negociável, e é a diferença entre um diário que dura e um que é desinstalado
-em três semanas:
-
-- Nada de elogio ("que dia produtivo!") e nada de repreensão ("você se distraiu muito").
-- Nada de nota, placar, meta implícita ou comparação com um dia ideal que ninguém
-  declarou. Ninguém faz oito horas concentradas; tratar isso como falha é mentira.
-- Dia curto, dia picado e dia de reunião são fatos sobre o mundo, não veredito sobre ele.
-- Se o coletor ficou fora do ar, diga que faltou medição — jamais deixe parecer um dia
-  em que ele não fez nada.
-- A zoeira do recap é sobre o absurdo da situação, nunca sobre o caráter dele, e nunca
-  sobre ter trabalhado pouco.`
 
 /** Fecha o dia: classifica com o jev, mede, e pede narrativa e recap ao Claude Code. */
 export async function rollup(day: string, options: { narrate?: boolean } = {}): Promise<{
@@ -110,30 +86,16 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
   const report = dayReport(day)
   const material = dossier(day)
 
+  const idioma = idiomaValido(config.lang)
+  const quem = PERSONAS[idioma]
+  const persona = [COMO_ESCREVER[idioma], '', quem.diario(config.userName), '', quem.tom].join('\n')
+
   let narrative = ''
   let recap = ''
 
   if (options.narrate !== false && report.activeSeconds > 300) {
-    narrative = await ask(
-      `Escreva o resumo do dia ${day} a partir destes dados medidos no computador.\n\n` +
-      `${material}\n\n` +
-      `Formato: 3 a 6 marcadores. Cada um junta um número a um fato concreto ` +
-      `(qual projeto, qual janela, qual commit). Comece pelo que dominou o dia. ` +
-      `Se houve troca de contexto demais, diga com o número de trocas. Só os marcadores, sem título.`,
-      PERSONA,
-    )
-
-    recap = await ask(
-      `A partir dos mesmos dados, escreva um recap divertido do dia ${day}.\n\n` +
-      `${material}\n\n` +
-      `Quatro parágrafos curtos, nesta ordem e com estes títulos em negrito:\n` +
-      `**Seu padrão** — como você trabalhou de fato.\n` +
-      `**Suas distrações** — o que roubou tempo, dito com graça.\n` +
-      `**Atalhos e escrita** — sua assinatura de teclado e o jeito como você escreve, com exemplo.\n` +
-      `**Zoeira** — uma provocação leve, afiada, sem crueldade.\n` +
-      `Baseie cada piada num dado real da lista. Se faltar dado para um parágrafo, diga em uma linha.`,
-      PERSONA,
-    )
+    narrative = await ask(quem.resumo(day).replace('%DADOS%', material), persona)
+    recap = await ask(quem.recap(day).replace('%DADOS%', material), persona)
   }
 
   const stats = {

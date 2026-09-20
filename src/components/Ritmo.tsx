@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import { api, type Periodo } from '../lib/api.ts'
-import { duracao, horas, somaDias, hoje as diaDeHoje, principais, plural } from '../lib/format.ts'
+import { duracao, horas, somaDias, hoje as diaDeHoje, numero, principais, plural } from '../lib/format.ts'
+import { useIdioma } from '../lib/idioma.tsx'
 import { Mapa, Tendencia, Barras, Rosca } from './graficos.tsx'
 
-const JANELAS = [
-  { dias: 7, nome: '7 dias' },
-  { dias: 30, nome: '30 dias' },
-  { dias: 90, nome: '90 dias' },
-]
-
 export function Ritmo() {
+  const t = useIdioma().t
+  const JANELAS = [
+    { dias: 7, nome: t.ritmo.dias7 },
+    { dias: 30, nome: t.ritmo.dias30 },
+    { dias: 90, nome: t.ritmo.dias90 },
+  ]
   const [janela, setJanela] = useState(30)
   const [dados, setDados] = useState<Periodo | null>(null)
 
@@ -20,7 +21,7 @@ export function Ritmo() {
     return () => { vivo = false }
   }, [janela])
 
-  if (!dados) return <p className="vazio">Carregando…</p>
+  if (!dados) return <p className="vazio">{t.hoje.carregando}</p>
 
   const { resumo } = dados
   const medidos = dados.dias.filter((d) => d.active > 60)
@@ -32,8 +33,8 @@ export function Ritmo() {
     <>
       <div className="topo">
         <div>
-          <h2><b>Ritmo</b></h2>
-          <p>{plural(medidos.length, 'dia medido', 'dias medidos')} entre {dados.de} e {dados.ate}</p>
+          <h2><b>{t.ritmo.titulo}</b></h2>
+          <p>{plural(medidos.length, t.contagem.dia)} {t.ritmo.entre} {dados.de} {t.ritmo.e} {dados.ate}</p>
         </div>
         <div className="navega">
           {JANELAS.map((opcao) => (
@@ -45,71 +46,71 @@ export function Ritmo() {
 
       {!medidos.length ? (
         <div className="painel" style={{ padding: '40px 20px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--texto-medio)' }}>Ainda não há dias medidos o bastante.</p>
-          <p className="nota">O ritmo aparece quando houver pelo menos dois dias com atividade.</p>
+          <p style={{ color: 'var(--texto-medio)' }}>{t.ritmo.semDias}</p>
+          <p className="nota">{t.ritmo.ritmoAparece}</p>
         </div>
       ) : (
         <div className="grade" style={{ gap: 14 }}>
           <div className="grade g4">
             <div className="painel">
-              <div className="rotulo">tempo total</div>
+              <div className="rotulo">{t.ritmo.tempoTotal}</div>
               <div className="numero brilha">{total.valor}<small>{total.unidade}</small></div>
-              <div className="nota">média de {duracao(media)} por dia medido</div>
+              <div className="nota">{t.comum.mediaDe} {duracao(media)} {t.ritmo.mediaPorDia}</div>
             </div>
             <div className="painel">
-              <div className="rotulo">foco médio</div>
+              <div className="rotulo">{t.ritmo.focoMedio}</div>
               <div className="numero brasa">{Math.round(resumo.focusRatio * 100)}<small>%</small></div>
-              <div className="nota">ponderado pelo tempo de cada janela</div>
+              <div className="nota">{t.ritmo.focoMedioNota}</div>
             </div>
             <div className="painel">
-              <div className="rotulo">dia mais longo</div>
+              <div className="rotulo">{t.ritmo.diaMaisLongo}</div>
               <div className="numero" style={{ fontSize: 30 }}>{duracao(maisLongo?.active ?? 0)}</div>
               <div className="nota">{maisLongo?.day}</div>
             </div>
             <div className="painel">
-              <div className="rotulo">produção</div>
-              <div className="numero" style={{ fontSize: 30 }}>{resumo.commits}<small> commits</small></div>
+              <div className="rotulo">{t.ritmo.producao}</div>
+              <div className="numero" style={{ fontSize: 30 }}>{numero(resumo.commits)}<small> {t.ritmo.commits}</small></div>
               <div className="nota">
                 {resumo.agentes.length
-                  ? resumo.agentes.map((a) => `${duracao(a.minutos * 60)} de ${a.name}`).join(' · ')
-                  : `${resumo.aiTurns} pedidos a agentes`}
+                  ? resumo.agentes.map((a) => `${duracao(a.minutos * 60)} ${t.comum.de} ${a.name}`).join(' · ')
+                  : plural(resumo.aiTurns, t.contagem.pedidoIA)}
               </div>
             </div>
           </div>
 
           <div className="painel">
-            <h3>quando você trabalha <em>hora × dia da semana</em></h3>
+            <h3>{t.ritmo.quandoTrabalha} <em>{t.ritmo.horaPorDia}</em></h3>
             <Mapa grade={dados.ritmo} />
           </div>
 
           {medidos.length >= 3 && (
             <div className="painel">
-              <h3>tendência <em>tempo ativo por dia</em></h3>
+              <h3>{t.ritmo.tendencia} <em>{t.ritmo.tempoAtivoPorDia}</em></h3>
               <Tendencia dias={dados.dias} />
             </div>
           )}
 
           <div className="grade g32">
             <div className="painel">
-              <h3>onde o tempo foi no período</h3>
+              <h3>{t.ritmo.ondeOTempoFoi}</h3>
               <Barras itens={principais(resumo.apps)} total={resumo.total} tom="var(--brasa)" />
             </div>
             <div className="painel">
-              <h3>por categoria</h3>
+              <h3>{t.ritmo.porCategoria}</h3>
               <Rosca fatias={resumo.categories} total={resumo.total} />
             </div>
           </div>
 
           <div className="grade g2">
             <div className="painel">
-              <h3>projetos</h3>
+              <h3>{t.ritmo.projetos}</h3>
               {resumo.projects.length
                 ? <Barras itens={resumo.projects} total={resumo.total} tom="var(--agua)" />
-                : <p className="vazio">Sem projeto atribuído ainda.</p>}
+                : <p className="vazio">{t.ritmo.semProjeto}</p>}
             </div>
 
             <div className="painel">
-              <h3>sua assinatura de teclado</h3>
+              <h3>{t.ritmo.assinatura}</h3>
               {resumo.shortcuts.length ? (
                 <div className="legenda" style={{ marginTop: 0 }}>
                   {resumo.shortcuts.map((atalho) => (
@@ -119,21 +120,21 @@ export function Ritmo() {
                     </span>
                   ))}
                 </div>
-              ) : <p className="vazio">Sem atalhos capturados no período.</p>}
+              ) : <p className="vazio">{t.ritmo.semAtalhos}</p>}
 
-              <h3 style={{ marginTop: 22 }}>sites</h3>
+              <h3 style={{ marginTop: 22 }}>{t.ritmo.sites}</h3>
               <div className="linhas">
                 {resumo.hosts.slice(0, 7).map((host) => (
                   <div key={host.name} className="linha">
                     <span className="nome">{host.name}</span>
-                    <span className="valor">{host.n}</span>
+                    <span className="valor">{numero(host.n)}</span>
                   </div>
                 ))}
               </div>
 
               {resumo.typing.chars > 0 && (
                 <div className="nota" style={{ marginTop: 16 }}>
-                  {resumo.typing.chars.toLocaleString('pt-BR')} caracteres digitados no período
+                  {numero(resumo.typing.chars)} {t.ritmo.caracteres}
                 </div>
               )}
             </div>

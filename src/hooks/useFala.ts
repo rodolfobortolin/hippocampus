@@ -14,6 +14,10 @@ const LIMITE = 900
 
 export function useFala(opcoes: {
   temVozPropria: boolean
+  /** O idioma da voz do sistema, quando a voz própria não está disponível. */
+  idioma?: string
+  /** O que dizer ao cortar uma resposta longa. */
+  restoNaTela?: string
   aoComecar?: () => void
   aoTerminar?: () => void
   aoOuvirAudio?: (audio: HTMLAudioElement) => void
@@ -43,14 +47,14 @@ export function useFala(opcoes: {
     // Resposta longa vira minutos de áudio que ninguém consegue cortar. Fala o
     // começo e deixa o resto para a leitura, que é mais rápida mesmo.
     const dito = limpo.length > LIMITE
-      ? `${limpo.slice(0, LIMITE).replace(/\s+\S*$/, '')}… o resto está escrito na tela.`
+      ? `${limpo.slice(0, LIMITE).replace(/\s+\S*$/, '')}${ref.current.restoNaTela ?? ''}`
       : limpo
 
     ref.current.aoComecar?.()
 
     if (!ref.current.temVozPropria) {
       const frase = new SpeechSynthesisUtterance(dito)
-      frase.lang = 'pt-BR'
+      frase.lang = ref.current.idioma ?? 'pt-BR'
       frase.rate = VELOCIDADE_DA_FALA
       frase.onend = () => ref.current.aoTerminar?.()
       frase.onerror = () => ref.current.aoTerminar?.()

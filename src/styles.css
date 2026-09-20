@@ -338,9 +338,12 @@ body[data-modo='solto']::after { display: none; }
   cursor: pointer;
   transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
+.solto-orbe { cursor: grab; }
 .solto-orbe:hover { transform: scale(1.04); }
+.solto-orbe:active { cursor: grabbing; }
 .solto-orbe:active { transform: scale(0.98); }
-.solto-orbe .nucleo.grande { width: 190px; height: 190px; margin: 0; }
+.solto-orbe .nucleo.grande,
+.solto-orbe .nucleo.solto { width: 190px; height: 190px; margin: 0; }
 
 .solto-legenda {
   margin-top: -6px; max-width: 240px; text-align: center;
@@ -364,6 +367,62 @@ body[data-modo='solto']::after { display: none; }
 }
 .solto-legenda.longa p { text-align: left; }
 .solto-legenda::-webkit-scrollbar { width: 0; }
+
+/* ---------- ajustes ---------- */
+
+/* Cada ajuste é uma linha: à esquerda o que ele faz e por quê, à direita o
+   controle. A explicação vem junto porque um campo chamado "vault" sem
+   explicação é um campo que ninguém preenche. */
+.ajuste {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 340px);
+  gap: 18px; align-items: start; padding: 14px 0;
+  border-top: 1px solid var(--borda);
+}
+.ajuste:first-of-type { border-top: 0; padding-top: 4px; }
+.ajuste-rotulo { font-size: 13px; color: var(--texto); }
+.ajuste-rotulo span { display: block; font-size: 12px; color: var(--texto-fraco); margin-top: 3px; }
+.ajuste-campo { display: flex; justify-content: flex-end; }
+
+.ajuste input, .ajuste select {
+  width: 100%; padding: 8px 11px; border-radius: 9px; font-size: 13px;
+  background: var(--painel-alto); border: 1px solid var(--borda); color: var(--texto);
+}
+.ajuste input:focus, .ajuste select:focus { outline: none; border-color: var(--borda-viva); }
+.ajuste input::placeholder { color: var(--texto-fraco); }
+
+.caminho { display: flex; gap: 8px; align-items: center; width: 100%; justify-content: flex-end; }
+.caminho code {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; color: var(--texto-medio);
+}
+.caminho button {
+  flex: none; padding: 7px 12px; border-radius: 9px; font-size: 12.5px;
+  border: 1px solid var(--borda); color: var(--texto-medio); background: var(--painel);
+}
+.caminho button:hover:not(:disabled) { border-color: var(--borda-viva); color: var(--texto); }
+.caminho button:disabled { opacity: 0.3; cursor: default; }
+
+.idiomas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.idiomas .pilula { padding: 7px 13px; font-size: 12.5px; cursor: pointer; }
+.idiomas .pilula b { font-weight: 600; color: var(--texto-fraco); letter-spacing: 0.04em; }
+.idiomas .pilula:hover { border-color: var(--borda-viva); color: var(--texto); }
+.idiomas .pilula.ativo {
+  border-color: rgba(255, 138, 61, 0.45); color: var(--ouro);
+  box-shadow: 0 0 18px rgba(255, 138, 61, 0.14);
+}
+.idiomas .pilula.ativo b { color: var(--brasa); }
+
+/* Interruptor. Aceso é âmbar, e a luz sai dele — não é um bloco pintado. */
+.chave {
+  width: 42px; height: 24px; border-radius: 99px; padding: 3px;
+  border: 1px solid var(--borda); background: var(--painel-alto); display: block;
+}
+.chave i {
+  display: block; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--texto-fraco); transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background 0.18s;
+}
+.chave.ativo { border-color: rgba(255, 209, 102, 0.4); }
+.chave.ativo i { transform: translateX(18px); background: var(--ouro); box-shadow: 0 0 10px var(--ouro); }
 
 /* ---------- tela cheia ---------- */
 

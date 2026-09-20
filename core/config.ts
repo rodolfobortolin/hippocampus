@@ -32,7 +32,9 @@ if (faltando.length) process.env.PATH = [...faltando, process.env.PATH ?? ''].jo
 
 export const config = {
   home,
-  userName: env('HIPOCAMPO_USER', 'Rodolfo'),
+  // Sem nome configurado, usa o nome completo da conta do macOS; o prompt
+  // precisa de alguém para chamar, e "a memória do computador do " não é frase.
+  userName: env('HIPOCAMPO_USER', os.userInfo().username),
   lang: env('HIPOCAMPO_LANG', 'pt-BR'),
   /** Diretório dos dados. Tudo do Hipocampo vive aqui e em lugar nenhum mais. */
   dataDir: env('HIPOCAMPO_DATA', path.join(home, 'Library', 'Application Support', 'Hipocampo')),
@@ -44,12 +46,21 @@ export const config = {
   /** Acima disso o bloco é considerado ocioso e não conta como tempo ativo. */
   idleThreshold: Number(env('HIPOCAMPO_IDLE', '120')),
   sampleInterval: Number(env('HIPOCAMPO_INTERVAL', '4')),
-  vault: env('HIPOCAMPO_VAULT', path.join(home, 'Documents', 'GitHub', 'second-brain', 'Second Brain')),
+  /**
+   * A pasta do vault do Obsidian. Vazio de propósito: sem alguém escolher onde,
+   * o diário simplesmente não é escrito. Escrever num palpite seria criar
+   * arquivo no computador de alguém sem ter sido convidado.
+   */
+  vault: env('HIPOCAMPO_VAULT', ''),
+  /** Subpasta do vault onde o dia é escrito. */
+  pastaDiario: env('HIPOCAMPO_DIARIO', 'Diário'),
   codeRoot: env('HIPOCAMPO_CODE', path.join(home, 'Documents', 'GitHub')),
   typesafeKey: env('TYPESAFE_API_KEY'),
   typesafeModel: env('TYPESAFE_MODEL', 'jev-latest'),
   openaiKey: env('OPENAI_API_KEY'),
   openaiBaseUrl: env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+  /** A voz da OpenAI que o núcleo usa para responder. */
+  voz: env('HIPOCAMPO_VOZ', 'onyx'),
   claudeModel: env('HIPOCAMPO_MODEL', ''),
   /** Guardar o texto digitado (sempre redigido). Desligue se preferir só os números. */
   keepTyping: env('HIPOCAMPO_KEEP_TYPING', '1') === '1',

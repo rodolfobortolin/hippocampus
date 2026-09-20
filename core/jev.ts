@@ -1,5 +1,6 @@
 import { config } from './config.ts'
 import { db, one } from './db.ts'
+import { CATEGORIAS_POR_IDIOMA, NIVEIS_POR_IDIOMA, PERGUNTAS_JEV, idiomaValido } from './idiomas.ts'
 
 // O jev responde perguntas tipadas com probabilidade calibrada em ~100ms.
 // Cada janela vira uma classificação guardada, então a mesma janela nunca
@@ -15,7 +16,7 @@ const ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
  * alta justamente porque a instrução não deixava dúvida; ela é que estava
  * errada. YouTube não é uma categoria: depende do vídeo.
  */
-export const CATEGORIES: Record<string, string> = {
+const CATEGORIAS_PT: Record<string, string> = {
   codigo: 'Escrever, ler ou revisar código; terminal; git; banco de dados',
   ia: 'Conversar com um assistente de IA para produzir trabalho',
   pesquisa:
@@ -31,6 +32,11 @@ export const CATEGORIES: Record<string, string> = {
     'Lazer: o assunto não tem relação com o trabalho da pessoa — humor, fofoca, ' +
     'esporte, jogo, compras, rede social, notícia geral. Um vídeo só entra aqui ' +
     'quando o ASSUNTO é entretenimento.',
+}
+
+/** As categorias no idioma em vigor. As chaves nunca mudam — só o que se lê. */
+export function categorias(): Record<string, string> {
+  return CATEGORIAS_POR_IDIOMA[idiomaValido(config.lang)] ?? CATEGORIAS_PT
 }
 
 export type Label = {
@@ -79,8 +85,9 @@ export async function classify(
   if (cached) return cached
   if (!jevReady()) return null
 
-  const projectOptions: Record<string, string> = { nenhum: 'Não dá para dizer a qual projeto pertence' }
-  for (const project of projects.slice(0, 24)) projectOptions[project] = `Trabalho no projeto ${project}`
+  const pergunta = PERGUNTAS_JEV[idiomaValido(config.lang)]
+  const projectOptions: Record<string, string> = { nenhum: pergunta.semProjeto }
+  for (const project of projects.slice(0, 24)) projectOptions[project] = `${project}`
 
   const body = {
     model: config.typesafeModel,
@@ -94,16 +101,9 @@ export async function classify(
       pessoa_trabalha_com: projects.slice(0, 12),
     },
     questions: {
-      categoria: { type: 'choice', instructions: 'Que tipo de atividade é esta', criteria: CATEGORIES },
-      projeto: {
-        type: 'choice',
-        instructions: 'A qual projeto esta janela pertence, se der para saber pelo título',
-        criteria: projectOptions,
-      },
-      foco: {
-        type: 'noul',
-        instructions: 'Esta é uma atividade de trabalho concentrado, e não uma distração ou pausa',
-      },
+      categoria: { type: 'choice', instructions: pergunta.categoria, criteria: categorias() },
+      projeto: { type: 'choice', instructions: pergunta.projeto, criteria: projectOptions },
+      foco: { type: 'noul', instructions: pergunta.foco },
     },
   }
 
@@ -177,11 +177,6 @@ const ESCADA = [
   'claude-opus-5',              // análise longa, escrita, recap
 ] as const
 
-const NIVEIS = [
-  'Pergunta direta: a resposta é um número, uma data ou um fato que sai de uma consulta só',
-  'Precisa cruzar algumas fontes, comparar períodos ou resumir em poucas linhas',
-  'Análise de verdade, comparação ao longo do tempo, texto longo, recap com graça, ou raciocínio sobre causa',
-]
 
 export type Roteamento = { modelo: string; nivel: number; confianca: number }
 
@@ -198,8 +193,8 @@ export async function escolheModelo(pedido: string): Promise<Roteamento | null> 
         questions: {
           complexidade: {
             type: 'score',
-            instructions: 'Quanto esforço de raciocínio este pedido exige para ser respondido bem',
-            criteria: NIVEIS,
+            instructions: PERGUNTAS_JEV[idiomaValido(config.lang)].complexidade,
+            criteria: NIVEIS_POR_IDIOMA[idiomaValido(config.lang)],
           },
         },
       }),

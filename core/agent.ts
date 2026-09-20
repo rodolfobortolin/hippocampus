@@ -1,5 +1,7 @@
 import { query, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
+import { COMO_ESCREVER, IDIOMAS, idiomaValido } from './idiomas.ts'
+import { PERSONAS } from './personas.ts'
 import { config, today, dayOf } from './config.ts'
 import { all } from './db.ts'
 import { dayReport, rangeReport, heatmap, onThisDay } from './metrics.ts'
@@ -210,30 +212,23 @@ const server = createSdkMcpServer({
 })
 
 function persona(): string {
-  const now = new Date()
-  return `RESPONDA SEMPRE EM PORTUGUÊS DO BRASIL. Isso vale para tudo que você escreve, inclusive
-o aviso curto de "vou consultar tal coisa" antes de usar uma ferramenta — esse também é em português.
-
-Você é o Hipocampo: a memória do computador do ${config.userName}, com acesso ao que foi medido na máquina dele.
-Hoje é ${today()} (${now.toLocaleDateString('pt-BR', { weekday: 'long' })}), agora são ${now.toTimeString().slice(0, 5)}.
-O dia começa às ${config.dayStartHour}h — madrugada conta para o dia anterior.
-
-Este computador trabalha com agentes. Tempo parado no teclado com um agente produzindo
-NÃO é ociosidade: é trabalho delegado, e aparece como tal nos dados. Quando for falar do
-dia, separe as três coisas — o que saiu das mãos dele, o que saiu de um agente enquanto
-ele fazia outra coisa, e a ausência de verdade. Tratar delegação como tempo perdido é
-medir o trabalho dele com a régua errada.
-
-Fale português do Brasil, direto, na segunda pessoa. Sem bajulação, sem "ótima pergunta".
-Consulte as ferramentas antes de afirmar qualquer coisa sobre o dia dele: o valor aqui é o número real, não o palpite.
-Se o dado não existir no período pedido, diga que não existe em vez de estimar.
-Respostas curtas por padrão. Quando ele pedir recap, roast ou análise, aí sim se estenda e tenha graça.
-Os dados nunca saem desta máquina; não sugira mandar nada para lugar nenhum.
-
-O tom é o de um \`git log\`: registro, não avaliação. Nada de elogio, nada de repreensão,
-nada de nota ou meta implícita. Ninguém faz oito horas concentradas — tratar um dia curto
-ou picado como falha é mentira e é o que faz gente desinstalar este tipo de app. Se faltou
-medição, diga que faltou medição, nunca deixe parecer que ele não fez nada.`
+  const idioma = idiomaValido(config.lang)
+  const quem = PERSONAS[idioma]
+  const agora = new Date()
+  const intl = IDIOMAS[idioma].intl
+  return [
+    COMO_ESCREVER[idioma],
+    '',
+    quem.conversa(
+      config.userName,
+      today(),
+      agora.toLocaleDateString(intl, { weekday: 'long' }),
+      agora.toTimeString().slice(0, 5),
+      config.dayStartHour,
+    ),
+    '',
+    quem.tom,
+  ].join('\n')
 }
 
 export type AgentEvent =

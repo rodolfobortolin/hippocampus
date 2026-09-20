@@ -1,6 +1,13 @@
 import { useState } from 'react'
-import { cor, duracao, NOMES } from '../lib/format.ts'
+import { cor, duracao, diasDaSemana, numero } from '../lib/format.ts'
+import { useIdioma } from '../lib/idioma.tsx'
 import type { BlocoFita, Fatia } from '../lib/api.ts'
+
+/** "outros 12" é um agregado do próprio app, não um projeto — traduz aqui. */
+function nomeDaFatia(nome: string, categoria: (c: string) => string, outros: (n: number) => string): string {
+  const agregado = /^__outros__(\d+)$/.exec(nome)
+  return agregado ? outros(Number(agregado[1])) : categoria(nome)
+}
 
 const polar = (cx: number, cy: number, raio: number, grau: number) => {
   const rad = ((grau - 90) * Math.PI) / 180
@@ -19,8 +26,9 @@ function arco(cx: number, cy: number, externo: number, interno: number, de: numb
 
 /** Rosca das categorias. O buraco do meio carrega o total. */
 export function Rosca({ fatias, total }: { fatias: Fatia[]; total: number }) {
+  const { t, categoria } = useIdioma()
   const [sobre, setSobre] = useState<number | null>(null)
-  if (!total) return <p className="vazio">Sem tempo medido.</p>
+  if (!total) return <p className="vazio">{t.comum.semTempo}</p>
 
   let acumulado = 0
   const desenhos = fatias.map((fatia, indice) => {
@@ -54,7 +62,7 @@ export function Rosca({ fatias, total }: { fatias: Fatia[]; total: number }) {
         </text>
         <text x="80" y="94" textAnchor="middle" fill="var(--texto-fraco)" fontSize="10.5"
           style={{ letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-          {destaque ? NOMES[destaque.name] ?? destaque.name : 'ativo'}
+          {destaque ? categoria(destaque.name) : t.comum.ativo}
         </text>
       </svg>
 
@@ -64,7 +72,7 @@ export function Rosca({ fatias, total }: { fatias: Fatia[]; total: number }) {
             onMouseEnter={() => setSobre(indice)} onMouseLeave={() => setSobre(null)}>
             <span className="nome" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <i style={{ width: 7, height: 7, borderRadius: 2, background: cor(fatia.name), flex: 'none' }} />
-              {NOMES[fatia.name] ?? fatia.name}
+              {categoria(fatia.name)}
             </span>
             <span className="valor">{Math.round((fatia.seconds / total) * 100)}%</span>
           </div>
@@ -76,6 +84,7 @@ export function Rosca({ fatias, total }: { fatias: Fatia[]; total: number }) {
 
 /** A fita do dia: cada faixa é um pedaço contínuo no mesmo app. */
 export function Fita({ blocos, dia, inicioDia = 4 }: { blocos: BlocoFita[]; dia: string; inicioDia?: number }) {
+  const t = useIdioma().t
   const [sobre, setSobre] = useState<BlocoFita | null>(null)
   const [ano, mes, d] = dia.split('-').map(Number)
   const base = new Date(ano, mes - 1, d, inicioDia).getTime() / 1000
@@ -91,13 +100,13 @@ export function Fita({ blocos, dia, inicioDia = 4 }: { blocos: BlocoFita[]; dia:
         {sobre ? (
           <span className="aparece">
             <b style={{ color: sobre.delegado ? 'var(--ia)' : 'var(--texto)', fontWeight: 500 }}>
-              {sobre.delegado ? 'agente trabalhando' : sobre.app}
+              {sobre.delegado ? t.comum.agente : sobre.app}
             </b>
             {!sobre.delegado && sobre.title ? ` · ${sobre.title.slice(0, 70)}` : ''}
             <span style={{ color: 'var(--texto-fraco)' }}> · {duracao(sobre.end - sobre.start)}</span>
           </span>
         ) : (
-          <span style={{ color: 'var(--texto-fraco)' }}>passe o mouse na fita para ver a janela</span>
+          <span style={{ color: 'var(--texto-fraco)' }}>{t.hoje.passeOMouse}</span>
         )}
       </div>
 
@@ -135,7 +144,7 @@ export function Fita({ blocos, dia, inicioDia = 4 }: { blocos: BlocoFita[]; dia:
       <div className="fita-horas">
         {marcas.map((hora) => (
           <span key={hora} style={{ left: `${((hora - inicioDia) / 24) * 100}%` }}>
-            {String(hora % 24).padStart(2, '0')}h
+            {String(hora % 24).padStart(2, '0')}{t.comum.h}
           </span>
         ))}
       </div>
@@ -148,6 +157,7 @@ export function Fita({ blocos, dia, inicioDia = 4 }: { blocos: BlocoFita[]; dia:
  * proporção sozinha premia o dia curto — 1h de código puro daria 100%.
  */
 export function Medidor({ valor, segundos }: { valor: number; segundos?: number }) {
+  const t = useIdioma().t
   const porcento = Math.round(valor * 100)
   const horas = segundos != null ? duracao(segundos) : null
   const raio = 52
@@ -165,7 +175,7 @@ export function Medidor({ valor, segundos }: { valor: number; segundos?: number 
           <text x="65" y="56" textAnchor="middle" fill="var(--ouro)" fontSize="27" fontWeight="300"
             style={{ fontVariantNumeric: 'tabular-nums' }}>{horas}</text>
           <text x="65" y="70" textAnchor="middle" fill="var(--texto-fraco)" fontSize="11"
-            style={{ fontVariantNumeric: 'tabular-nums' }}>{porcento}% do ativo</text>
+            style={{ fontVariantNumeric: 'tabular-nums' }}>{porcento}% {t.comum.doAtivo}</text>
         </>
       ) : (
         <text x="65" y="60" textAnchor="middle" fill="var(--ouro)" fontSize="30" fontWeight="300"
@@ -174,8 +184,6 @@ export function Medidor({ valor, segundos }: { valor: number; segundos?: number 
     </svg>
   )
 }
-
-const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 
 /**
  * Mapa hora × dia da semana. Quanto mais quente, mais tempo ali.
@@ -186,6 +194,8 @@ const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
  * o fator de escala muda com a largura da janela.
  */
 export function Mapa({ grade }: { grade: number[][] }) {
+  const t = useIdioma().t
+  const DIAS_SEMANA = diasDaSemana()
   const [sobre, setSobre] = useState<{ dia: number; hora: number } | null>(null)
   const maior = Math.max(1, ...grade.flat())
   const celula = 30
@@ -198,10 +208,10 @@ export function Mapa({ grade }: { grade: number[][] }) {
       <div style={{ height: 18, marginBottom: 10, fontSize: 12, color: 'var(--texto-medio)' }}>
         {sobre ? (
           <span className="aparece">
-            {DIAS_SEMANA[sobre.dia]} às {String(sobre.hora).padStart(2, '0')}h ·{' '}
-            <b style={{ fontWeight: 500 }}>{duracao(grade[sobre.dia][sobre.hora])}</b> no total
+            {DIAS_SEMANA[sobre.dia]} {t.comum.as} {String(sobre.hora).padStart(2, '0')}{t.comum.h} ·{' '}
+            <b style={{ fontWeight: 500 }}>{duracao(grade[sobre.dia][sobre.hora])}</b> {t.comum.noTotal}
           </span>
-        ) : <span style={{ color: 'var(--texto-fraco)' }}>soma de todo o período</span>}
+        ) : <span style={{ color: 'var(--texto-fraco)' }}>{t.ritmo.somaDoPeriodo}</span>}
       </div>
 
       <div className="mapa">
@@ -235,7 +245,7 @@ export function Mapa({ grade }: { grade: number[][] }) {
           <div className="mapa-horas">
             {[0, 6, 12, 18, 23].map((hora) => (
               <span key={hora}
-                style={{ left: `${((hora + 0.5) / 24) * 100}%` }}>{hora}h</span>
+                style={{ left: `${((hora + 0.5) / 24) * 100}%` }}>{hora}{t.comum.h}</span>
             ))}
           </div>
         </div>
@@ -246,8 +256,9 @@ export function Mapa({ grade }: { grade: number[][] }) {
 
 /** Tendência do tempo ativo por dia. */
 export function Tendencia({ dias }: { dias: { day: string; active: number }[] }) {
+  const t = useIdioma().t
   const [sobre, setSobre] = useState<number | null>(null)
-  if (dias.length < 3) return <p className="vazio">Precisa de pelo menos três dias medidos para a tendência.</p>
+  if (dias.length < 3) return <p className="vazio">{t.ritmo.precisaTresDias}</p>
 
   const largura = 1000
   const altura = 130
@@ -266,7 +277,7 @@ export function Tendencia({ dias }: { dias: { day: string; active: number }[] })
             {dias[sobre].day} · <b style={{ fontWeight: 500 }}>{duracao(dias[sobre].active)}</b>
           </span>
         ) : (
-          <span style={{ color: 'var(--texto-fraco)' }}>média de {duracao(media)} por dia medido</span>
+          <span style={{ color: 'var(--texto-fraco)' }}>{t.comum.mediaDe} {duracao(media)} {t.comum.porDia}</span>
         )}
       </div>
       <svg viewBox={`0 0 ${largura} ${altura}`} preserveAspectRatio="none" style={{ width: '100%', height: altura }}>
@@ -298,13 +309,14 @@ export function Tendencia({ dias }: { dias: { day: string; active: number }[] })
 
 /** Lista com barra proporcional — apps, projetos, janelas. */
 export function Barras({ itens, total, tom }: { itens: Fatia[]; total: number; tom?: string }) {
-  if (!itens.length) return <p className="vazio">Nada aqui ainda.</p>
+  const { t, categoria } = useIdioma()
+  if (!itens.length) return <p className="vazio">{t.comum.nadaAqui}</p>
   const maior = Math.max(...itens.map((i) => i.seconds), 1)
   return (
     <div className="linhas">
       {itens.map((item) => (
         <div key={item.name} className="linha">
-          <span className="nome">{NOMES[item.name] ?? item.name}</span>
+          <span className="nome">{nomeDaFatia(item.name, categoria, t.comum.outros)}</span>
           <span className="valor">{duracao(item.seconds)}</span>
           <span className="trilho">
             <i style={{
@@ -330,10 +342,11 @@ export function FormaDoFoco({ faixas, mediana, maior }: {
   mediana: number
   maior: number
 }) {
+  const t = useIdioma().t
   const [sobre, setSobre] = useState<number | null>(null)
   const total = faixas.reduce((soma, f) => soma + f.minutes, 0)
   if (!total) {
-    return <p className="vazio">Nenhuma sessão de foco sustentada neste dia.</p>
+    return <p className="vazio">{t.hoje.semSessao}</p>
   }
 
   const maiorFaixa = Math.max(...faixas.map((f) => f.minutes), 1)
@@ -346,12 +359,13 @@ export function FormaDoFoco({ faixas, mediana, maior }: {
       <div style={{ height: 18, marginBottom: 8, fontSize: 12, color: 'var(--texto-medio)' }}>
         {sobre != null ? (
           <span className="aparece">
-            {faixas[sobre].n === 1 ? '1 sessão' : `${faixas[sobre].n} sessões`} de {faixas[sobre].name} min ·{' '}
-            <b style={{ fontWeight: 500 }}>{duracao(faixas[sobre].minutes * 60)}</b> no total
+            {faixas[sobre].n} {faixas[sobre].n === 1 ? t.comum.sessao : t.comum.sessoes} {t.comum.de}{' '}
+            {faixas[sobre].name} {t.comum.min} ·{' '}
+            <b style={{ fontWeight: 500 }}>{duracao(faixas[sobre].minutes * 60)}</b> {t.comum.noTotal}
           </span>
         ) : (
           <span style={{ color: 'var(--texto-fraco)' }}>
-            mediana de {mediana}min · a maior foi {duracao(maior * 60)}
+            {t.hoje.medianaDe} {mediana}{t.comum.min} · {t.hoje.aMaiorFoi} {duracao(maior * 60)}
           </span>
         )}
       </div>
@@ -379,7 +393,7 @@ export function FormaDoFoco({ faixas, mediana, maior }: {
               {faixa.minutes > 0 && (
                 <text x={x + w / 2} y={altura - 26 - h} textAnchor="middle"
                   fill="var(--texto-medio)" fontSize="11" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                  {faixa.minutes}
+                  {numero(faixa.minutes)}
                 </text>
               )}
               <text x={x + w / 2} y={altura - 4} textAnchor="middle" fill="var(--texto-fraco)" fontSize="11">

@@ -53,10 +53,23 @@ export type Status = {
     startedAt: number; lastRollup: string
     fontes: Record<string, string>
   }
-  jev: boolean; claude: boolean; vault: boolean; voz: boolean; usuario: string
+  jev: boolean; claude: boolean; vault: boolean; voz: boolean; usuario: string; idioma: string
   day: string
   counts: Record<string, number>
   span: { de: string; ate: string }
+}
+
+export type Ajustes = {
+  idioma: 'pt-BR' | 'en-US' | 'es-ES' | 'fr-FR' | 'de-DE'
+  nome: string
+  vault: string
+  pastaDiario: string
+  inicioDoDia: number
+  guardarDigitacao: boolean
+  voz: string
+  idiomas: Record<string, { nome: string; bandeira: string; intl: string }>
+  /** Só o estado das chaves volta pela API — o valor nunca. */
+  chaves: { jev: 'chaveiro' | 'ambiente' | 'vazia'; openai: 'chaveiro' | 'ambiente' | 'vazia' }
 }
 
 export type Periodo = {
@@ -93,6 +106,10 @@ export const api = {
   fechar: (dia: string, narrar = true) =>
     pega<{ narrative: string; recap: string; classified: number }>(
       `/api/rollup?dia=${dia}&narrar=${narrar ? 1 : 0}`, { method: 'POST' }),
+  ajustes: () => pega<Ajustes>('/api/ajustes'),
+  salvaAjustes: (mudanca: Record<string, unknown>) => pega<Ajustes>('/api/ajustes', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(mudanca),
+  }),
   socket: () => new WebSocket(`ws://127.0.0.1:${(globalThis as any).HIPOCAMPO_PORT ?? 7878}/ws`),
   transcrever: async (audio: Blob): Promise<string> => {
     const resposta = await fetch(`${BASE}/api/transcrever`, {

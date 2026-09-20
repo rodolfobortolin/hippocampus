@@ -7,19 +7,12 @@ import { useSocket } from '../hooks/useSocket.ts'
 import { useFala } from '../hooks/useFala.ts'
 import { Nucleo, type EstadoNucleo } from './Nucleo.tsx'
 import { IconeEnviar, IconeMicrofone, IconeSom, IconeMudo, IconeParar } from './Icons.tsx'
-import { VELOCIDADE_DA_FALA } from '../lib/format.ts'
+import { useIdioma } from '../lib/idioma.tsx'
 
 type Fala = { de: 'eu' | 'ele'; texto: string }
 
-const SUGESTOES = [
-  'Me dá um recap divertido do meu histórico: padrão de trabalho, distrações, atalhos favoritos, meu estilo de escrita e uma zoeira leve',
-  'Onde foi meu tempo essa semana?',
-  'Em que projeto eu mais trabalhei nos últimos 30 dias?',
-  'Qual foi minha maior distração ontem?',
-  'A que horas eu rendo mais?',
-]
-
 export function Conversa({ status }: { status: Status | null }) {
+  const { t, idioma } = useIdioma()
   const [falas, setFalas] = useState<Fala[]>([])
   const [texto, setTexto] = useState('')
   const [pensando, setPensando] = useState(false)
@@ -37,7 +30,7 @@ export function Conversa({ status }: { status: Status | null }) {
   const respostaRef = useRef('')
   const { nivel: nivelResposta, ouveAudio, pulsaSozinho, encerra } = useNivelAudio()
   // A escuta grava e transcreve; o nível dela é o do seu microfone.
-  const escuta = useEscuta((frase) => { perguntouFalando.current = true; envia(frase) })
+  const escuta = useEscuta((frase) => { perguntouFalando.current = true; envia(frase) }, t.comum.naoEntendi)
   const ouvindo = escuta.estado === 'ouvindo'
   const nivel = ouvindo ? escuta.nivel : nivelResposta
 
@@ -92,7 +85,7 @@ export function Conversa({ status }: { status: Status | null }) {
       if (dados.tipo === 'erro') {
         setPensando(false)
         setEstado('erro')
-        setFalas((atuais) => [...atuais, { de: 'ele', texto: `Deu problema: ${dados.erro}` }])
+        setFalas((atuais) => [...atuais, { de: 'ele', texto: dados.erro }])
         setTimeout(() => setEstado('parado'), 2600)
       }
   })
@@ -113,9 +106,7 @@ export function Conversa({ status }: { status: Status | null }) {
     if (!mandaAoNucleo({ tipo: 'pergunta', texto: limpa })) {
       // Nunca engolir a pergunta em silêncio: o texto fica no campo.
       setEstado('erro')
-      setFalas((atuais) => [...atuais, {
-        de: 'ele', texto: 'O núcleo está fora do ar. Assim que ele voltar, mande de novo.',
-      }])
+      setFalas((atuais) => [...atuais, { de: 'ele', texto: t.conversa.nucleoFora }])
       setTimeout(() => setEstado('parado'), 2600)
       return
     }
@@ -128,6 +119,8 @@ export function Conversa({ status }: { status: Status | null }) {
 
   const voz = useFala({
     temVozPropria: Boolean(status?.voz),
+    idioma,
+    restoNaTela: t.comum.restoNaTela,
     aoComecar: () => { setEstado('falando'); setFalando(true) },
     aoTerminar: () => { setEstado('parado'); setFalando(false); encerra() },
     aoOuvirAudio: ouveAudio,
@@ -143,16 +136,10 @@ export function Conversa({ status }: { status: Status | null }) {
         {abertura && (
           <div className="abertura">
             <Nucleo estado={estado} nivel={nivel} tamanho="grande" />
-            <h2>
-              Pergunte sobre <b>o seu dia</b>.
-            </h2>
-            <p>
-              Eu consulto o que foi medido nesta máquina — tempo por app e janela, projetos,
-              commits, sites, atalhos, o que você digitou e o que pediu ao Claude Code.
-              Nada disso sai daqui.
-            </p>
+            <h2>{t.conversa.titulo} <b>{t.conversa.tituloForte}</b>.</h2>
+            <p>{t.conversa.explicacao}</p>
             <div className="atalhos-conversa">
-              {SUGESTOES.map((sugestao) => (
+              {t.conversa.sugestoes.map((sugestao) => (
                 <button key={sugestao} onClick={() => envia(sugestao)}>
                   {sugestao.length > 58 ? `${sugestao.slice(0, 56)}…` : sugestao}
                 </button>
@@ -165,7 +152,7 @@ export function Conversa({ status }: { status: Status | null }) {
           <div key={indice} className={`fala ${fala_.de === 'eu' ? 'minha' : 'dele'} aparece`}>
             {fala_.de === 'eu' ? fala_.texto : <Markdown texto={fala_.texto} />}
             {fala_.de === 'ele' && (
-              <button className="icone" onClick={() => fala(fala_.texto)} title="ouvir"
+              <button className="icone" onClick={() => fala(fala_.texto)} title={t.conversa.ouvir}
                 style={{ marginTop: 6 }}>
                 <IconeSom />
               </button>
@@ -181,7 +168,7 @@ export function Conversa({ status }: { status: Status | null }) {
 
         {pensando && (
           <div className="ferramenta aparece">
-            {ferramenta ? `consultando ${ferramenta}…` : 'pensando…'}
+            {ferramenta ? `${t.conversa.consultando} ${ferramenta}…` : t.conversa.pensando}
             {modelo && <span className="modelo">{modelo}</span>}
           </div>
         )}
@@ -196,10 +183,10 @@ export function Conversa({ status }: { status: Status | null }) {
             if (evento.key === 'Enter' && !evento.shiftKey) { evento.preventDefault(); envia(texto) }
           }}
           placeholder={
-            !ligado ? 'reconectando ao núcleo…'
-              : ouvindo ? 'ouvindo… pare de falar que eu envio'
-              : escuta.estado === 'transcrevendo' ? 'transcrevendo…'
-              : 'pergunte qualquer coisa sobre o seu tempo'
+            !ligado ? t.conversa.reconectando
+              : ouvindo ? t.conversa.ouvindo
+              : escuta.estado === 'transcrevendo' ? t.conversa.transcrevendo
+              : t.conversa.placeholder
           }
           rows={1}
           style={{ height: Math.min(160, 24 + texto.split('\n').length * 20) }}
@@ -214,20 +201,20 @@ export function Conversa({ status }: { status: Status | null }) {
             setVozSempre(proximo)
             localStorage.setItem('hipocampo.voz', proximo ? 'sempre' : 'pedido')
           }}
-          title={falando ? 'parar de falar'
-            : vozSempre ? 'responder sempre falando'
-            : 'responder falando só quando você falar'}>
+          title={falando ? t.conversa.calar
+            : vozSempre ? t.conversa.vozSempre
+            : t.conversa.vozQuandoFalar}>
           {falando ? <IconeParar /> : vozSempre ? <IconeSom /> : <IconeMudo />}
         </button>
         <button
           className={`icone ${ouvindo ? 'ativo' : ''}`}
           onClick={escuta.alterna}
           disabled={escuta.estado === 'transcrevendo'}
-          title={ouvindo ? 'parar de ouvir' : 'falar'}>
+          title={ouvindo ? t.conversa.pararDeOuvir : t.conversa.falar}>
           <IconeMicrofone />
         </button>
         <button className="icone" onClick={() => envia(texto)}
-          disabled={!texto.trim() || pensando || !ligado} title={ligado ? 'enviar' : 'núcleo fora do ar'}>
+          disabled={!texto.trim() || pensando || !ligado} title={ligado ? t.conversa.enviar : t.conversa.nucleoFora}>
           <IconeEnviar />
         </button>
       </div>
