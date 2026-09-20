@@ -6,15 +6,31 @@ import { db, one } from './db.ts'
 // custa duas chamadas.
 const ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
 
+/**
+ * As categorias julgam o ASSUNTO, nunca o meio.
+ *
+ * A primeira versão dizia que distração era "vídeo, rede social, notícia" — e
+ * com isso um vídeo sobre a própria ferramenta que a pessoa estava avaliando
+ * naquele dia entrava como distração, com 0,99 de confiança. A confiança era
+ * alta justamente porque a instrução não deixava dúvida; ela é que estava
+ * errada. YouTube não é uma categoria: depende do vídeo.
+ */
 export const CATEGORIES: Record<string, string> = {
-  codigo: 'Escrever, ler ou revisar código; terminal; git',
+  codigo: 'Escrever, ler ou revisar código; terminal; git; banco de dados',
   ia: 'Conversar com um assistente de IA para produzir trabalho',
-  pesquisa: 'Documentação, busca, leitura técnica, aprender algo',
+  pesquisa:
+    'Investigar ou aprender algo que serve ao trabalho: documentação, busca, ' +
+    'artigo, fórum, e também vídeo ou tutorial sobre assunto técnico, ' +
+    'ferramenta, produto concorrente ou tema do projeto. O meio não decide — ' +
+    'um vídeo sobre uma tecnologia é pesquisa, não entretenimento.',
   comunicacao: 'E-mail, chat, mensagens, reunião, chamada',
   escrita: 'Escrever texto, documento, proposta, nota',
-  design: 'Interface, protótipo, imagem, vídeo',
-  admin: 'Arquivos, ajustes, instalação, organização, burocracia',
-  distracao: 'Vídeo, rede social, notícia, compras, jogo, lazer',
+  design: 'Interface, protótipo, editar imagem ou vídeo do próprio trabalho',
+  admin: 'Arquivos, ajustes, instalação, organização, burocracia, banco, contas',
+  distracao:
+    'Lazer: o assunto não tem relação com o trabalho da pessoa — humor, fofoca, ' +
+    'esporte, jogo, compras, rede social, notícia geral. Um vídeo só entra aqui ' +
+    'quando o ASSUNTO é entretenimento.',
 }
 
 export type Label = {
@@ -73,6 +89,9 @@ export async function classify(
       janela: block.title,
       site: block.host,
       endereco: block.url?.slice(0, 200) ?? null,
+      // Sem saber no que a pessoa trabalha, não há como julgar se o assunto de
+      // um vídeo ou de um artigo serve ao trabalho dela ou é passatempo.
+      pessoa_trabalha_com: projects.slice(0, 12),
     },
     questions: {
       categoria: { type: 'choice', instructions: 'Que tipo de atividade é esta', criteria: CATEGORIES },
@@ -107,12 +126,15 @@ export async function classify(
 
   const data = (await response.json()) as any
   const project = data.answers?.projeto?.choice
+  const confianca = data.answers?.categoria?.confidence ?? 0
+  // Erro confiante custa mais que lacuna assumida: quem vê um número errado
+  // para de confiar no resto. Abaixo de 0,55 a janela fica sem rótulo.
   const label: Label = {
     key,
-    category: data.answers?.categoria?.choice ?? 'admin',
+    category: confianca >= 0.55 ? data.answers?.categoria?.choice ?? 'sem rótulo' : 'sem rótulo',
     project: !project || project === 'nenhum' ? null : project,
     deep_work: data.answers?.foco?.noul ?? 0.5,
-    confidence: data.answers?.categoria?.confidence ?? 0,
+    confidence: confianca,
   }
   save.run(key, block.app, block.title?.slice(0, 200) ?? null, label.category, label.project,
     label.deep_work, label.confidence, data.model ?? config.typesafeModel, Math.floor(Date.now() / 1000))
