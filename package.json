@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "O seu Mac vira memória: coleta local, gráficos e conversa sobre o seu dia.",
+  "description": "O seu Mac vira mem\u00f3ria: coleta local, gr\u00e1ficos e conversa sobre o seu dia.",
   "main": "app/main.cjs",
   "scripts": {
     "build:native": "sh scripts/build-native.sh",
@@ -21,7 +21,9 @@
     "ouvido": "sh scripts/ouvido.sh ligar",
     "ouvido:off": "sh scripts/ouvido.sh desligar",
     "uninstall:agent": "sh scripts/agent.sh uninstall",
-    "logs": "tail -f ~/Library/Logs/Hipocampo/collector.log"
+    "logs": "tail -f ~/Library/Logs/Hipocampo/collector.log",
+    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test \"testes/*.test.ts\"",
+    "dist": "npm run build && electron-builder --mac --arm64"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
@@ -30,7 +32,8 @@
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
-    "electron": "^33.4.11",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vite": "^8.3.0"
