@@ -9,6 +9,11 @@ type Sample = {
   idle: number
   locked: boolean
   trusted: boolean
+  /** Contadores acumulados desde o boot; o que vale é o delta entre amostras. */
+  keys?: number
+  clicks?: number
+  scroll?: number
+  mic?: boolean
   app?: string
   bundle?: string
   title?: string
@@ -16,12 +21,18 @@ type Sample = {
 }
 
 type Open = { id: number; key: string; startedAt: number; endedAt: number }
+type Contadores = { keys: number; clicks: number; scroll: number }
 
 const insert = db.prepare(
-  `insert into blocks (started_at, ended_at, seconds, day, app, bundle, title, url, host, idle)
-   values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  `insert into blocks (started_at, ended_at, seconds, day, app, bundle, title, url, host, idle,
+                       keys, clicks, scroll, mic)
+   values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 )
-const extend = db.prepare('update blocks set ended_at = ?, seconds = ? where id = ?')
+const extend = db.prepare(
+  `update blocks set ended_at = ?, seconds = ?,
+          keys = keys + ?, clicks = clicks + ?, scroll = scroll + ?, mic = max(mic, ?)
+     where id = ?`,
+)
 
 function hostOf(url?: string): string | null {
   if (!url) return null
@@ -41,6 +52,7 @@ export class FocusCollector {
   private child: ChildProcess | null = null
   private open: Open | null = null
   private buffer = ''
+  private anterior: Contadores | null = null
   private onTrust?: (trusted: boolean) => void
   lastSample: Sample | null = null
   trusted = false
@@ -95,6 +107,23 @@ export class FocusCollector {
     }
 
     const ts = Math.floor(new Date(sample.ts).getTime() / 1000)
+
+    // Os contadores são acumulados desde o boot: o que interessa é o quanto
+    // andou desde a amostra anterior. Reinício da máquina zera e o delta sai
+    // negativo — nesse caso a amostra não conta em vez de virar número absurdo.
+    const agora: Contadores = {
+      keys: sample.keys ?? 0, clicks: sample.clicks ?? 0, scroll: sample.scroll ?? 0,
+    }
+    const bruto = this.anterior
+      ? {
+          keys: agora.keys - this.anterior.keys,
+          clicks: agora.clicks - this.anterior.clicks,
+          scroll: agora.scroll - this.anterior.scroll,
+        }
+      : { keys: 0, clicks: 0, scroll: 0 }
+    const delta = Object.values(bruto).some((v) => v < 0) ? { keys: 0, clicks: 0, scroll: 0 } : bruto
+    this.anterior = agora
+    const mic = sample.mic ? 1 : 0
     const idle = sample.locked || sample.idle >= config.idleThreshold
     const app = idle ? (sample.locked ? 'Tela bloqueada' : 'Ocioso') : sample.app ?? 'Desconhecido'
     // O tempo num gerenciador de senha ou no banco continua contando; o que
@@ -109,7 +138,7 @@ export class FocusCollector {
 
     if (this.open) {
       this.open.endedAt = ts
-      extend.run(ts, ts - this.open.startedAt, this.open.id)
+      extend.run(ts, ts - this.open.startedAt, delta.keys, delta.clicks, delta.scroll, mic, this.open.id)
       return
     }
 
@@ -117,6 +146,7 @@ export class FocusCollector {
     const result = insert.run(
       ts, ts, 0, dayOf(ts), app, idle ? null : sample.bundle ?? null,
       title, url, hostOf(url ?? undefined), idle ? 1 : 0,
+      delta.keys, delta.clicks, delta.scroll, mic,
     )
     this.open = { id: Number(result.lastInsertRowid), key, startedAt: ts, endedAt: ts }
   }

@@ -4,6 +4,7 @@ import { config, today, dayOf } from './config.ts'
 import { all } from './db.ts'
 import { dayReport, rangeReport, heatmap } from './metrics.ts'
 import { dossier } from './rollup.ts'
+import { searchEpisodes, lastTime, type Episodio } from './episodes.ts'
 
 const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.round((seconds % 3600) / 60)).padStart(2, '0')}`
 const say = (value: unknown) => ({
@@ -14,7 +15,60 @@ const range = { de: z.string().describe('AAAA-MM-DD'), ate: z.string().describe(
 
 // As ferramentas rodam dentro deste processo: o modelo consulta o banco local
 // sem que nenhum dado precise ir junto no prompt.
+const quando = (ts: number) =>
+  new Date(ts * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+
+function descreve(episodio: Episodio, detalhado = false): string {
+  const lista = (bruto: string) => JSON.parse(bruto) as string[]
+  const linhas = [
+    `${quando(episodio.started_at)} · ${episodio.minutes}min · ` +
+    `${episodio.project ?? 'projeto indefinido'} · ${episodio.category ?? '—'}`,
+    `  apps: ${lista(episodio.apps).join(', ')}`,
+  ]
+  const titulos = lista(episodio.titles)
+  if (titulos.length) linhas.push(`  janelas: ${titulos.slice(0, detalhado ? 20 : 5).join(' | ')}`)
+  if (detalhado) {
+    const sites = lista(episodio.hosts)
+    const commits = lista(episodio.commits)
+    const prompts = lista(episodio.prompts)
+    const shell = lista(episodio.shell)
+    if (sites.length) linhas.push(`  sites: ${sites.join(', ')}`)
+    if (commits.length) linhas.push(`  commits: ${commits.join(' · ')}`)
+    if (prompts.length) linhas.push(`  pediu ao Claude Code: ${prompts.join(' · ')}`)
+    if (shell.length) linhas.push(`  comandos: ${shell.join(' · ')}`)
+  }
+  return linhas.join('\n')
+}
+
 const tools = [
+  {
+    name: 'procurar',
+    description: 'Procura MOMENTOS por texto em tudo que foi medido — título de janela, site, projeto, commit, comando e o que foi pedido ao Claude Code. Use sempre que a pergunta for sobre "quando eu…", "onde eu vi…", "aquele dia que…".',
+    inputSchema: { termo: z.string().describe('palavras livres, em linguagem natural'), limite: z.number().optional() },
+    handler: async ({ termo, limite }: { termo: string; limite?: number }) => {
+      const achados = searchEpisodes(termo, Math.min(limite ?? 10, 25))
+      if (!achados.length) return say(`Nada medido casa com "${termo}".`)
+      return say(`${achados.length} momentos:\n\n` + achados.map((e) => descreve(e)).join('\n\n'))
+    },
+  },
+  {
+    name: 'ultima_vez',
+    description: 'A última vez que a pessoa mexeu em algo (um projeto, arquivo, site, assunto), com o que estava acontecendo em volta. Use para retomar contexto: "onde eu parei no X", "o que eu estava fazendo quando mexi nisso".',
+    inputSchema: { termo: z.string() },
+    handler: async ({ termo }: { termo: string }) => {
+      const achado = lastTime(termo)
+      if (!achado) return say(`Nunca foi medido nada sobre "${termo}".`)
+      const antes = achado.vizinhos.filter((v) => v.started_at < achado.alvo.started_at).slice(-2)
+      const depois = achado.vizinhos.filter((v) => v.started_at > achado.alvo.started_at).slice(0, 2)
+      return say([
+        `Última vez em "${termo}": ${achado.dia}`,
+        '',
+        descreve(achado.alvo, true),
+        antes.length ? '\nAntes disso:\n' + antes.map((e) => descreve(e)).join('\n') : '',
+        depois.length ? '\nDepois:\n' + depois.map((e) => descreve(e)).join('\n') : '',
+      ].filter(Boolean).join('\n'))
+    },
+  },
   {
     name: 'dia',
     description: 'Tudo que foi medido num dia: tempo por app, categoria, projeto, janelas, commits, sites, pedidos ao Claude Code e amostras de escrita.',

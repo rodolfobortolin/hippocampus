@@ -10,6 +10,7 @@ import { harvestShell } from './sources/shell.ts'
 import { rollup } from './rollup.ts'
 import { all } from './db.ts'
 import { backfillAll } from './backfill.ts'
+import { buildAllEpisodes } from './episodes.ts'
 import { comLimite, estadoDasFontes } from './limite.ts'
 
 type Task = { name: string; everyMinutes: number; run: () => unknown | Promise<unknown> }
@@ -80,6 +81,10 @@ export class Collector {
       const reconstruidos = backfillAll()
       for (const dia of reconstruidos) {
         console.log(`[coletor] ${dia.day} reconstruído dos eventos: ${dia.blocks} blocos`)
+      }
+
+      for (const dia of buildAllEpisodes()) {
+        console.log(`[coletor] ${dia.day}: ${dia.episodes} episódios indexados`)
       }
 
       const pendentes = all<any>(

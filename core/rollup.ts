@@ -2,6 +2,7 @@ import { db } from './db.ts'
 import { config, dayOf, today } from './config.ts'
 import { dayReport } from './metrics.ts'
 import { classifyDay } from './jev.ts'
+import { buildEpisodes } from './episodes.ts'
 import { knownProjects } from './metrics.ts'
 import { ask } from './claude.ts'
 import { writeDaySection } from './vault.ts'
@@ -67,9 +68,11 @@ Quando um número for pequeno demais para sustentar uma conclusão, diga isso em
 
 /** Fecha o dia: classifica com o jev, mede, e pede narrativa e recap ao Claude Code. */
 export async function rollup(day: string, options: { narrate?: boolean } = {}): Promise<{
-  day: string; classified: number; narrative: string; recap: string; vaultFile: string | null
+  day: string; classified: number; episodes: number; narrative: string; recap: string; vaultFile: string | null
 }> {
   const classified = await classifyDay(day, knownProjects())
+  // Os episódios vêm depois da classificação: é o projeto do jev que os agrupa.
+  const episodes = buildEpisodes(day)
   const report = dayReport(day)
   const material = dossier(day)
 
@@ -134,7 +137,7 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
     vaultFile = writeDaySection(day, body)
   }
 
-  return { day, classified, narrative, recap, vaultFile }
+  return { day, classified, episodes, narrative, recap, vaultFile }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -142,7 +145,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const day = arg ?? dayOf(Date.now() / 1000 - 86_400)
   const narrate = !process.argv.includes('--sem-narrativa')
   rollup(day, { narrate }).then((result) => {
-    console.log(`dia ${result.day}: ${result.classified} janelas classificadas`)
+    console.log(`dia ${result.day}: ${result.classified} janelas classificadas, ${result.episodes} episódios`)
     if (result.narrative) console.log('\n' + result.narrative)
     if (result.recap) console.log('\n' + result.recap)
     if (result.vaultFile) console.log('\nvault:', result.vaultFile)

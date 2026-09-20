@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, type Status } from '../lib/api.ts'
 import { Markdown } from '../lib/markdown.tsx'
 import { useNivelAudio } from '../hooks/useNivelAudio.ts'
+import { useSocket } from '../hooks/useSocket.ts'
 import { Nucleo, type EstadoNucleo } from './Nucleo.tsx'
 import { IconeEnviar, IconeMicrofone, IconeSom } from './Icons.tsx'
 
@@ -22,16 +23,11 @@ export function Conversa({ status }: { status: Status | null }) {
   const [ferramenta, setFerramenta] = useState('')
   const [ouvindo, setOuvindo] = useState(false)
   const [estado, setEstado] = useState<EstadoNucleo>('parado')
-  const socket = useRef<WebSocket | null>(null)
   const fio = useRef<HTMLDivElement>(null)
   const reconhecimento = useRef<any>(null)
   const { nivel, ouveMicrofone, ouveAudio, pulsaSozinho, encerra } = useNivelAudio()
 
-  useEffect(() => {
-    const ws = api.socket()
-    socket.current = ws
-    ws.onmessage = (evento) => {
-      const dados = JSON.parse(evento.data)
+  const { ligado, envia: mandaAoNucleo } = useSocket(api.socket, (dados) => {
       if (dados.tipo === 'pensando') { setPensando(true); setFerramenta(''); setEstado('pensando') }
       if (dados.tipo === 'ferramenta') {
         // O núcleo só vira água quando ele está de fato lendo o banco; a busca
@@ -57,10 +53,7 @@ export function Conversa({ status }: { status: Status | null }) {
         setFalas((atuais) => [...atuais, { de: 'ele', texto: `Deu problema: ${dados.erro}` }])
         setTimeout(() => setEstado('parado'), 2600)
       }
-    }
-    ws.onclose = () => setEstado('parado')
-    return () => ws.close()
-  }, [])
+  })
 
   useEffect(() => {
     fio.current?.scrollTo({ top: fio.current.scrollHeight, behavior: 'smooth' })
@@ -68,9 +61,17 @@ export function Conversa({ status }: { status: Status | null }) {
 
   const envia = (pergunta: string) => {
     const limpa = pergunta.trim()
-    if (!limpa || pensando || socket.current?.readyState !== WebSocket.OPEN) return
+    if (!limpa || pensando) return
+    if (!mandaAoNucleo({ tipo: 'pergunta', texto: limpa })) {
+      // Nunca engolir a pergunta em silêncio: o texto fica no campo.
+      setEstado('erro')
+      setFalas((atuais) => [...atuais, {
+        de: 'ele', texto: 'O núcleo está fora do ar. Assim que ele voltar, mande de novo.',
+      }])
+      setTimeout(() => setEstado('parado'), 2600)
+      return
+    }
     setFalas((atuais) => [...atuais, { de: 'eu', texto: limpa }])
-    socket.current.send(JSON.stringify({ tipo: 'pergunta', texto: limpa }))
     setTexto('')
   }
 
@@ -185,14 +186,19 @@ export function Conversa({ status }: { status: Status | null }) {
           onKeyDown={(evento) => {
             if (evento.key === 'Enter' && !evento.shiftKey) { evento.preventDefault(); envia(texto) }
           }}
-          placeholder={ouvindo ? 'ouvindo…' : 'pergunte qualquer coisa sobre o seu tempo'}
+          placeholder={
+            !ligado ? 'reconectando ao núcleo…'
+              : ouvindo ? 'ouvindo…'
+              : 'pergunte qualquer coisa sobre o seu tempo'
+          }
           rows={1}
           style={{ height: Math.min(160, 24 + texto.split('\n').length * 20) }}
         />
         <button className={`icone ${ouvindo ? 'ativo' : ''}`} onClick={escuta} title="falar">
           <IconeMicrofone />
         </button>
-        <button className="icone" onClick={() => envia(texto)} disabled={!texto.trim() || pensando} title="enviar">
+        <button className="icone" onClick={() => envia(texto)}
+          disabled={!texto.trim() || pensando || !ligado} title={ligado ? 'enviar' : 'núcleo fora do ar'}>
           <IconeEnviar />
         </button>
       </div>

@@ -6,6 +6,7 @@
 
 import AppKit
 import ApplicationServices
+import CoreAudio
 import CoreGraphics
 import Foundation
 
@@ -63,6 +64,61 @@ let browsers: Set<String> = [
     "com.google.Chrome.canary", "com.vivaldi.Vivaldi",
 ]
 
+/// Contadores acumulados desde o boot. Não exigem Acessibilidade nem
+/// Monitoramento de Entrada: é a mesma classe que já dá a ociosidade.
+/// O delta entre amostras mede *engajamento* — ler tem rolagem e zero tecla;
+/// escrever tem tecla. É o sinal que faltava para não depender só do título.
+func contador(_ tipo: CGEventType) -> Int {
+    Int(CGEventSource.counterForEventType(.hidSystemState, eventType: tipo))
+}
+
+/// Algum dispositivo de ENTRADA de áudio está capturando agora?
+/// É a camada de hardware, não AVCaptureDevice — por isso não pede permissão.
+/// Serve como detector de reunião que independe de Zoom, Teams ou Meet.
+func microfoneEmUso() -> Bool {
+    var enderecoDispositivos = AudioObjectPropertyAddress(
+        mSelector: kAudioHardwarePropertyDevices,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain)
+
+    var tamanho: UInt32 = 0
+    guard AudioObjectGetPropertyDataSize(
+        AudioObjectID(kAudioObjectSystemObject), &enderecoDispositivos, 0, nil, &tamanho) == noErr
+    else { return false }
+
+    let quantidade = Int(tamanho) / MemoryLayout<AudioDeviceID>.size
+    if quantidade == 0 { return false }
+    var dispositivos = [AudioDeviceID](repeating: 0, count: quantidade)
+    guard AudioObjectGetPropertyData(
+        AudioObjectID(kAudioObjectSystemObject), &enderecoDispositivos, 0, nil,
+        &tamanho, &dispositivos) == noErr
+    else { return false }
+
+    for dispositivo in dispositivos {
+        // Sem fluxo de entrada é alto-falante, não microfone.
+        var enderecoFluxos = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreams,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain)
+        var tamanhoFluxos: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(dispositivo, &enderecoFluxos, 0, nil, &tamanhoFluxos) == noErr,
+              tamanhoFluxos > 0
+        else { continue }
+
+        var enderecoAtivo = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        var ativo: UInt32 = 0
+        var tamanhoAtivo = UInt32(MemoryLayout<UInt32>.size)
+        if AudioObjectGetPropertyData(dispositivo, &enderecoAtivo, 0, nil, &tamanhoAtivo, &ativo) == noErr,
+           ativo != 0 {
+            return true
+        }
+    }
+    return false
+}
+
 func idleSeconds() -> Double {
     let types: [CGEventType] = [.mouseMoved, .keyDown, .leftMouseDown, .scrollWheel, .flagsChanged]
     return types
@@ -112,6 +168,10 @@ func sample() {
     parts.append("\"idle\":\(Int(idle.rounded()))")
     parts.append("\"locked\":\(locked)")
     parts.append("\"trusted\":\(trusted)")
+    parts.append("\"keys\":\(contador(.keyDown))")
+    parts.append("\"clicks\":\(contador(.leftMouseDown) + contador(.rightMouseDown))")
+    parts.append("\"scroll\":\(contador(.scrollWheel))")
+    parts.append("\"mic\":\(microfoneEmUso())")
 
     if !locked, let app = NSWorkspace.shared.frontmostApplication {
         if let name = field("app", app.localizedName) { parts.append(name) }

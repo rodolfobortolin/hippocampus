@@ -129,6 +129,19 @@ create table if not exists days (
 create table if not exists meta (key text primary key, value text);
 `)
 
+// Colunas acrescentadas depois da primeira versão. `alter table` não aceita
+// "if not exists", então a checagem é pelo próprio esquema.
+const colunasExistentes = new Set(
+  (db.prepare('pragma table_info(blocks)').all() as any[]).map((c) => c.name))
+for (const [coluna, tipo] of [
+  ['keys', 'integer not null default 0'],
+  ['clicks', 'integer not null default 0'],
+  ['scroll', 'integer not null default 0'],
+  ['mic', 'integer not null default 0'],
+] as const) {
+  if (!colunasExistentes.has(coluna)) db.exec(`alter table blocks add column ${coluna} ${tipo}`)
+}
+
 export function getMeta(key: string, fallback = ''): string {
   const row = db.prepare('select value from meta where key = ?').get(key) as { value?: string } | undefined
   return row?.value ?? fallback
