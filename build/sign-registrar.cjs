@@ -29,9 +29,9 @@ exports.default = async function signRegistrar(context) {
   const who = identity()
   const entitlements = path.join(__dirname, 'entitlements.mac.plist')
   const common = ['--force', '--options', 'runtime']
-  const assinatura = who ? ['--timestamp', '--sign', quem] : ['--sign', '-']
+  const signature = who ? ['--timestamp', '--sign', who] : ['--sign', '-']
 
-  execFileSync('codesign', [...common, '--identifier', 'com.hippocampus.app', ...signature, registrador])
+  execFileSync('codesign', [...common, '--identifier', 'com.hippocampus.app', ...signature, registrar])
   execFileSync('codesign', [...common, '--entitlements', entitlements, ...signature, app])
 
   // If the seal does not close, the app does not open — better to break the build here.
