@@ -16,8 +16,8 @@ const insert = db.prepare(
 // Depois isso é cruzado com os blocos ociosos: tempo parado com agente ativo
 // não é ausência, é trabalho delegado.
 const marcaMinuto = db.prepare(
-  `insert into agent_minutes (minute, day, project, events) values (?, ?, ?, 1)
-   on conflict(minute) do update set events = events + 1`,
+  `insert into agent_minutes (minute, agent, day, project, events) values (?, 'claude', ?, ?, 1)
+   on conflict(minute, agent) do update set events = events + 1`,
 )
 
 function textOf(content: unknown): string {

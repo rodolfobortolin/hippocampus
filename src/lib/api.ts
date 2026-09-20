@@ -68,6 +68,7 @@ export type Periodo = {
     hosts: { name: string; n: number }[]
     typing: { chars: number; samples: number }
     commits: number; aiTurns: number
+    agentes: { name: string; minutos: number }[]
   }
 }
 

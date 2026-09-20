@@ -5,6 +5,7 @@ import { FocusCollector } from './sources/focus.ts'
 import { harvestSkysight, skysightAvailable, checkSkysight } from './sources/skysight.ts'
 import { harvestBrowsers } from './sources/browser.ts'
 import { harvestClaudeSessions } from './sources/ai.ts'
+import { harvestCodexSessions } from './sources/codex.ts'
 import { harvestGit } from './sources/git.ts'
 import { harvestShell } from './sources/shell.ts'
 import { rollup } from './rollup.ts'
@@ -19,6 +20,7 @@ const tasks: Task[] = [
   { name: 'skysight', everyMinutes: 2, run: harvestSkysight },
   { name: 'navegadores', everyMinutes: 10, run: harvestBrowsers },
   { name: 'claude', everyMinutes: 10, run: harvestClaudeSessions },
+  { name: 'codex', everyMinutes: 10, run: harvestCodexSessions },
   { name: 'shell', everyMinutes: 15, run: harvestShell },
   { name: 'git', everyMinutes: 30, run: () => harvestGit(2) },
 ]

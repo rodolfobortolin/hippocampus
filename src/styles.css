@@ -229,6 +229,16 @@ input, textarea { font: inherit; color: inherit; }
 }
 .atalhos-conversa button:hover { border-color: rgba(255, 138, 61, 0.4); color: var(--ouro); }
 
+/* As horas da fita vivem fora do SVG: lá dentro elas seriam esticadas junto
+   com o desenho, que não mantém proporção. */
+.fita-horas { position: relative; height: 16px; margin-top: 3px; }
+.fita-horas span {
+  position: absolute; transform: translateX(-50%);
+  font-size: 11px; color: var(--texto-fraco); white-space: nowrap;
+}
+.fita-horas span:first-child { transform: none; }
+.fita-horas span:last-child { transform: translateX(-100%); }
+
 /* ---------- o núcleo ---------- */
 
 .nucleo { position: relative; flex: none; pointer-events: none; }

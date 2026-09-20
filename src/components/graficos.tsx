@@ -101,7 +101,9 @@ export function Fita({ blocos, dia, inicioDia = 4 }: { blocos: BlocoFita[]; dia:
         )}
       </div>
 
-      <svg viewBox={`0 0 ${largura} 58`} preserveAspectRatio="none" style={{ width: '100%', height: 58 }}>
+      {/* O SVG da fita é esticado sem manter proporção, então texto dentro dele
+          sai deformado. As horas ficam em HTML, alinhadas por porcentagem. */}
+      <svg viewBox={`0 0 ${largura} 40`} preserveAspectRatio="none" style={{ width: '100%', height: 40 }}>
         <rect x="0" y="0" width={largura} height="36" rx="7" fill="rgba(255,255,255,.035)" />
         {blocos.map((bloco, indice) => {
           const x = posicao(bloco.start)
@@ -124,16 +126,19 @@ export function Fita({ blocos, dia, inicioDia = 4 }: { blocos: BlocoFita[]; dia:
         {marcas.map((hora) => {
           const x = ((hora - inicioDia) / 24) * largura
           return (
-            <g key={hora}>
-              <line x1={x} y1="38" x2={x} y2="42" stroke="rgba(255,255,255,.14)" strokeWidth="1" />
-              <text x={x} y="54" fill="var(--texto-fraco)" fontSize="11"
-                textAnchor={hora === inicioDia ? 'start' : hora === inicioDia + 24 ? 'end' : 'middle'}>
-                {String(hora % 24).padStart(2, '0')}h
-              </text>
-            </g>
+            <line key={hora} x1={x} y1="37" x2={x} y2="40"
+              stroke="rgba(255,255,255,.14)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           )
         })}
       </svg>
+
+      <div className="fita-horas">
+        {marcas.map((hora) => (
+          <span key={hora} style={{ left: `${((hora - inicioDia) / 24) * 100}%` }}>
+            {String(hora % 24).padStart(2, '0')}h
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
@@ -176,8 +181,12 @@ const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 export function Mapa({ grade }: { grade: number[][] }) {
   const [sobre, setSobre] = useState<{ dia: number; hora: number } | null>(null)
   const maior = Math.max(1, ...grade.flat())
-  const celula = 15
-  const folga = 3
+  // Unidades grandes de propósito: o SVG estica para a largura do painel e o
+  // texto estica junto. Com célula de 15 o fator chegava a 3× num monitor
+  // grande, e uma fonte de 10px virava 30px na tela.
+  const celula = 30
+  const folga = 5
+  const colunaRotulo = 64
 
   return (
     <div>
@@ -189,15 +198,17 @@ export function Mapa({ grade }: { grade: number[][] }) {
           </span>
         ) : <span style={{ color: 'var(--texto-fraco)' }}>soma de todo o período</span>}
       </div>
-      <svg viewBox={`0 0 ${24 * (celula + folga) + 34} ${7 * (celula + folga) + 18}`} style={{ width: '100%' }}>
+      <svg
+        viewBox={`0 0 ${24 * (celula + folga) + colunaRotulo} ${7 * (celula + folga) + 34}`}
+        style={{ width: '100%', maxWidth: 1040 }}>
         {grade.map((linha, dia) =>
           linha.map((segundos, hora) => {
             const intensidade = segundos / maior
             return (
               <rect
                 key={`${dia}-${hora}`}
-                x={34 + hora * (celula + folga)} y={dia * (celula + folga)}
-                width={celula} height={celula} rx={3.5}
+                x={colunaRotulo + hora * (celula + folga)} y={dia * (celula + folga)}
+                width={celula} height={celula} rx={6}
                 fill="var(--brasa)"
                 opacity={segundos ? 0.13 + intensidade * 0.87 : 0.045}
                 style={{
@@ -210,11 +221,12 @@ export function Mapa({ grade }: { grade: number[][] }) {
           }),
         )}
         {DIAS_SEMANA.map((nome, dia) => (
-          <text key={nome} x="0" y={dia * (celula + folga) + 11} fill="var(--texto-fraco)" fontSize="10.5">{nome}</text>
+          <text key={nome} x="0" y={dia * (celula + folga) + celula * 0.66}
+            fill="var(--texto-fraco)" fontSize="16">{nome}</text>
         ))}
         {[0, 6, 12, 18, 23].map((hora) => (
-          <text key={hora} x={34 + hora * (celula + folga) + celula / 2} y={7 * (celula + folga) + 12}
-            fill="var(--texto-fraco)" fontSize="10.5" textAnchor="middle">{hora}h</text>
+          <text key={hora} x={colunaRotulo + hora * (celula + folga) + celula / 2} y={7 * (celula + folga) + 24}
+            fill="var(--texto-fraco)" fontSize="16" textAnchor="middle">{hora}h</text>
         ))}
       </svg>
     </div>
@@ -333,7 +345,7 @@ export function FormaDoFoco({ faixas, mediana, maior }: {
         )}
       </div>
 
-      <svg viewBox={`0 0 ${largura} ${altura}`} style={{ width: '100%', height: altura }}>
+      <svg viewBox={`0 0 ${largura} ${altura}`} style={{ width: '100%', maxWidth: 620, height: altura }}>
         {faixas.map((faixa, indice) => {
           const h = (faixa.minutes / maiorFaixa) * (altura - 34)
           const x = indice * passo + passo * 0.16

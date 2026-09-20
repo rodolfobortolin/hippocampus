@@ -69,7 +69,11 @@ export function Ritmo() {
             <div className="painel">
               <div className="rotulo">produção</div>
               <div className="numero" style={{ fontSize: 30 }}>{resumo.commits}<small> commits</small></div>
-              <div className="nota">{resumo.aiTurns} pedidos ao Claude Code</div>
+              <div className="nota">
+                {resumo.agentes.length
+                  ? resumo.agentes.map((a) => `${duracao(a.minutos * 60)} de ${a.name}`).join(' · ')
+                  : `${resumo.aiTurns} pedidos a agentes`}
+              </div>
             </div>
           </div>
 

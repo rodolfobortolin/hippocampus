@@ -291,6 +291,11 @@ export function periodSummary(from: string, to: string) {
       `select coalesce(sum(chars),0) chars, count(*) samples from typing where day between ? and ?`, from, to),
     commits: one<any>(`select count(*) n from commits where day between ? and ?`, from, to)?.n ?? 0,
     aiTurns: one<any>(`select count(*) n from ai_turns where day between ? and ?`, from, to)?.n ?? 0,
+    // Trabalho de agente por nome: a máquina usa Claude Code e Codex, e somar
+    // os dois num rótulo só ("pedidos ao Claude Code") conta mentira.
+    agentes: all<any>(
+      `select agent as name, count(*) as minutos from agent_minutes
+        where day between ? and ? group by agent order by minutos desc`, from, to),
   }
 }
 

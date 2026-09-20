@@ -26,14 +26,20 @@ export function harvestGit(days = 3): { commits: number } {
     const repo = path.join(config.codeRoot, name)
     if (!fs.existsSync(path.join(repo, '.git'))) continue
 
-    // %x1f separa campos e %x1e separa commits: assunto pode ter qualquer coisa.
+    // %x1f separa campos e %x1e ABRE cada commit — não fecha.
+    //
+    // Com o separador no fim, o --shortstat sai na linha seguinte ao cabeçalho
+    // e cai dentro do pedaço do commit seguinte; o parser lia a estatística
+    // errada e gravava tudo como +0/-0. Abrindo o registro, cabeçalho e
+    // estatística ficam no mesmo pedaço.
     const log = git(repo, [
       'log', '--all', '--no-merges', `--since=${days}.days.ago`,
-      '--pretty=format:%H%x1f%at%x1f%s%x1e', '--shortstat',
+      '--pretty=format:%x1e%H%x1f%at%x1f%s', '--shortstat',
     ])
     if (!log.trim()) continue
 
     for (const entry of log.split('\x1e')) {
+      if (!entry.trim()) continue
       const [header, ...rest] = entry.split('\n')
       const [sha, at, subject] = header.trim().split('\x1f')
       if (!sha || !at) continue

@@ -128,16 +128,39 @@ create table if not exists days (
 
 -- Minutos em que um agente estava trabalhando, com ou sem você na frente.
 -- É o que separa "saiu para almoçar" de "delegou e foi fazer outra coisa".
+-- A chave inclui o agente: Claude e Codex podem trabalhar no mesmo minuto.
 create table if not exists agent_minutes (
-  minute integer primary key,
+  minute integer not null,
+  agent text not null default 'claude',
   day text not null,
   project text,
-  events integer not null default 0
+  events integer not null default 0,
+  primary key (minute, agent)
 );
 create index if not exists agent_minutes_day on agent_minutes(day);
 
 create table if not exists meta (key text primary key, value text);
 `)
+
+// A primeira versão da tabela tinha só o minuto como chave, o que impedia dois
+// agentes no mesmo minuto. Migra preservando o que já foi medido.
+const chaveAntiga = (db.prepare('pragma table_info(agent_minutes)').all() as any[])
+  .some((c) => c.name === 'minute' && c.pk === 1)
+const temColunaAgente = (db.prepare('pragma table_info(agent_minutes)').all() as any[])
+  .some((c) => c.name === 'agent')
+if (chaveAntiga && !temColunaAgente) {
+  db.exec(`
+    alter table agent_minutes rename to agent_minutes_antiga;
+    create table agent_minutes (
+      minute integer not null, agent text not null default 'claude',
+      day text not null, project text, events integer not null default 0,
+      primary key (minute, agent)
+    );
+    insert into agent_minutes (minute, agent, day, project, events)
+      select minute, 'claude', day, project, events from agent_minutes_antiga;
+    drop table agent_minutes_antiga;
+  `)
+}
 
 // Colunas acrescentadas depois da primeira versão. `alter table` não aceita
 // "if not exists", então a checagem é pelo próprio esquema.

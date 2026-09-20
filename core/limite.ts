@@ -31,6 +31,6 @@ export async function comLimite<T>(
 }
 
 export function estadoDasFontes(): Record<string, string> {
-  const fontes = ['skysight', 'navegadores', 'claude', 'shell', 'git']
+  const fontes = ['skysight', 'navegadores', 'claude', 'codex', 'shell', 'git']
   return Object.fromEntries(fontes.map((nome) => [nome, getMeta(`fonte.${nome}`, 'ainda não tentou')]))
 }
