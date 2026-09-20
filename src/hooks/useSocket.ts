@@ -5,18 +5,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *
  * O núcleo reinicia — atualização, launchd, queda — e sem reconexão a conversa
  * morre calada: o envio vira nada e quem está olhando não sabe. Aqui a conexão
- * volta com espera crescente, e o estado fica visível para a interface poder
- * dizer que está fora do ar em vez de engolir a pergunta.
+ * volta com wait crescente, e o state fica visível para a interface poder
+ * dizer que está fora do ar em vez de engolir a question.
  */
-export function useSocket(criar: () => WebSocket, aoReceber: (dados: any) => void) {
-  const [ligado, setLigado] = useState(false)
+export function useSocket(criar: () => WebSocket, aoReceber: (data: any) => void) {
+  const [connected, setLigado] = useState(false)
   const socket = useRef<WebSocket | null>(null)
-  const tentativa = useRef(0)
+  const attempt = useRef(0)
   const vivo = useRef(true)
-  const receber = useRef(aoReceber)
-  receber.current = aoReceber
+  const receive = useRef(aoReceber)
+  receive.current = aoReceber
 
-  const conecta = useCallback(() => {
+  const connect = useCallback(() => {
     if (!vivo.current) return
     let ws: WebSocket
     try {
@@ -27,34 +27,34 @@ export function useSocket(criar: () => WebSocket, aoReceber: (dados: any) => voi
     }
     socket.current = ws
 
-    ws.onopen = () => { tentativa.current = 0; setLigado(true) }
+    ws.onopen = () => { attempt.current = 0; setLigado(true) }
     ws.onmessage = (evento) => {
-      try { receber.current(JSON.parse(evento.data)) } catch { /* quadro inválido */ }
+      try { receive.current(JSON.parse(evento.data)) } catch { /* frame inválido */ }
     }
     ws.onerror = () => ws.close()
     ws.onclose = () => {
       setLigado(false)
       if (!vivo.current) return
-      // Espera crescente até 8s: o núcleo costuma voltar em poucos segundos.
-      const espera = Math.min(8000, 400 * 2 ** tentativa.current++)
-      setTimeout(conecta, espera)
+      // Espera crescente até 8s: o núcleo costuma voltar em poucos seconds.
+      const wait = Math.min(8000, 400 * 2 ** attempt.current++)
+      setTimeout(connect, wait)
     }
   }, [criar])
 
   useEffect(() => {
     vivo.current = true
-    conecta()
+    connect()
     return () => {
       vivo.current = false
       socket.current?.close()
     }
-  }, [conecta])
+  }, [connect])
 
-  const envia = useCallback((dados: unknown): boolean => {
+  const send = useCallback((data: unknown): boolean => {
     if (socket.current?.readyState !== WebSocket.OPEN) return false
-    socket.current.send(JSON.stringify(dados))
+    socket.current.send(JSON.stringify(data))
     return true
   }, [])
 
-  return { ligado, envia }
+  return { connected, send }
 }

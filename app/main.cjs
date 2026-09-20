@@ -27,7 +27,7 @@ const REGISTRADOR = path.join(process.resourcesPath ?? '', '..', 'MacOS', 'hipoc
  * vez de exceção: o app tem que abrir mesmo com os agentes desarrumados, senão
  * a única tela que permite arrumá-los fica inalcançável.
  */
-function agentes(comando) {
+function agents(comando) {
   return new Promise((resolve) => {
     if (!fs.existsSync(REGISTRADOR)) return resolve(null)
     execFile(REGISTRADOR, [comando], { timeout: 15_000 }, (erro, saida) => {
@@ -195,7 +195,7 @@ function abreNucleo(roubaFoco = true) {
 function chamaNucleo() {
   const novo = !janelaNucleo
   abreNucleo(false)
-  const acorda = () => janelaNucleo?.webContents.send('nucleo:acordar')
+  const acorda = () => janelaNucleo?.webContents.send('core:wake')
   if (novo) janelaNucleo.webContents.once('did-finish-load', acorda)
   else acorda()
 }
@@ -206,7 +206,7 @@ function escutaONucleo() {
   escuta = new WebSocket(`ws://127.0.0.1:${PORTA}/ws`, { origin: `http://127.0.0.1:${PORTA}` })
   escuta.on('message', (cru) => {
     try {
-      if (JSON.parse(String(cru)).tipo === 'acordar') chamaNucleo()
+      if (JSON.parse(String(raw)).type === 'acordar') chamaNucleo()
     } catch {
       // Mensagem que não é JSON não é nossa.
     }
@@ -274,7 +274,7 @@ app.whenReady().then(async () => {
   }
   // O seletor de pastas do vault. Fica no processo principal porque só ele
   // tem acesso ao sistema de arquivos e aos diálogos do macOS.
-  ipcMain.handle('escolher-pasta', async () => {
+  ipcMain.handle('choose-folder', async () => {
     const escolha = await dialog.showOpenDialog({
       properties: ['openDirectory', 'createDirectory'],
       message: 'Escolha a pasta do seu vault do Obsidian',
@@ -284,19 +284,19 @@ app.whenReady().then(async () => {
 
   // Arrastar a esfera move a janela. Não dá para usar `-webkit-app-region:
   // drag` aqui: ela engole o clique, e o clique é como se fala com o núcleo.
-  ipcMain.on('nucleo:mover', (_evento, { dx, dy }) => {
+  ipcMain.on('core:move', (_evento, { dx, dy }) => {
     if (!janelaNucleo) return
     const [x, y] = janelaNucleo.getPosition()
     janelaNucleo.setPosition(Math.round(x + dx), Math.round(y + dy))
   })
-  ipcMain.on('nucleo:fixar', guardaPosicao)
+  ipcMain.on('core:settle', guardaPosicao)
 
   // Medir o dia é a função do app, mas ligar um agente que sobe no login é
   // decisão de quem usa — e o macOS pede aprovação dela. Por isso vive na tela
   // de Ajustes, e não num registro silencioso na primeira abertura.
-  ipcMain.handle('agentes:estado', () => agentes('estado'))
-  ipcMain.handle('agentes:registrar', () => agentes('registrar'))
-  ipcMain.handle('agentes:desregistrar', () => agentes('desregistrar'))
+  ipcMain.handle('agents:status', () => agents('estado'))
+  ipcMain.handle('agents:register', () => agents('registrar'))
+  ipcMain.handle('agents:unregister', () => agents('desregistrar'))
 
   await garanteNucleo()
   montaBandeja()

@@ -1,13 +1,13 @@
 const BASE = `http://127.0.0.1:${(globalThis as any).HIPOCAMPO_PORT ?? 7878}`
 
-export type Fatia = { name: string; seconds: number }
-export type BlocoFita = {
+export type Slice = { name: string; seconds: number }
+export type RibbonBlock = {
   start: number; end: number; app: string; title: string | null
   category: string | null; idle: number; focus: number | null
-  delegado: boolean
+  delegated: boolean
 }
 
-export type Dia = {
+export type Day = {
   day: string
   activeSeconds: number
   idleSeconds: number
@@ -17,108 +17,108 @@ export type Dia = {
   focusRatio: number
   focusSeconds: number
   switches: number
-  switchesProjeto: number
-  timelineOcultos: number
-  sessoes: { start: number; end: number; minutes: number }[]
-  forma: {
-    faixas: { name: string; minutes: number; n: number }[]
-    total: number; maior: number; mediana: number; sessoes: number
+  switchesProject: number
+  timelineHidden: number
+  sessions: { start: number; end: number; minutes: number }[]
+  focusShape: {
+    bands: { name: string; minutes: number; n: number }[]
+    total: number; longest: number; median: number; sessions: number
   }
   firstAt: number | null
   lastAt: number | null
-  apps: Fatia[]
-  categories: Fatia[]
-  projects: Fatia[]
+  apps: Slice[]
+  categories: Slice[]
+  projects: Slice[]
   windows: { title: string; app: string; seconds: number }[]
-  timeline: BlocoFita[]
+  timeline: RibbonBlock[]
   shortcuts: { name: string; n: number }[]
   clicks: number
   typing: { chars: number; samples: number }
   commits: { repo: string; subject: string; ts: number; insertions: number; deletions: number }[]
   hosts: { name: string; n: number }[]
   visits: number
-  entrada: { teclas: number; cliques: number; rolagem: number }
-  entradaPorApp: { app: string; teclas: number; cliques: number; rolagem: number }[]
-  telas: Fatia[]
-  trilha: { segundos: number; emChamada: number }
-  midias: Fatia[]
+  input: { keys: number; clicks: number; scroll: number }
+  inputPerApp: { app: string; keys: number; clicks: number; scroll: number }[]
+  screens: Slice[]
+  soundtrack: { seconds: number; inCall: number }
+  media: Slice[]
   aiTurns: { project: string; prompt: string; tools: string; ts: number }[]
   stored: { narrative: string; recap: string; built_at: number } | null
 }
 
 export type Status = {
-  coletor: {
+  collector: {
     running: boolean; trusted: boolean; skysight: boolean
     lastSample: { app?: string; title?: string; idle: number; locked: boolean } | null
     startedAt: number; lastRollup: string
-    fontes: Record<string, string>
+    sources: Record<string, string>
   }
-  jev: boolean; claude: boolean; vault: boolean; voz: boolean; usuario: string; idioma: string
+  jev: boolean; claude: boolean; vault: boolean; voice: boolean; user: string; language: string
   day: string
   counts: Record<string, number>
-  span: { de: string; ate: string }
+  span: { of: string; to: string }
 }
 
 export type Settings = {
-  idioma: 'pt-BR' | 'en-US' | 'es-ES' | 'fr-FR' | 'de-DE'
-  nome: string
+  language: 'pt-BR' | 'en-US' | 'es-ES' | 'fr-FR' | 'de-DE'
+  name: string
   vault: string
-  pastaDiario: string
-  inicioDoDia: number
-  guardarDigitacao: boolean
-  voz: string
-  idiomas: Record<string, { nome: string; bandeira: string; intl: string }>
-  /** Só o estado das chaves volta pela API — o valor nunca. */
-  chaves: { jev: 'chaveiro' | 'ambiente' | 'vazia'; openai: 'chaveiro' | 'ambiente' | 'vazia' }
+  journalFolder: string
+  dayStartHour: number
+  keepTyping: boolean
+  voice: string
+  languages: Record<string, { name: string; bandeira: string; intl: string }>
+  /** Só o state das keys volta pela API — o value nunca. */
+  keys: { jev: 'keychain' | 'environment' | 'empty'; openai: 'keychain' | 'environment' | 'empty' }
 }
 
-export type Periodo = {
-  de: string; ate: string
-  dias: { day: string; active: number; idle: number; focusRatio: number | null; hasNarrative: boolean }[]
-  ritmo: number[][]
-  resumo: {
+export type Period = {
+  of: string; to: string
+  days: { day: string; active: number; idle: number; focusRatio: number | null; hasNarrative: boolean }[]
+  rhythm: number[][]
+  summary: {
     total: number; focusRatio: number; focusSeconds: number
-    apps: Fatia[]; categories: Fatia[]; projects: Fatia[]
+    apps: Slice[]; categories: Slice[]; projects: Slice[]
     shortcuts: { name: string; n: number }[]
     hosts: { name: string; n: number }[]
     typing: { chars: number; samples: number }
     commits: number; aiTurns: number
-    agentes: { name: string; minutos: number }[]
+    agents: { name: string; minutes: number }[]
   }
 }
 
-export type DiaSalvo = {
+export type StoredDay = {
   day: string; active_seconds: number; focus_ratio: number
   top_app: string; narrative: string; recap: string; built_at: number
 }
 
-async function pega<T>(rota: string, opcoes?: RequestInit): Promise<T> {
-  const resposta = await fetch(`${BASE}${rota}`, opcoes)
-  if (!resposta.ok) throw new Error(`${resposta.status} em ${rota}`)
-  return resposta.json() as Promise<T>
+async function get<T>(route: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${BASE}${route}`, options)
+  if (!response.ok) throw new Error(`${response.status} em ${route}`)
+  return response.json() as Promise<T>
 }
 
 export const api = {
-  status: () => pega<Status>('/api/status'),
-  dia: (dia: string) => pega<Dia>(`/api/dia/${dia}`),
-  periodo: (de: string, ate: string) => pega<Periodo>(`/api/periodo?de=${de}&ate=${ate}`),
-  dias: () => pega<DiaSalvo[]>('/api/dias'),
-  fechar: (dia: string, narrar = true) =>
-    pega<{ narrative: string; recap: string; classified: number }>(
-      `/api/rollup?dia=${dia}&narrar=${narrar ? 1 : 0}`, { method: 'POST' }),
-  ajustes: () => pega<Settings>('/api/ajustes'),
-  saveSettings: (mudanca: Record<string, unknown>) => pega<Settings>('/api/ajustes', {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(mudanca),
+  status: () => get<Status>('/api/status'),
+  day: (day: string) => get<Day>(`/api/day/${day}`),
+  period: (from: string, to: string) => get<Period>(`/api/period?from=${from}&to=${to}`),
+  days: () => get<StoredDay[]>('/api/days'),
+  close: (day: string, narrate = true) =>
+    get<{ narrative: string; recap: string; classified: number }>(
+      `/api/rollup?day=${day}&narrate=${narrate ? 1 : 0}`, { method: 'POST' }),
+  settings: () => get<Settings>('/api/settings'),
+  saveSettings: (change: Record<string, unknown>) => get<Settings>('/api/settings', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(change),
   }),
   socket: () => new WebSocket(`ws://127.0.0.1:${(globalThis as any).HIPOCAMPO_PORT ?? 7878}/ws`),
-  transcrever: async (audio: Blob): Promise<string> => {
-    const resposta = await fetch(`${BASE}/api/transcrever`, {
+  transcribe: async (audio: Blob): Promise<string> => {
+    const response = await fetch(`${BASE}/api/transcribe`, {
       method: 'POST', headers: { 'content-type': 'audio/webm' }, body: audio,
     })
-    if (!resposta.ok) throw new Error((await resposta.json()).erro ?? 'falha ao transcrever')
-    return (await resposta.json()).texto as string
+    if (!response.ok) throw new Error((await response.json()).error ?? 'falha ao transcribe')
+    return (await response.json()).text as string
   },
-  voz: (texto: string) => fetch(`${BASE}/api/voz`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texto }),
+  voice: (text: string) => fetch(`${BASE}/api/speak`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }),
   }),
 }

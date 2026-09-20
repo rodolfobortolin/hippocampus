@@ -8,25 +8,25 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('hipocampo', {
   /** Abre o seletor de pastas do sistema. Devolve null se a pessoa desistir. */
-  escolherPasta: () => ipcRenderer.invoke('escolher-pasta'),
+  chooseFolder: () => ipcRenderer.invoke('choose-folder'),
 
   /** Move a janela flutuante em pixels de tela — é o arrasto da esfera. */
-  moveNucleo: (dx, dy) => ipcRenderer.send('nucleo:mover', { dx, dy }),
+  moveCore: (dx, dy) => ipcRenderer.send('core:move', { dx, dy }),
 
   /** Avisa que o arrasto terminou, para a posição ser guardada. */
-  fixaNucleo: () => ipcRenderer.send('nucleo:fixar'),
+  settleCore: () => ipcRenderer.send('core:settle'),
 
-  /** O estado dos agentes que medem o dia, e como ligá-los ou desligá-los. */
-  agentes: {
-    estado: () => ipcRenderer.invoke('agentes:estado'),
-    registrar: () => ipcRenderer.invoke('agentes:registrar'),
-    desregistrar: () => ipcRenderer.invoke('agentes:desregistrar'),
+  /** O estado dos agents que medem o dia, e como ligá-los ou desligá-los. */
+  agents: {
+    status: () => ipcRenderer.invoke('agents:estado'),
+    register: () => ipcRenderer.invoke('agents:registrar'),
+    desregister: () => ipcRenderer.invoke('agents:desregistrar'),
   },
 
   /** Chamado quando a palavra de ativação ou o atalho trouxe o núcleo. */
-  aoAcordar: (callback) => {
-    const ouvinte = () => callback()
-    ipcRenderer.on('nucleo:acordar', ouvinte)
-    return () => ipcRenderer.removeListener('nucleo:acordar', ouvinte)
+  onWake: (callback) => {
+    const listener = () => callback()
+    ipcRenderer.on('core:wake', listener)
+    return () => ipcRenderer.removeListener('core:wake', listener)
   },
 })

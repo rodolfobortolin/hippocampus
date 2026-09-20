@@ -1,17 +1,17 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App.tsx'
-import { NucleoSolto } from './NucleoSolto.tsx'
-import { ProvedorDeIdioma } from './lib/idioma.tsx'
+import { FloatingCore } from './FloatingCore.tsx'
+import { LanguageProvider } from './lib/language.tsx'
 import './styles.css'
 
 // Duas caras do mesmo app, servidas pelo mesmo endereço: o painel inteiro e o
-// núcleo solto, que a janela flutuante do Electron abre com #nucleo.
-const solto = window.location.hash === '#nucleo'
-if (solto) document.body.dataset.modo = 'solto'
+// núcleo floating, que a janela flutuante do Electron abre com #nucleo.
+const floating = window.location.hash === '#nucleo'
+if (floating) document.body.dataset.modo = 'floating'
 
 createRoot(document.getElementById('raiz')!).render(
   <StrictMode>
-    <ProvedorDeIdioma>{solto ? <NucleoSolto /> : <App />}</ProvedorDeIdioma>
+    <LanguageProvider>{floating ? <FloatingCore /> : <App />}</LanguageProvider>
   </StrictMode>,
 )
