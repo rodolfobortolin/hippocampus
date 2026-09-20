@@ -57,7 +57,12 @@ export const config = {
 
 export const paths = {
   db: path.join(config.dataDir, 'hipocampo.db'),
-  native: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'native', 'hipocampo-focus'),
+  // O helper mora dentro de um .app para ter identidade própria no macOS —
+  // é o que faz a permissão de Acessibilidade aparecer com nome e colar.
+  native: path.join(
+    path.dirname(fileURLToPath(import.meta.url)), '..',
+    'native', 'Hipocampo Focus.app', 'Contents', 'MacOS', 'hipocampo-focus',
+  ),
   archive: path.join(config.dataDir, 'archive'),
 }
 
