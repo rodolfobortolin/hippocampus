@@ -41,5 +41,21 @@ fi
 # Atalho fora do bundle para chamadas diretas de linha de comando.
 ln -sf "Hipocampo Focus.app/Contents/MacOS/hipocampo-focus" native/hipocampo-focus
 
+# O ouvido é um programa à parte: permissão de microfone própria, e desligar
+# a escuta não desliga a medição.
+OUVIDO="native/Hipocampo Ouvido.app"
+rm -rf "$OUVIDO"
+mkdir -p "$OUVIDO/Contents/MacOS" "$OUVIDO/Contents/Resources"
+cp native/InfoOuvido.plist "$OUVIDO/Contents/Info.plist"
+[ -f build/hipocampo.icns ] && cp build/hipocampo.icns "$OUVIDO/Contents/Resources/hipocampo.icns"
+swiftc -O -o "$OUVIDO/Contents/MacOS/hipocampo-ouvido" native/ouvido.swift \
+  -framework AVFoundation -framework Speech -framework Foundation
+if [ -n "$IDENTIDADE" ]; then
+  codesign --sign "$IDENTIDADE" --force --deep "$OUVIDO"
+else
+  codesign --sign - --force --deep "$OUVIDO"
+fi
+
 echo "$APP pronto e assinado"
+echo "$OUVIDO pronto e assinado"
 codesign -dv "$APP" 2>&1 | grep -E "Identifier|Signature" || true

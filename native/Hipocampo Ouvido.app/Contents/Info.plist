@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>Hipocampo Ouvido</string>
+  <key>CFBundleDisplayName</key><string>Hipocampo Ouvido</string>
+  <key>CFBundleIdentifier</key><string>com.hipocampo.ouvido</string>
+  <key>CFBundleExecutable</key><string>hipocampo-ouvido</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>hipocampo</string>
+  <key>CFBundleVersion</key><string>1.0</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>LSUIElement</key><true/>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>O Hipocampo escuta a palavra de ativação. O reconhecimento roda na própria máquina e nenhum áudio é gravado ou enviado.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>Usado só para reconhecer a palavra de ativação, em modo local. Nada é transcrito além dela e nada sai do computador.</string>
+</dict>
+</plist>

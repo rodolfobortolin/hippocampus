@@ -36,6 +36,10 @@ export function NucleoSolto() {
       setResposta(texto)
       falaResposta.current(texto)
     }
+    if (dados.tipo === 'acordar') {
+      if (estado === 'falando') voz.parar()
+      else if (escuta.estado === 'parado') escuta.alterna()
+    }
     if (dados.tipo === 'erro') { setEstado('erro'); setResposta(dados.erro) }
   })
 

@@ -24,6 +24,7 @@ export function Conversa({ status }: { status: Status | null }) {
   const [texto, setTexto] = useState('')
   const [pensando, setPensando] = useState(false)
   const [ferramenta, setFerramenta] = useState('')
+  const [modelo, setModelo] = useState('')
   const [estado, setEstado] = useState<EstadoNucleo>('parado')
   // Se a pergunta veio falada, a resposta volta falada — esperar texto depois
   // de perguntar com a voz é esquisito. Digitou, fica em silêncio.
@@ -41,7 +42,10 @@ export function Conversa({ status }: { status: Status | null }) {
   const nivel = ouvindo ? escuta.nivel : nivelResposta
 
   const { ligado, envia: mandaAoNucleo } = useSocket(api.socket, (dados) => {
-      if (dados.tipo === 'pensando') { setPensando(true); setFerramenta(''); setEstado('pensando') }
+      if (dados.tipo === 'pensando') { setPensando(true); setFerramenta(''); setModelo(''); setEstado('pensando') }
+      // Qual modelo o jev escolheu para este pedido. Fica visível de propósito:
+      // roteamento automático que ninguém vê é roteamento em que ninguém confia.
+      if (dados.tipo === 'modelo') setModelo(String(dados.modelo).replace(/^claude-|-\d{8}$/g, ''))
       if (dados.tipo === 'ferramenta') {
         // O núcleo só vira água quando ele está de fato lendo o banco; a busca
         // interna de ferramenta do SDK não interessa a quem está olhando.
@@ -67,6 +71,11 @@ export function Conversa({ status }: { status: Status | null }) {
         if (texto && (perguntouFalando.current || vozSempre)) falarResposta.current(texto)
         else setEstado('parado')
         perguntouFalando.current = false
+      }
+      // A palavra de ativação alterna: falando, cala; calado, começa a ouvir.
+      if (dados.tipo === 'acordar') {
+        if (falando) voz.parar()
+        else if (escuta.estado === 'parado' && !pensando) escuta.alterna()
       }
       if (dados.tipo === 'erro') {
         setPensando(false)
@@ -161,6 +170,7 @@ export function Conversa({ status }: { status: Status | null }) {
         {pensando && (
           <div className="ferramenta aparece">
             {ferramenta ? `consultando ${ferramenta}…` : 'pensando…'}
+            {modelo && <span className="modelo">{modelo}</span>}
           </div>
         )}
       </div>

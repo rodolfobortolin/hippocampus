@@ -162,3 +162,59 @@ export async function classifyDay(day: string, projects: string[]): Promise<numb
   await Promise.all(workers)
   return done
 }
+
+/**
+ * Qual modelo do Claude Code deve responder.
+ *
+ * Gastar o modelo mais forte para responder "que horas eu comecei hoje" é
+ * desperdício de tempo e de cota. O jev julga a complexidade do pedido em
+ * ~110ms, com uma pergunta tipada, e o roteamento acontece aqui no código —
+ * quem decide o mapa é você, não o modelo.
+ */
+const ESCADA = [
+  'claude-haiku-4-5-20251001',  // consulta direta
+  'claude-sonnet-5',            // cruzar fontes e resumir
+  'claude-opus-5',              // análise longa, escrita, recap
+] as const
+
+const NIVEIS = [
+  'Pergunta direta: a resposta é um número, uma data ou um fato que sai de uma consulta só',
+  'Precisa cruzar algumas fontes, comparar períodos ou resumir em poucas linhas',
+  'Análise de verdade, comparação ao longo do tempo, texto longo, recap com graça, ou raciocínio sobre causa',
+]
+
+export type Roteamento = { modelo: string; nivel: number; confianca: number }
+
+export async function escolheModelo(pedido: string): Promise<Roteamento | null> {
+  if (!jevReady()) return null
+
+  try {
+    const resposta = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${config.typesafeKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: config.typesafeModel,
+        state: { pedido: pedido.slice(0, 1200) },
+        questions: {
+          complexidade: {
+            type: 'score',
+            instructions: 'Quanto esforço de raciocínio este pedido exige para ser respondido bem',
+            criteria: NIVEIS,
+          },
+        },
+      }),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!resposta.ok) return null
+
+    const dados = (await resposta.json()) as any
+    const nivel = Math.round(dados.answers?.complexidade?.score ?? 1)
+    const confianca = dados.answers?.complexidade?.confidence ?? 0
+    // Na dúvida, sobe um degrau: errar para mais forte custa tempo; errar para
+    // mais fraco custa uma resposta ruim, que é pior.
+    const ajustado = confianca < 0.5 ? Math.min(2, nivel + 1) : nivel
+    return { modelo: ESCADA[Math.max(0, Math.min(2, ajustado))], nivel: ajustado, confianca }
+  } catch {
+    return null
+  }
+}

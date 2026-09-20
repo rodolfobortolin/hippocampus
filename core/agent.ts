@@ -5,6 +5,7 @@ import { all } from './db.ts'
 import { dayReport, rangeReport, heatmap, onThisDay } from './metrics.ts'
 import { dossier } from './rollup.ts'
 import { searchEpisodes, lastTime, type Episodio } from './episodes.ts'
+import { escolheModelo } from './jev.ts'
 
 const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.round((seconds % 3600) / 60)).padStart(2, '0')}`
 const say = (value: unknown) => ({
@@ -223,6 +224,7 @@ medição, diga que faltou medição, nunca deixe parecer que ele não fez nada.
 }
 
 export type AgentEvent =
+  | { type: 'modelo'; modelo: string; nivel: number }
   | { type: 'texto'; texto: string }
   | { type: 'ferramenta'; nome: string }
   | { type: 'fim'; texto: string }
@@ -230,11 +232,16 @@ export type AgentEvent =
 
 /** Conversa com o Claude Code, com as ferramentas do banco local. */
 export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<AgentEvent> {
+  // Um modelo à altura do pedido: o jev julga a complexidade antes de começar.
+  // Com HIPOCAMPO_MODEL definido, a escolha é sua e o roteamento sai do caminho.
+  const rota = config.claudeModel ? null : await escolheModelo(prompt)
+  if (rota) yield { type: 'modelo', modelo: rota.modelo, nivel: rota.nivel }
+
   const run = query({
     prompt,
     options: {
       cwd: config.dataDir,
-      ...(config.claudeModel ? { model: config.claudeModel } : {}),
+      ...(config.claudeModel ? { model: config.claudeModel } : rota ? { model: rota.modelo } : {}),
       ...(sessionId ? { resume: sessionId } : {}),
       permissionMode: 'bypassPermissions',
       systemPrompt: { type: 'preset', preset: 'claude_code', append: persona() },

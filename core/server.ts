@@ -34,6 +34,7 @@ function json(response: http.ServerResponse, data: unknown, status = 200): void 
  * nunca espere por uma coleta para começar a responder.
  */
 let anexado: Collector | undefined
+let despertar: ((evento: unknown) => void) | undefined
 
 export function serve(collector?: Collector): http.Server {
   const server = http.createServer(async (request, response) => {
@@ -91,6 +92,15 @@ export function serve(collector?: Collector): http.Server {
         const day = query.get('dia') ?? dayOf(Date.now() / 1000 - 86_400)
         const result = await rollup(day, { narrate: query.get('narrar') !== '0' })
         return json(response, result)
+      }
+
+      if (route === '/api/acordar' && request.method === 'POST') {
+        // O ouvido escutou a palavra de ativação. Quem estiver na tela decide
+        // o que fazer: começar a ouvir, ou calar se estiver falando.
+        for await (const _ of request) { /* descarta o corpo */ }
+        despertar?.({ tipo: 'acordar' })
+        response.writeHead(204)
+        return response.end()
       }
 
       if (route === '/api/amostra' && request.method === 'POST') {
@@ -173,6 +183,15 @@ export function serve(collector?: Collector): http.Server {
   })
 
   const sockets = new WebSocketServer({ server, path: '/ws' })
+
+  /** Avisa todas as telas abertas — painel e núcleo flutuante. */
+  const avisarTodos = (evento: unknown) => {
+    const texto = JSON.stringify(evento)
+    for (const cliente of sockets.clients) {
+      if (cliente.readyState === cliente.OPEN) cliente.send(texto)
+    }
+  }
+  despertar = avisarTodos
   sockets.on('connection', (socket, request) => {
     // Só a própria interface conversa com o núcleo.
     const origin = request.headers.origin
@@ -191,7 +210,8 @@ export function serve(collector?: Collector): http.Server {
       send({ tipo: 'pensando' })
       try {
         for await (const event of chat(String(payload.texto), session)) {
-          if (event.type === 'fim') send({ tipo: 'fim', texto: event.texto })
+          if (event.type === 'modelo') send({ tipo: 'modelo', modelo: event.modelo, nivel: event.nivel })
+          else if (event.type === 'fim') send({ tipo: 'fim', texto: event.texto })
           else if (event.type === 'texto') send({ tipo: 'texto', texto: event.texto })
           else if (event.type === 'ferramenta') send({ tipo: 'ferramenta', nome: event.nome })
           else send({ tipo: 'erro', erro: event.erro })
