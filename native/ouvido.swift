@@ -96,6 +96,17 @@ SFSpeechRecognizer.requestAuthorization { estado in
         print("ouvindo \"\(gatilhos.first ?? "")\" — local, sem nuvem")
         fflush(stdout)
 
+        // Sinal de vida em arquivo. O coletor precisa saber que o microfone
+        // está ocupado por nós, senão conta chamada onde não houve; e este
+        // processo não aparece em NSWorkspace, porque nunca vira aplicação —
+        // é só um laço com um reconhecedor dentro.
+        let vivo = FileManager.default
+            .homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/Hipocampo/ouvido.vivo")
+        func marca() { try? Date().description.write(to: vivo, atomically: true, encoding: .utf8) }
+        marca()
+        Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in marca() }
+
         // A sessão de reconhecimento degrada com o tempo; reinicia de hora em hora.
         Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { _ in escuta() }
     }

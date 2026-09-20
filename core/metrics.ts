@@ -182,6 +182,16 @@ export function dayReport(day: string) {
          from blocks where day = ? and idle = 0
         group by app having teclas + cliques + rolagem > 20
         order by teclas + cliques desc limit 8`, day),
+    // Som tocando com microfone parado é mídia; com microfone ativo é chamada.
+    // O microfone da escuta própria já foi descontado na coleta.
+    trilha: one<any>(
+      `select coalesce(sum(case when som = 1 and mic = 0 then seconds else 0 end), 0) segundos,
+              coalesce(sum(case when mic = 1 then seconds else 0 end), 0) emChamada
+         from blocks where day = ? and idle = 0`, day),
+    midias: all<any>(
+      `select midia as name, sum(seconds) seconds from blocks
+        where day = ? and idle = 0 and midia is not null and som = 1
+        group by midia order by seconds desc`, day),
     telas: all<any>(
       `select tela as name, sum(seconds) seconds from blocks
         where day = ? and idle = 0 and tela is not null

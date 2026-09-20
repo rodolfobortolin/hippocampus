@@ -88,51 +88,100 @@ func contador(_ tipo: CGEventType) -> Int {
     Int(CGEventSource.counterForEventType(.hidSystemState, eventType: tipo))
 }
 
+/// Um app de mídia aberto, se houver. Vem da lista de apps em execução, que
+/// não custa permissão — diferente de perguntar ao player o que está tocando,
+/// que exige Automação e devolve o nome da faixa.
+let APPS_DE_MIDIA: [String: String] = [
+    "com.apple.Music": "Music", "com.spotify.client": "Spotify",
+    "com.apple.TV": "TV", "org.videolan.vlc": "VLC",
+    "com.deezer.deezer-desktop": "Deezer", "com.tidal.desktop": "Tidal",
+    "com.soundcloud.desktop": "SoundCloud", "com.apple.Podcasts": "Podcasts",
+]
+
+func appDeMidiaAberto() -> String? {
+    for app in NSWorkspace.shared.runningApplications {
+        if let bundle = app.bundleIdentifier, let nome = APPS_DE_MIDIA[bundle] { return nome }
+    }
+    return nil
+}
+
+/// A escuta da palavra de ativação segura o microfone o tempo todo.
+///
+/// Sem saber disso, "microfone em uso" passaria a valer sempre e a detecção de
+/// chamada viraria ruído — foi o que aconteceu assim que a escuta foi ligada.
+func escutaPropriaAtiva() -> Bool {
+    // Pelo sinal de vida, não pela lista de aplicações: a escuta é um laço com
+    // um reconhecedor dentro, nunca chama NSApplicationMain, e por isso não
+    // aparece como aplicação para o sistema.
+    let vivo = FileManager.default
+        .homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Application Support/Hipocampo/ouvido.vivo")
+    guard let atributos = try? FileManager.default.attributesOfItem(atPath: vivo.path),
+          let modificado = atributos[.modificationDate] as? Date
+    else { return false }
+    return Date().timeIntervalSince(modificado) < 90
+}
+
+/// Alguma SAÍDA de áudio está tocando agora?
+///
+/// Sozinho isso não prova música: fone aberto para uma chamada também acende,
+/// e som de sistema também. Cruzado com o app de mídia aberto e com a ausência
+/// de microfone em uso, vira um sinal decente de "estava ouvindo algo".
+func somTocando() -> Bool {
+    dispositivosDeAudio().contains { dispositivo in
+        temFluxo(dispositivo, entrada: false) && dispositivoAtivo(dispositivo)
+    }
+}
+
 /// Algum dispositivo de ENTRADA de áudio está capturando agora?
 /// É a camada de hardware, não AVCaptureDevice — por isso não pede permissão.
 /// Serve como detector de reunião que independe de Zoom, Teams ou Meet.
-func microfoneEmUso() -> Bool {
-    var enderecoDispositivos = AudioObjectPropertyAddress(
+func dispositivosDeAudio() -> [AudioDeviceID] {
+    var endereco = AudioObjectPropertyAddress(
         mSelector: kAudioHardwarePropertyDevices,
         mScope: kAudioObjectPropertyScopeGlobal,
         mElement: kAudioObjectPropertyElementMain)
-
     var tamanho: UInt32 = 0
     guard AudioObjectGetPropertyDataSize(
-        AudioObjectID(kAudioObjectSystemObject), &enderecoDispositivos, 0, nil, &tamanho) == noErr
-    else { return false }
-
+        AudioObjectID(kAudioObjectSystemObject), &endereco, 0, nil, &tamanho) == noErr
+    else { return [] }
     let quantidade = Int(tamanho) / MemoryLayout<AudioDeviceID>.size
-    if quantidade == 0 { return false }
-    var dispositivos = [AudioDeviceID](repeating: 0, count: quantidade)
+    if quantidade == 0 { return [] }
+    var lista = [AudioDeviceID](repeating: 0, count: quantidade)
     guard AudioObjectGetPropertyData(
-        AudioObjectID(kAudioObjectSystemObject), &enderecoDispositivos, 0, nil,
-        &tamanho, &dispositivos) == noErr
+        AudioObjectID(kAudioObjectSystemObject), &endereco, 0, nil, &tamanho, &lista) == noErr
+    else { return [] }
+    return lista
+}
+
+/// Sem fluxo daquele lado, o dispositivo não serve para aquilo.
+func temFluxo(_ dispositivo: AudioDeviceID, entrada: Bool) -> Bool {
+    var endereco = AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyStreams,
+        mScope: entrada ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput,
+        mElement: kAudioObjectPropertyElementMain)
+    var tamanho: UInt32 = 0
+    guard AudioObjectGetPropertyDataSize(dispositivo, &endereco, 0, nil, &tamanho) == noErr
     else { return false }
+    return tamanho > 0
+}
 
-    for dispositivo in dispositivos {
-        // Sem fluxo de entrada é alto-falante, não microfone.
-        var enderecoFluxos = AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyStreams,
-            mScope: kAudioDevicePropertyScopeInput,
-            mElement: kAudioObjectPropertyElementMain)
-        var tamanhoFluxos: UInt32 = 0
-        guard AudioObjectGetPropertyDataSize(dispositivo, &enderecoFluxos, 0, nil, &tamanhoFluxos) == noErr,
-              tamanhoFluxos > 0
-        else { continue }
+func dispositivoAtivo(_ dispositivo: AudioDeviceID) -> Bool {
+    var endereco = AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain)
+    var ativo: UInt32 = 0
+    var tamanho = UInt32(MemoryLayout<UInt32>.size)
+    guard AudioObjectGetPropertyData(dispositivo, &endereco, 0, nil, &tamanho, &ativo) == noErr
+    else { return false }
+    return ativo != 0
+}
 
-        var enderecoAtivo = AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain)
-        var ativo: UInt32 = 0
-        var tamanhoAtivo = UInt32(MemoryLayout<UInt32>.size)
-        if AudioObjectGetPropertyData(dispositivo, &enderecoAtivo, 0, nil, &tamanhoAtivo, &ativo) == noErr,
-           ativo != 0 {
-            return true
-        }
+func microfoneEmUso() -> Bool {
+    dispositivosDeAudio().contains { dispositivo in
+        temFluxo(dispositivo, entrada: true) && dispositivoAtivo(dispositivo)
     }
-    return false
 }
 
 /// Em qual tela a janela em foco está.
@@ -255,7 +304,13 @@ func sample() {
     parts.append("\"keys\":\(contador(.keyDown))")
     parts.append("\"clicks\":\(contador(.leftMouseDown) + contador(.rightMouseDown))")
     parts.append("\"scroll\":\(contador(.scrollWheel))")
+    let escutaPropria = escutaPropriaAtiva()
     parts.append("\"mic\":\(microfoneEmUso())")
+    parts.append("\"escuta\":\(escutaPropria)")
+    parts.append("\"som\":\(somTocando())")
+    // O app de mídia aberto é pista fraca, não fonte: um player aberto e parado
+    // aparece igual, e som de aba de navegador não aparece aqui de jeito nenhum.
+    if let midia = field("midiaAberta", appDeMidiaAberto()) { parts.append(midia) }
 
     if !locked, let app = NSWorkspace.shared.frontmostApplication {
         if let name = field("app", app.localizedName) { parts.append(name) }

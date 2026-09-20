@@ -14,6 +14,12 @@ type Sample = {
   clicks?: number
   scroll?: number
   mic?: boolean
+  /** Alguma saída de áudio tocando. */
+  som?: boolean
+  /** A escuta da palavra de ativação está ligada (e portanto segura o microfone). */
+  escuta?: boolean
+  /** App de mídia aberto — pista fraca: aberto não é tocando. */
+  midiaAberta?: string
   /** Nome da tela onde a janela em foco está. */
   tela?: string
   app?: string
@@ -32,7 +38,8 @@ const insert = db.prepare(
 )
 const extend = db.prepare(
   `update blocks set ended_at = ?, seconds = ?,
-          keys = keys + ?, clicks = clicks + ?, scroll = scroll + ?, mic = max(mic, ?)
+          keys = keys + ?, clicks = clicks + ?, scroll = scroll + ?,
+          mic = max(mic, ?), som = max(som, ?)
      where id = ?`,
 )
 
@@ -142,7 +149,8 @@ export class FocusCollector {
       : { keys: 0, clicks: 0, scroll: 0 }
     const delta = Object.values(bruto).some((v) => v < 0) ? { keys: 0, clicks: 0, scroll: 0 } : bruto
     this.anterior = agora
-    const mic = sample.mic ? 1 : 0
+    // A escuta própria não conta como chamada.
+    const mic = sample.mic && !sample.escuta ? 1 : 0
     const idle = sample.locked || sample.idle >= config.idleThreshold
     const app = idle ? (sample.locked ? 'Tela bloqueada' : 'Ocioso') : sample.app ?? 'Desconhecido'
     // O tempo num gerenciador de senha ou no banco continua contando; o que
@@ -157,7 +165,8 @@ export class FocusCollector {
 
     if (this.open) {
       this.open.endedAt = ts
-      extend.run(ts, ts - this.open.startedAt, delta.keys, delta.clicks, delta.scroll, mic, this.open.id)
+      extend.run(ts, ts - this.open.startedAt, delta.keys, delta.clicks, delta.scroll,
+        mic, sample.som ? 1 : 0, this.open.id)
       return
     }
 
@@ -166,6 +175,10 @@ export class FocusCollector {
       ts, ts, 0, dayOf(ts), app, idle ? null : sample.bundle ?? null,
       title, url, hostOf(url ?? undefined), idle ? 1 : 0,
       delta.keys, delta.clicks, delta.scroll, mic, idle ? null : sample.tela ?? null,
+      sample.som ? 1 : 0,
+      // Com a escuta ligada o microfone está sempre aberto por nossa causa;
+      // marcar chamada nesse estado seria inventar reunião todo dia.
+      sample.escuta ? null : sample.midiaAberta ?? null,
     )
     this.open = { id: Number(result.lastInsertRowid), key, startedAt: ts, endedAt: ts }
   }

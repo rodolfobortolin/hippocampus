@@ -40,6 +40,8 @@ export type Dia = {
   entrada: { teclas: number; cliques: number; rolagem: number }
   entradaPorApp: { app: string; teclas: number; cliques: number; rolagem: number }[]
   telas: Fatia[]
+  trilha: { segundos: number; emChamada: number }
+  midias: Fatia[]
   aiTurns: { project: string; prompt: string; tools: string; ts: number }[]
   stored: { narrative: string; recap: string; built_at: number } | null
 }

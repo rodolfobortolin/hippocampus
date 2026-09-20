@@ -283,6 +283,26 @@ export function Hoje({ status }: { status: Status | null }) {
                 </div>
               )}
 
+              {(dados.trilha.segundos > 60 || dados.trilha.emChamada > 60) && (
+                <>
+                  <h3 style={{ marginTop: 22 }}>som</h3>
+                  <div className="linhas">
+                    {dados.trilha.segundos > 60 && (
+                      <div className="linha">
+                        <span className="nome">com algo tocando</span>
+                        <span className="valor">{duracao(dados.trilha.segundos)}</span>
+                      </div>
+                    )}
+                    {dados.trilha.emChamada > 60 && (
+                      <div className="linha">
+                        <span className="nome">microfone aberto — chamada</span>
+                        <span className="valor">{duracao(dados.trilha.emChamada)}</span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
               {dados.telas.length > 1 && (
                 <>
                   <h3 style={{ marginTop: 22 }}>telas</h3>
