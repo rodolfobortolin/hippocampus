@@ -27,8 +27,13 @@ function nucleoResponde() {
 /** Sobe o núcleo só se ninguém já estiver medindo — o agente do launchd tem precedência. */
 async function garanteNucleo() {
   if (await nucleoResponde()) return
-  const tsx = path.join(RAIZ, 'node_modules', 'tsx', 'dist', 'cli.mjs')
-  nucleo = spawn(process.execPath, [tsx, path.join(RAIZ, 'core', 'index.ts')], {
+  // O Node roda TypeScript nativo: um processo só, sem o invólucro do tsx
+  // (que sobrevivia ao encerramento e deixava coletor órfão para trás).
+  nucleo = spawn(process.execPath, [
+    '--experimental-strip-types',
+    '--disable-warning=ExperimentalWarning',
+    path.join(RAIZ, 'core', 'index.ts'),
+  ], {
     cwd: RAIZ,
     env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
     stdio: 'ignore',

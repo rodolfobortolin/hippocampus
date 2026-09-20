@@ -9,11 +9,9 @@ ETIQUETA="com.hipocampo.coletor"
 PLIST="$HOME/Library/LaunchAgents/$ETIQUETA.plist"
 LOGS="$HOME/Library/Logs/Hipocampo"
 NODE="$(command -v node)"
-TSX="$RAIZ/node_modules/tsx/dist/cli.mjs"
 
 instalar() {
   [ -x "$NODE" ] || { echo "node não encontrado no PATH"; exit 1; }
-  [ -f "$TSX" ] || { echo "dependências ausentes — rode npm install"; exit 1; }
   [ -x "$RAIZ/native/hipocampo-focus" ] || { echo "helper nativo ausente — rode npm run build:native"; exit 1; }
 
   mkdir -p "$LOGS" "$HOME/Library/LaunchAgents"
@@ -26,7 +24,8 @@ instalar() {
   <key>ProgramArguments</key>
   <array>
     <string>$NODE</string>
-    <string>$TSX</string>
+    <string>--experimental-strip-types</string>
+    <string>--disable-warning=ExperimentalWarning</string>
     <string>$RAIZ/core/index.ts</string>
   </array>
   <key>WorkingDirectory</key><string>$RAIZ</string>
