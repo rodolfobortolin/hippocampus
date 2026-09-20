@@ -26,14 +26,14 @@ const tasks: Task[] = [
 ]
 
 /**
- * O coletor: amostra o foco continuamente e passa nas outras fontes de tempos
- * em tempos. Fecha o dia anterior quando a data vira.
+ * O coletor: amostra o focus continuamente e passa nas outras fontes de tempos
+ * em tempos. Fecha o day previous when a data vira.
  */
 export class Collector {
   readonly focus = new FocusCollector({
     onTrust: (trusted) => {
       setMeta('ax.trusted', trusted ? '1' : '0')
-      console.log(`[permissão] acessibilidade ${trusted ? 'concedida — títulos de janela ligados' : 'ausente — só o nome do app'}`)
+      console.log(`[permission] accessibility ${trusted ? 'granted — window titles on' : 'missing — only the app name'}`)
     },
   })
   private timers: NodeJS.Timeout[] = []
@@ -43,27 +43,27 @@ export class Collector {
 
   start(): void {
     this.running = true
-    // Dá um tempo para o helper do launchd se apresentar. Se ninguém empurrar
-    // amostra, o coletor lança o helper ele mesmo — funciona, mas aí quem
-    // responde pelo TCC é o node, e o título de janela não vem.
+    // Give launchd's helper a moment to show up. If nobody pushes a sample,
+    // the collector launches the helper itself — that works, but then node is
+    // what answers for the TCC, and the window title never arrives.
     setTimeout(() => {
       if (this.focus.pushed) {
-        console.log('[foco] recebendo do helper do launchd')
+        console.log('[focus] recebendo do helper do launchd')
         return
       }
-      console.log('[foco] nenhum helper empurrando; lançando por conta própria')
+      console.log('[focus] no helper pushing; launching one of our own')
       void this.focus.start()
     }, 12_000)
     setMeta('collector.started', String(Math.floor(Date.now() / 1000)))
-    console.log(`[coletor] de pé — amostra a cada ${config.sampleInterval}s`)
+    console.log(`[collector] up — one sample every ${config.sampleInterval}s`)
     void withTimeout('skysight', 20_000, checkSkysight).then((tem) => {
       if (tem === false) console.log('[coletor] Computer History ausente; seguindo sem os eventos finos')
     })
 
     for (const task of tasks) {
       const tick = async () => {
-        // 90s é muito mais do que qualquer coleta honesta precisa; o que passa
-        // disso está preso num diálogo de permissão, não trabalhando.
+        // 90s is far more than any honest harvest needs; anything past that is
+        // stuck on a permission dialog, not working.
         const result = await withTimeout(task.name, 90_000, async () => task.run())
         if (result === null) return
         this.lastRun.set(task.name, Math.floor(Date.now() / 1000))
@@ -76,38 +76,38 @@ export class Collector {
       this.timers.push(setInterval(tick, task.everyMinutes * 60_000))
     }
 
-    // A cada minuto confere se o dia virou; se virou, fecha o anterior.
+    // A cada minute confere se o day virou; se virou, close o previous.
     this.timers.push(setInterval(() => void this.checkDayRollover(), 60_000))
 
-    // Nada fica para trás: dias medidos sem fechamento entram na fila agora.
+    // Nothing is left behind: measured days never closed join the queue now.
     setTimeout(() => void this.catchUp(), 15_000)
   }
 
   /**
-   * Fecha os dias que ficaram sem narrativa — a máquina pode ter dormido na
-   * virada, ou o coletor ter ficado fora do ar. Um por vez, para não disparar
-   * várias sessões do Claude Code de uma vez.
+   * Closes the days left without a narrative — the machine may have been
+   * asleep at the turn, or the collector may have been down. One at a time, so
+   * this never fires several Claude Code sessions at once.
    */
   private async catchUp(): Promise<void> {
     try {
-      const reconstruidos = backfillAll()
-      for (const dia of reconstruidos) {
-        console.log(`[coletor] ${dia.day} reconstruído dos eventos: ${dia.blocks} blocos`)
+      const rebuilt = backfillAll()
+      for (const day of rebuilt) {
+        console.log(`[collector] ${day.day} rebuilt from events: ${day.blocks} blocks`)
       }
 
-      for (const dia of buildAllEpisodes()) {
-        console.log(`[coletor] ${dia.day}: ${dia.episodes} episódios indexados`)
+      for (const day of buildAllEpisodes()) {
+        console.log(`[collector] ${day.day}: ${day.episodes} episodes indexed`)
       }
 
-      const pendentes = all<any>(
+      const pending = all<any>(
         `select b.day, sum(b.seconds) total from blocks b
           where b.idle = 0 and b.day < ?
             and not exists (select 1 from days d where d.day = b.day and d.narrative <> '')
           group by b.day having total > 600 order by b.day desc limit 5`, this.currentDay)
 
-      for (const pendente of pendentes) {
-        console.log(`[coletor] fechando dia atrasado ${pendente.day}`)
-        await rollup(pendente.day)
+      for (const late of pending) {
+        console.log(`[collector] closing a late day: ${late.day}`)
+        await rollup(late.day)
       }
     } catch (error) {
       console.error('[coletor] fila de atraso falhou:', (error as Error).message)
@@ -119,7 +119,7 @@ export class Collector {
     if (now === this.currentDay) return
     const closing = this.currentDay
     this.currentDay = now
-    console.log(`[coletor] o dia virou; fechando ${closing}`)
+    console.log(`[coletor] o day virou; fechando ${closing}`)
     try {
       const result = await rollup(closing)
       setMeta('rollup.last', closing)

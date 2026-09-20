@@ -3,15 +3,15 @@ import { labelKey, cachedLabel } from './jev.ts'
 import { dayOf } from './config.ts'
 
 /**
- * Um episódio é a unidade que dá para procurar.
+ * An episode is the unit you can actually search.
  *
- * Bloco não serve: quatro segundos no Chrome não casam com pergunta nenhuma.
- * O episódio junta blocos contíguos do mesmo projeto — cortando quando há mais
- * de 10 minutos de silêncio — e costura por janela de tempo o que aconteceu
- * junto: commits, o que foi pedido ao Claude Code, comandos e sites. O texto
- * achatado disso é o que entra no índice de busca.
+ * A block will not do: four seconds in Chrome match no question at all. An
+ * episode joins contiguous blocks of the same project — cutting when there are
+ * more than 10 minutes of silence — and stitches in, by time window, what
+ * junto: commits, o que foi request ao Claude Code, comandos e sites. O text
+ * happened. A flattened version of that is what goes into the search index.
  */
-const INTERVALO = 600
+const INTERVAL = 600
 
 db.exec(`
 create table if not exists episodes (
@@ -40,94 +40,94 @@ create virtual table if not exists busca using fts5(
 );
 `)
 
-const insere = db.prepare(
+const insert = db.prepare(
   `insert into episodes (started_at, ended_at, minutes, day, project, category,
                          apps, titles, hosts, commits, prompts, shell)
    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 )
-const indexa = db.prepare('insert into busca (doc, episode_id, day) values (?, ?, ?)')
+const index = db.prepare('insert into busca (doc, episode_id, day) values (?, ?, ?)')
 
-const unicos = (valores: (string | null | undefined)[]) =>
+const unique = (valores: (string | null | undefined)[]) =>
   [...new Set(valores.filter((v): v is string => Boolean(v && v.trim())))]
 
-/** Refaz os episódios de um dia. É idempotente: apaga e reconstrói. */
+/** Redoes a day's episodes. Idempotent: it deletes and rebuilds. */
 export function buildEpisodes(day: string): number {
-  const antigos = all<any>('select id from episodes where day = ?', day)
-  for (const antigo of antigos) db.prepare('delete from busca where episode_id = ?').run(antigo.id)
+  const previous = all<any>('select id from episodes where day = ?', day)
+  for (const gone of previous) db.prepare('delete from busca where episode_id = ?').run(gone.id)
   db.prepare('delete from episodes where day = ?').run(day)
 
-  const blocos = all<any>(
+  const blocks = all<any>(
     `select started_at, ended_at, seconds, app, title, host from blocks
       where day = ? and idle = 0 order by started_at`, day)
-  if (!blocos.length) return 0
+  if (!blocks.length) return 0
 
-  type Grupo = { blocos: any[]; projeto: string | null; categoria: string | null }
-  const grupos: Grupo[] = []
+  type Grupo = { blocks: any[]; project: string | null; categoria: string | null }
+  const groups: Grupo[] = []
 
-  for (const bloco of blocos) {
-    const rotulo = cachedLabel(labelKey(bloco))
-    const projeto = rotulo?.project ?? null
-    const atual = grupos[grupos.length - 1]
-    const anterior = atual?.blocos[atual.blocos.length - 1]
-    const emendou = atual
-      && atual.projeto === projeto
-      && bloco.started_at - anterior.ended_at <= INTERVALO
+  for (const block of blocks) {
+    const label = cachedLabel(labelKey(block))
+    const project = label?.project ?? null
+    const current = groups[groups.length - 1]
+    const previous = current?.blocks[current.blocks.length - 1]
+    const merged = current
+      && current.project === project
+      && block.started_at - previous.ended_at <= INTERVAL
 
-    if (emendou) {
-      atual.blocos.push(bloco)
-      // A categoria do episódio é a do bloco mais longo dentro dele.
-      if (bloco.seconds > anterior.seconds) atual.categoria = rotulo?.category ?? atual.categoria
+    if (merged) {
+      current.blocks.push(block)
+      // The episode's category is the one of its longest block.
+      if (block.seconds > previous.seconds) current.categoria = label?.category ?? current.categoria
     } else {
-      grupos.push({ blocos: [bloco], projeto, categoria: rotulo?.category ?? null })
+      groups.push({ blocks: [block], project, categoria: label?.category ?? null })
     }
   }
 
   let total = 0
-  for (const grupo of grupos) {
-    const comeco = grupo.blocos[0].started_at
-    const fim = grupo.blocos[grupo.blocos.length - 1].ended_at
-    const minutos = Math.round((fim - comeco) / 60)
-    // Episódio de menos de dois minutos é ruído, não memória.
-    if (minutos < 2) continue
+  for (const group of groups) {
+    const start = group.blocks[0].started_at
+    const end = group.blocks[group.blocks.length - 1].ended_at
+    const minutes = Math.round((end - start) / 60)
+    // An episode under two minutes is noise, not memory.
+    if (minutes < 2) continue
 
-    const apps = unicos(grupo.blocos.map((b) => b.app))
-    const titulos = unicos(grupo.blocos.map((b) => b.title)).slice(0, 25)
-    const hosts = unicos(grupo.blocos.map((b) => b.host)).slice(0, 15)
+    const apps = unique(group.blocks.map((b) => b.app))
+    const titles = unique(group.blocks.map((b) => b.title)).slice(0, 25)
+    const hosts = unique(group.blocks.map((b) => b.host)).slice(0, 15)
 
-    // Costura pela janela de tempo: o que aconteceu enquanto o episódio durava.
+    // Stitch by time window: what happened while the episode lasted.
     const commits = all<any>(
-      'select repo, subject from commits where ts between ? and ?', comeco, fim)
+      'select repo, subject from commits where ts between ? and ?', start, end)
       .map((c) => `${c.repo}: ${c.subject}`)
     const prompts = all<any>(
-      'select prompt from ai_turns where ts between ? and ? limit 20', comeco, fim)
+      'select prompt from ai_turns where ts between ? and ? limit 20', start, end)
       .map((p) => String(p.prompt).slice(0, 200))
     const shell = all<any>(
-      'select cmd from shell_cmds where ts between ? and ? limit 20', comeco, fim)
+      'select cmd from shell_cmds where ts between ? and ? limit 20', start, end)
       .map((c) => c.cmd)
 
-    const resultado = insere.run(
-      comeco, fim, minutos, day, grupo.projeto, grupo.categoria,
-      JSON.stringify(apps), JSON.stringify(titulos), JSON.stringify(hosts),
+    const result = insert.run(
+      start, end, minutes, day, group.project, group.categoria,
+      JSON.stringify(apps), JSON.stringify(titles), JSON.stringify(hosts),
       JSON.stringify(commits), JSON.stringify(prompts), JSON.stringify(shell),
     )
 
     const doc = [
-      grupo.projeto ?? '', grupo.categoria ?? '',
-      apps.join(' '), titulos.join(' · '), hosts.join(' '),
+      group.project ?? '', group.categoria ?? '',
+      apps.join(' '), titles.join(' · '), hosts.join(' '),
       commits.join(' · '), prompts.join(' · '), shell.join(' · '),
     ].filter(Boolean).join('\n')
-    indexa.run(doc, Number(resultado.lastInsertRowid), day)
+    index.run(doc, Number(result.lastInsertRowid), day)
     total++
   }
   return total
 }
 
-/** Reconstrói todos os dias que têm bloco e nenhum episódio. */
+/** Rebuilds every day that has blocks and no episodes. */
 export function buildAllEpisodes(): { day: string; episodes: number }[] {
-  const dias = all<any>(
+  const days = all<any>(
     `select distinct b.day from blocks b
       where not exists (select 1 from episodes e where e.day = b.day) order by b.day`)
-  return dias.map((linha) => ({ day: linha.day, episodes: buildEpisodes(linha.day) }))
+  return days.map((line) => ({ day: line.day, episodes: buildEpisodes(line.day) }))
     .filter((r) => r.episodes > 0)
 }
 
@@ -137,31 +137,31 @@ export type Episodio = {
   apps: string; titles: string; hosts: string; commits: string; prompts: string; shell: string
 }
 
-/** Busca textual nos episódios, da mais recente para a mais antiga. */
+/** Full-text search over episodes, newest first. */
 export function searchEpisodes(termo: string, limite = 12): Episodio[] {
-  // Aspas duplicadas viram literal: o usuário escreve em linguagem natural.
-  const consulta = termo.replace(/["']/g, ' ').trim().split(/\s+/)
+  // Doubled quotes become a literal: people write in plain language.
+  const lookup = termo.replace(/["']/g, ' ').trim().split(/\s+/)
     .filter(Boolean).map((palavra) => `"${palavra}"`).join(' OR ')
-  if (!consulta) return []
+  if (!lookup) return []
   return all<Episodio>(
     `select e.* from busca b join episodes e on e.id = b.episode_id
       where busca match ? order by bm25(busca), e.started_at desc limit ?`,
-    consulta, limite)
+    lookup, limite)
 }
 
-/** O último episódio que casa com o termo, e o que veio logo antes e depois. */
+/** The last episode matching the term, and what came right before and after. */
 export function lastTime(termo: string) {
-  const achados = searchEpisodes(termo, 40)
-  if (!achados.length) return null
-  const alvo = achados.reduce((a, b) => (b.started_at > a.started_at ? b : a))
-  const vizinhos = all<Episodio>(
+  const found = searchEpisodes(termo, 40)
+  if (!found.length) return null
+  const target = found.reduce((a, b) => (b.started_at > a.started_at ? b : a))
+  const neighbours = all<Episodio>(
     `select * from episodes where started_at between ? and ? and id <> ? order by started_at`,
-    alvo.started_at - 7200, alvo.ended_at + 7200, alvo.id)
-  return { alvo, vizinhos, dia: dayOf(alvo.started_at) }
+    target.started_at - 7200, target.ended_at + 7200, target.id)
+  return { target, neighbours, day: dayOf(target.started_at) }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  for (const resultado of buildAllEpisodes()) {
-    console.log(`${resultado.day}: ${resultado.episodes} episódios`)
+  for (const result of buildAllEpisodes()) {
+    console.log(`${result.day}: ${result.episodes} episodes`)
   }
 }

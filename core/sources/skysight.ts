@@ -8,7 +8,7 @@ import { shortcutLabel, hasModifier } from '../keys.ts'
 import { keepsTyping, isSecret } from '../privacy.ts'
 
 // O Computer History do Codex grava eventos ricos num cache que ele mesmo apaga
-// em poucas horas. Aqui a gente colhe antes de sumir e guarda para sempre.
+// em poucas horas. Aqui a gente colhe before de sumir e guarda para sempre.
 const segmentsDir = path.join(
   config.home,
   'Library/Group Containers/2DC432GLL2.com.openai.sky.CUAService',
@@ -25,20 +25,20 @@ const insertTyping = db.prepare(
 // existsSync numa pasta protegida pelo macOS congela o processo inteiro
 // while the permission dialog waits for an answer. Here the check is async and
 // the result is cached for whoever needs the answer right away.
-let disponivel: boolean | null = null
+let available: boolean | null = null
 
 export function skysightAvailable(): boolean {
-  return disponivel === true
+  return available === true
 }
 
 export async function checkSkysight(): Promise<boolean> {
   try {
     await fs.access(segmentsDir)
-    disponivel = true
+    available = true
   } catch {
-    disponivel = false
+    available = false
   }
-  return disponivel
+  return available
 }
 
 
@@ -56,7 +56,7 @@ export async function harvestSkysight(): Promise<{ segments: number; events: num
     try { await fs.access(file) } catch { done.add(name); continue }
 
     const archive: string[] = []
-    // valor acumulado do campo de texto, por app+campo — vira a amostra de escrita
+    // value acumulado do campo de text, por app+campo — vira a amostra de escrita
     const typed = new Map<string, { ts: number; app: string; chars: number; value: string }>()
 
     for (const line of (await fs.readFile(file, 'utf8')).split('\n')) {
@@ -85,10 +85,10 @@ export async function harvestSkysight(): Promise<{ segments: number; events: num
           break
         }
         case 'window.changed': {
-          const sigiloso = isSecret(app, event.window?.title, event.window?.url)
+          const secret = isSecret(app, event.window?.title, event.window?.url)
           insertEvent.run(sourceId, ts, day, 'window', app,
-            sigiloso ? '' : redact(event.window?.title ?? ''),
-            JSON.stringify({ url: sigiloso ? null : event.window?.url ?? null,
+            secret ? '' : redact(event.window?.title ?? ''),
+            JSON.stringify({ url: secret ? null : event.window?.url ?? null,
                              bundle: event.app?.bundleIdentifier ?? null }))
           events++
           break

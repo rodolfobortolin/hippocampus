@@ -10,7 +10,7 @@ import { config } from './config.ts'
 // Only the app name survives: no title, no URL, no typing.
 const SECRET = [
   /1password/i, /bitwarden/i, /lastpass/i, /dashlane/i, /keeper/i,
-  /acesso às chaves|keychain access/i, /proton pass/i, /enpass/i,
+  /acesso às keys|keychain access/i, /proton pass/i, /enpass/i,
   /\bbanco\b|\bbank\b|itau|itaú|bradesco|santander|nubank|caixa|inter\b|c6bank/i,
   /\bboleto\b|internet ?banking|\bopenbank/i,
   /gov\.br|receita federal|meu inss/i,

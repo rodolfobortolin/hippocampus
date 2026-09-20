@@ -31,12 +31,12 @@ function json(response: http.ServerResponse, data: unknown, status = 200): void 
 }
 
 /**
- * Sobe a API local. Escuta só em 127.0.0.1 — nada disso fica exposto na rede.
- * O coletor pode ser ligado depois, com `serve.attach`, para que o servidor
- * nunca espere por uma coleta para começar a responder.
+ * Brings up the local API. Listens on 127.0.0.1 only — none of this is exposed
+ * to the network. The collector can be attached later, with `attachCollector`,
+ * so the server never waits on a harvest before it starts answering.
  */
-let anexado: Collector | undefined
-let despertar: ((evento: unknown) => void) | undefined
+let attached: Collector | undefined
+let wake: ((event: unknown) => void) | undefined
 
 export function serve(collector?: Collector): http.Server {
   const server = http.createServer(async (request, response) => {
@@ -44,7 +44,7 @@ export function serve(collector?: Collector): http.Server {
     const route = url.pathname
     const query = url.searchParams
 
-    // A interface roda noutra porta durante o desenvolvimento; libera só a máquina local.
+    // The interface runs on another port during development; allow the local machine only.
     const origin = request.headers.origin
     if (origin && /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin)) {
       response.setHeader('access-control-allow-origin', origin)
@@ -58,88 +58,88 @@ export function serve(collector?: Collector): http.Server {
     try {
       if (route === '/api/status') {
         return json(response, {
-          coletor: (collector ?? anexado)?.status() ?? { running: false },
+          collector: (collector ?? attached)?.status() ?? { running: false },
           jev: jevReady(),
           claude: await claudeAvailable(),
           vault: vaultReady(),
-          voz: Boolean(config.openaiKey),
-          usuario: config.userName,
-          idioma: config.lang,
+          voice: Boolean(config.openaiKey),
+          user: config.userName,
+          language: config.lang,
           ...overview(),
         })
       }
 
-      if (route === '/api/ajustes' && request.method === 'GET') {
+      if (route === '/api/settings' && request.method === 'GET') {
         return json(response, {
           ...readSettings(),
-          idiomas: LANGUAGES,
-          chaves: { jev: keyState('jev'), openai: keyState('openai') },
+          languages: LANGUAGES,
+          keys: { jev: keyState('jev'), openai: keyState('openai') },
         })
       }
 
-      if (route === '/api/ajustes' && request.method === 'POST') {
-        const pedacos: Buffer[] = []
-        for await (const pedaco of request) pedacos.push(pedaco as Buffer)
-        const corpo = JSON.parse(Buffer.concat(pedacos).toString() || '{}')
-        // As chaves nunca voltam pela API: só o estado delas. O que entra aqui
-        // vai direto para o Chaveiro e some da memória do pedido.
-        for (const nome of ['jev', 'openai'] as KeyName[]) {
-          const valor = corpo.chaves?.[nome]
-          if (typeof valor === 'string') await writeKey(nome, valor.trim())
+      if (route === '/api/settings' && request.method === 'POST') {
+        const chunks: Buffer[] = []
+        for await (const chunk of request) chunks.push(chunk as Buffer)
+        const body = JSON.parse(Buffer.concat(chunks).toString() || '{}')
+        // The keys never come back through the API: only their state. What
+        // comes in here goes straight to the Keychain and leaves memory.
+        for (const name of ['jev', 'openai'] as KeyName[]) {
+          const value = body.keys?.[name]
+          if (typeof value === 'string') await writeKey(name, value.trim())
         }
-        delete corpo.chaves
-        const ajustes = saveSettings(corpo)
+        delete body.keys
+        const settings = saveSettings(body)
         return json(response, {
-          ...ajustes,
-          idiomas: LANGUAGES,
-          chaves: { jev: keyState('jev'), openai: keyState('openai') },
+          ...settings,
+          languages: LANGUAGES,
+          keys: { jev: keyState('jev'), openai: keyState('openai') },
         })
       }
 
-      if (route.startsWith('/api/dia/')) {
-        const day = route.slice('/api/dia/'.length)
-        return json(response, dayReport(day === 'hoje' ? today() : day))
+      if (route.startsWith('/api/day/')) {
+        const day = route.slice('/api/day/'.length)
+        return json(response, dayReport(day === 'today' ? today() : day))
       }
 
-      if (route === '/api/periodo') {
-        const to = query.get('ate') ?? today()
-        const from = query.get('de') ?? dayOf(Date.now() / 1000 - 29 * 86_400)
+      if (route === '/api/period') {
+        const to = query.get('to') ?? today()
+        const from = query.get('from') ?? dayOf(Date.now() / 1000 - 29 * 86_400)
         return json(response, {
-          de: from, ate: to,
-          dias: rangeReport(from, to), ritmo: heatmap(from, to), resumo: periodSummary(from, to),
+          from, to,
+          days: rangeReport(from, to), rhythm: heatmap(from, to), summary: periodSummary(from, to),
         })
       }
 
-      if (route === '/api/dias') {
+      if (route === '/api/days') {
         return json(response, all(
           `select d.day, d.active_seconds, d.focus_ratio, d.top_app, d.narrative, d.recap, d.built_at
              from days d order by d.day desc limit 120`))
       }
 
-      if (route === '/api/projetos') return json(response, knownProjects())
+      if (route === '/api/projects') return json(response, knownProjects())
 
       if (route === '/api/rollup' && request.method === 'POST') {
-        const day = query.get('dia') ?? dayOf(Date.now() / 1000 - 86_400)
-        const result = await rollup(day, { narrate: query.get('narrar') !== '0' })
+        const day = query.get('day') ?? dayOf(Date.now() / 1000 - 86_400)
+        const result = await rollup(day, { narrate: query.get('narrate') !== '0' })
         return json(response, result)
       }
 
-      if (route === '/api/acordar' && request.method === 'POST') {
-        // O ouvido escutou a palavra de ativação. Quem estiver na tela decide
-        // o que fazer: começar a ouvir, ou calar se estiver falando.
-        for await (const _ of request) { /* descarta o corpo */ }
-        despertar?.({ tipo: 'acordar' })
+      if (route === '/api/wake' && request.method === 'POST') {
+        // The listener heard the wake word. Whoever is on screen decides what to
+        // do: start listening, or go quiet if it was speaking.
+        for await (const _ of request) { /* discard the body */ }
+        wake?.({ type: 'wake' })
         response.writeHead(204)
         return response.end()
       }
 
-      if (route === '/api/amostra' && request.method === 'POST') {
-        // O helper do launchd empurra uma amostra por vez. Responde 204 seco:
-        // não há nada a devolver e o helper não espera corpo.
-        const pedacos: Buffer[] = []
-        for await (const pedaco of request) pedacos.push(pedaco as Buffer)
+      if (route === '/api/sample' && request.method === 'POST') {
+        // launchd's helper pushes one sample at a time. A bare 204 answers it:
+        // there is nothing to return and the helper expects no body.
+        const chunks: Buffer[] = []
+        for await (const chunk of request) chunks.push(chunk as Buffer)
         try {
-          ;(collector ?? anexado)?.focus.push(JSON.parse(Buffer.concat(pedacos).toString()))
+          ;(collector ?? attached)?.focus.push(JSON.parse(Buffer.concat(chunks).toString()))
         } catch {
           response.writeHead(400)
           return response.end()
@@ -148,52 +148,52 @@ export function serve(collector?: Collector): http.Server {
         return response.end()
       }
 
-      if (route === '/api/transcrever' && request.method === 'POST') {
-        // A API de voz do navegador não funciona no Electron: ela depende de um
-        // serviço do Google que só o Chrome tem credencial para usar, e falha
-        // na hora com erro de rede. Aqui o áudio é gravado e transcrito.
-        if (!config.openaiKey) return json(response, { erro: 'sem chave' }, 400)
-        const pedacos: Buffer[] = []
-        for await (const pedaco of request) pedacos.push(pedaco as Buffer)
-        const audio = Buffer.concat(pedacos)
-        if (!audio.length) return json(response, { erro: 'áudio vazio' }, 400)
-
-        const formulario = new FormData()
-        formulario.append('file', new Blob([audio], { type: 'audio/webm' }), 'fala.webm')
-        formulario.append('model', 'gpt-4o-mini-transcribe')
-        // Sem a dica de idioma o modelo confunde português com italiano.
-        formulario.append('language', config.lang.split('-')[0])
-
-        const resposta = await fetch(`${config.openaiBaseUrl}/audio/transcriptions`, {
-          method: 'POST',
-          headers: { authorization: `Bearer ${config.openaiKey}` },
-          body: formulario,
-        })
-        if (!resposta.ok) {
-          return json(response, { erro: (await resposta.text()).slice(0, 300) }, 502)
-        }
-        const dados = (await resposta.json()) as { text?: string }
-        return json(response, { texto: (dados.text ?? '').trim() })
-      }
-
-      if (route === '/api/voz' && request.method === 'POST') {
-        // Fala o texto com a voz da OpenAI. Sem chave, o app usa a voz do sistema.
-        if (!config.openaiKey) return json(response, { erro: 'sem chave' }, 400)
+      if (route === '/api/transcribe' && request.method === 'POST') {
+        // The browser's speech API does not work in Electron: it depends on a
+        // Google service only Chrome has credentials for, and fails at once
+        // with a network error. Here the audio is recorded and transcribed.
+        if (!config.openaiKey) return json(response, { error: 'no key' }, 400)
         const chunks: Buffer[] = []
         for await (const chunk of request) chunks.push(chunk as Buffer)
-        const { texto, voz } = JSON.parse(Buffer.concat(chunks).toString() || '{}')
+        const audio = Buffer.concat(chunks)
+        if (!audio.length) return json(response, { error: 'empty audio' }, 400)
+
+        const form = new FormData()
+        form.append('file', new Blob([audio], { type: 'audio/webm' }), 'speech.webm')
+        form.append('model', 'gpt-4o-mini-transcribe')
+        // Without the language hint the model confuses Portuguese with Italian.
+        form.append('language', config.lang.split('-')[0])
+
+        const openai = await fetch(`${config.openaiBaseUrl}/audio/transcriptions`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${config.openaiKey}` },
+          body: form,
+        })
+        if (!openai.ok) {
+          return json(response, { error: (await openai.text()).slice(0, 300) }, 502)
+        }
+        const data = (await openai.json()) as { text?: string }
+        return json(response, { text: (data.text ?? '').trim() })
+      }
+
+      if (route === '/api/speak' && request.method === 'POST') {
+        // Speaks the text in OpenAI's voice. With no key, the app uses the system's.
+        if (!config.openaiKey) return json(response, { error: 'no key' }, 400)
+        const chunks: Buffer[] = []
+        for await (const chunk of request) chunks.push(chunk as Buffer)
+        const { text, voice } = JSON.parse(Buffer.concat(chunks).toString() || '{}')
         const speech = await fetch(`${config.openaiBaseUrl}/audio/speech`, {
           method: 'POST',
           headers: { authorization: `Bearer ${config.openaiKey}`, 'content-type': 'application/json' },
-          body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: voz ?? config.voice, input: String(texto).slice(0, 4000) }),
+          body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: voice ?? config.voice, input: String(text).slice(0, 4000) }),
         })
-        if (!speech.ok) return json(response, { erro: await speech.text() }, 502)
+        if (!speech.ok) return json(response, { error: await speech.text() }, 502)
         const audio = Buffer.from(await speech.arrayBuffer())
         response.writeHead(200, { 'content-type': 'audio/mpeg', 'content-length': audio.length })
         return response.end(audio)
       }
 
-      // Em produção o próprio núcleo serve a interface compilada.
+      // In production the core itself serves the compiled interface.
       if (!route.startsWith('/api/') && fs.existsSync(distDir)) {
         const candidate = path.join(distDir, route === '/' ? 'index.html' : route.slice(1))
         const file = fs.existsSync(candidate) && fs.statSync(candidate).isFile()
@@ -205,7 +205,7 @@ export function serve(collector?: Collector): http.Server {
         }
       }
 
-      json(response, { erro: 'não encontrado' }, 404)
+      json(response, { error: 'not found' }, 404)
     } catch (error) {
       console.error('[api]', route, (error as Error).message)
       json(response, { erro: (error as Error).message }, 500)
@@ -214,19 +214,19 @@ export function serve(collector?: Collector): http.Server {
 
   const sockets = new WebSocketServer({ server, path: '/ws' })
 
-  /** Avisa todas as telas abertas — painel e núcleo flutuante. */
-  const avisarTodos = (evento: unknown) => {
-    const texto = JSON.stringify(evento)
-    for (const cliente of sockets.clients) {
-      if (cliente.readyState === cliente.OPEN) cliente.send(texto)
+  /** Tells every open screen — the panel and the floating core. */
+  const broadcast = (event: unknown) => {
+    const text = JSON.stringify(event)
+    for (const client of sockets.clients) {
+      if (client.readyState === client.OPEN) client.send(text)
     }
   }
-  despertar = avisarTodos
+  wake = broadcast
   sockets.on('connection', (socket, request) => {
-    // Só a própria interface conversa com o núcleo.
+    // Only the interface itself talks to the core.
     const origin = request.headers.origin
     if (origin && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin)) {
-      socket.close(1008, 'origem não autorizada')
+      socket.close(1008, 'origin not allowed')
       return
     }
 
@@ -234,17 +234,17 @@ export function serve(collector?: Collector): http.Server {
     socket.on('message', async (raw) => {
       let payload: any
       try { payload = JSON.parse(String(raw)) } catch { return }
-      if (payload.tipo !== 'pergunta' || !payload.texto) return
+      if (payload.tipo !== 'pergunta' || !payload.text) return
 
       const send = (event: unknown) => socket.readyState === socket.OPEN && socket.send(JSON.stringify(event))
       send({ tipo: 'pensando' })
       try {
-        for await (const event of chat(String(payload.texto), session)) {
-          if (event.type === 'modelo') send({ tipo: 'modelo', modelo: event.modelo, nivel: event.nivel })
-          else if (event.type === 'delta') send({ tipo: 'delta', texto: event.texto })
-          else if (event.type === 'fim') send({ tipo: 'fim', texto: event.texto })
-          else if (event.type === 'texto') send({ tipo: 'texto', texto: event.texto })
-          else if (event.type === 'ferramenta') send({ tipo: 'ferramenta', nome: event.nome })
+        for await (const event of chat(String(payload.text), session)) {
+          if (event.type === 'modelo') send({ tipo: 'modelo', modelo: event.modelo, level: event.level })
+          else if (event.type === 'delta') send({ tipo: 'delta', text: event.text })
+          else if (event.type === 'end') send({ tipo: 'end', text: event.text })
+          else if (event.type === 'text') send({ tipo: 'text', text: event.text })
+          else if (event.type === 'ferramenta') send({ tipo: 'ferramenta', name: event.name })
           else send({ tipo: 'erro', erro: event.erro })
         }
       } catch (error) {
@@ -254,15 +254,15 @@ export function serve(collector?: Collector): http.Server {
   })
 
   server.on('error', (error) => {
-    console.error('[núcleo] não consegui escutar:', (error as Error).message)
+    console.error('[core] could not listen:', (error as Error).message)
   })
   server.listen(config.port, '127.0.0.1', () => {
-    console.log(`[núcleo] http://127.0.0.1:${config.port}`)
+    console.log(`[core] http://127.0.0.1:${config.port}`)
   })
   return server
 }
 
 /** Liga o coletor ao servidor já no ar, para o /api/status enxergar o estado. */
 export function attachCollector(collector: Collector): void {
-  anexado = collector
+  attached = collector
 }

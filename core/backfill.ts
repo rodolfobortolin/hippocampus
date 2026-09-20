@@ -1,10 +1,10 @@
 import { db, all } from './db.ts'
 import { dayOf } from './config.ts'
 
-// O Hipocampo só mede a partir do dia em que sobe. Mas se o Computer History
-// do Codex já registrou trocas de janela, dá para reconstruir os blocos
-// daqueles dias — é dado real, não estimativa.
-const GAP_OCIOSO = 300
+// Measurement only starts the day the collector does. But if Codex's Computer
+// History already recorded window switches, the blocks of those days can be
+// rebuilt — that is real data, not an estimate.
+const IDLE_GAP = 300
 
 const insert = db.prepare(
   `insert into blocks (started_at, ended_at, seconds, day, app, bundle, title, url, host, idle)
@@ -16,7 +16,7 @@ function hostOf(url: string | null): string | null {
   try { return new URL(url).hostname.replace(/^www\./, '') } catch { return null }
 }
 
-/** Reconstrói os blocos de um dia a partir dos eventos guardados. */
+/** Rebuilds a day's blocks from the stored events. */
 export function backfillDay(day: string): { blocks: number; seconds: number } {
   const existing = db.prepare('select count(*) n from blocks where day = ?').get(day) as { n: number }
   if (existing.n > 0) return { blocks: 0, seconds: 0 }
@@ -26,61 +26,61 @@ export function backfillDay(day: string): { blocks: number; seconds: number } {
   if (events.length < 5) return { blocks: 0, seconds: 0 }
 
   type Aberto = { app: string; title: string | null; url: string | null; start: number; last: number }
-  let aberto: Aberto | null = null
+  let openedAt: Aberto | null = null
   let blocks = 0
   let seconds = 0
 
-  const fecha = (fim: number) => {
-    if (!aberto) return
-    const duracao = Math.max(1, fim - aberto.start)
-    insert.run(aberto.start, fim, duracao, day, aberto.app, null, aberto.title,
-      aberto.url, hostOf(aberto.url), 0)
+  const close = (end: number) => {
+    if (!openedAt) return
+    const duration = Math.max(1, end - openedAt.start)
+    insert.run(openedAt.start, end, duration, day, openedAt.app, null, openedAt.title,
+      openedAt.url, hostOf(openedAt.url), 0)
     blocks++
-    seconds += duracao
-    aberto = null
+    seconds += duration
+    openedAt = null
   }
 
   for (const event of events) {
     const app = event.app ?? 'Desconhecido'
 
-    // Silêncio longo: fecha o que estava aberto e marca o vão como ocioso.
-    if (aberto && event.ts - aberto.last > GAP_OCIOSO) {
-      const pausa = aberto.last
-      fecha(pausa)
-      insert.run(pausa, event.ts, event.ts - pausa, day, 'Ocioso', null, null, null, null, 1)
+    // A long silence: close what was open and mark the gap as idle.
+    if (openedAt && event.ts - openedAt.last > IDLE_GAP) {
+      const gap = openedAt.last
+      close(gap)
+      insert.run(gap, event.ts, event.ts - gap, day, 'Ocioso', null, null, null, null, 1)
       blocks++
     }
 
     if (event.kind === 'window') {
       const meta = event.meta ? JSON.parse(event.meta) : {}
       const title = event.detail || null
-      if (aberto && aberto.app === app && aberto.title === title) {
-        aberto.last = event.ts
+      if (openedAt && openedAt.app === app && openedAt.title === title) {
+        openedAt.last = event.ts
         continue
       }
-      fecha(event.ts)
-      aberto = { app, title, url: meta.url ?? null, start: event.ts, last: event.ts }
+      close(event.ts)
+      openedAt = { app, title, url: meta.url ?? null, start: event.ts, last: event.ts }
       continue
     }
 
-    if (!aberto) {
-      aberto = { app, title: null, url: null, start: event.ts, last: event.ts }
+    if (!openedAt) {
+      openedAt = { app, title: null, url: null, start: event.ts, last: event.ts }
       continue
     }
-    // Clique ou tecla noutro app significa que o foco mudou sem evento de janela.
-    if (aberto.app !== app) {
-      fecha(event.ts)
-      aberto = { app, title: null, url: null, start: event.ts, last: event.ts }
+    // Clique ou key noutro app significa que o focus mudou sem event de janela.
+    if (openedAt.app !== app) {
+      close(event.ts)
+      openedAt = { app, title: null, url: null, start: event.ts, last: event.ts }
     } else {
-      aberto.last = event.ts
+      openedAt.last = event.ts
     }
   }
-  if (aberto) fecha((aberto as Aberto).last)
+  if (openedAt) close((openedAt as Aberto).last)
 
   return { blocks, seconds }
 }
 
-/** Todos os dias que têm eventos mas nenhum bloco. */
+/** Every day that has events but no blocks. */
 export function backfillAll(): { day: string; blocks: number; seconds: number }[] {
   const days = all<any>(
     `select distinct e.day from events e
@@ -90,6 +90,6 @@ export function backfillAll(): { day: string; blocks: number; seconds: number }[
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   for (const result of backfillAll()) {
-    console.log(`${result.day}: ${result.blocks} blocos, ${Math.round(result.seconds / 60)} min`)
+    console.log(`${result.day}: ${result.blocks} blocks, ${Math.round(result.seconds / 60)} min`)
   }
 }

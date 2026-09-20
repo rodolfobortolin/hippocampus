@@ -9,35 +9,35 @@ export type TimelineBlock = {
   delegado: boolean
 }
 
-// A chave do rótulo normaliza dígitos, então a junção com o jev acontece em JS,
+// A key do rótulo normaliza dígitos, então a junção com o jev acontece em JS,
 // pelo mesmo normalizador que gravou o rótulo.
 import { labelKey, cachedLabel } from './jev.ts'
 
 /**
  * Categorias onde trabalho concentrado acontece.
  *
- * O foco é definido aqui, em código, e não pela probabilidade `deep_work` do
+ * O focus é definido aqui, em código, e não pela probabilidade `deep_work` do
  * jev. Medindo de verdade, aquela probabilidade fica espremida entre 0,34 e
  * 0,67 — até "código" tira 0,65 — porque o título de uma janela não basta para
  * julgar concentração, e o modelo responde com a incerteza que realmente tem.
- * Usar a média dela como "% de foco" seria apresentar média de probabilidade
+ * Usar a méday dela como "% de focus" seria apresentar méday de probabilidade
  * como fração de tempo, que é coisa diferente. A categoria, essa o jev acerta
  * com confiança alta, e a regra abaixo é legível e discutível.
  */
-const CATEGORIAS_DE_FOCO = new Set(['code', 'ai', 'writing', 'design', 'research'])
+const FOCUS_CATEGORIES = new Set(['code', 'ai', 'writing', 'design', 'research'])
 
-export const ehFoco = (categoria: string | null | undefined) =>
-  CATEGORIAS_DE_FOCO.has(categoria ?? '')
+export const isFocus = (categoria: string | null | undefined) =>
+  FOCUS_CATEGORIES.has(categoria ?? '')
 
 function labelOf(row: { app: string | null; title: string | null; host: string | null }) {
   return cachedLabel(labelKey(row))
 }
 
 /**
- * Os minutos em que um agente estava trabalhando naquele dia.
+ * Os minutes em que um agente estava trabalhando naquele day.
  *
  * Serve para separar duas coisas que o relógio confunde: tempo parado porque
- * você saiu, e tempo parado porque você delegou. Quem trabalha com agentes
+ * você saiu, e tempo parado porque você delegou. Quem trabalha com agents
  * produz muito fora do teclado, e chamar isso de ociosidade é medir errado.
  */
 function agentMinutes(day: string): Set<number> {
@@ -45,14 +45,14 @@ function agentMinutes(day: string): Set<number> {
     all<any>('select minute from agent_minutes where day = ?', day).map((r) => r.minute as number))
 }
 
-/** Quantos segundos de um intervalo caem em minutos com agente ativo. */
+/** Quantos segundos de um intervalo caem em minutes com agente ativo. */
 function delegatedSeconds(start: number, end: number, ativos: Set<number>): number {
   let total = 0
-  for (let minuto = Math.floor(start / 60); minuto <= Math.floor(end / 60); minuto++) {
-    if (!ativos.has(minuto)) continue
-    const de = Math.max(start, minuto * 60)
-    const ate = Math.min(end, (minuto + 1) * 60)
-    total += Math.max(0, ate - de)
+  for (let minute = Math.floor(start / 60); minute <= Math.floor(end / 60); minute++) {
+    if (!ativos.has(minute)) continue
+    const de = Math.max(start, minute * 60)
+    const to = Math.min(end, (minute + 1) * 60)
+    total += Math.max(0, to - de)
   }
   return total
 }
@@ -68,9 +68,9 @@ export function dayReport(day: string) {
   const idleSeconds = idleBlocks.reduce((sum, b) => sum + b.seconds, 0)
 
   // O tempo parado se parte em dois: delegado (agente trabalhando) e ausente.
-  const agentes = agentMinutes(day)
+  const agents = agentMinutes(day)
   const delegated = idleBlocks.reduce(
-    (sum, b) => sum + delegatedSeconds(b.started_at, b.ended_at, agentes), 0)
+    (sum, b) => sum + delegatedSeconds(b.started_at, b.ended_at, agents), 0)
 
   const apps = new Map<string, number>()
   const categories = new Map<string, number>()
@@ -84,7 +84,7 @@ export function dayReport(day: string) {
     const category = label?.category ?? 'unlabelled'
     categories.set(category, (categories.get(category) ?? 0) + block.seconds)
     if (label?.project) projects.set(label.project, (projects.get(label.project) ?? 0) + block.seconds)
-    if (ehFoco(label?.category)) focusSeconds += block.seconds
+    if (isFocus(label?.category)) focusSeconds += block.seconds
     if (block.title) {
       const key = `${block.app}|${block.title}`
       const seen = windows.get(key) ?? { app: block.app, seconds: 0 }
@@ -93,25 +93,25 @@ export function dayReport(day: string) {
     }
   }
 
-  // Trocas de app: quantas vezes o foco mudou de aplicativo ao longo do dia.
-  // O primeiro bloco não é uma troca — começar a trabalhar não é trocar.
-  // Além do total, separa a troca barata (mesmo projeto) da cara (muda o projeto),
+  // Trocas de app: quantas vezes o focus mudou de aplicativo ao longo do day.
+  // O first block não é uma troca — começar a trabalhar não é trocar.
+  // Além do total, separa a troca barata (mesmo project) da cara (muda o project),
   // que é a única que corresponde ao resíduo de atenção.
   let switches = 0
-  let switchesProjeto = 0
+  let switchesProject = 0
   let previous: string | null = null
   let previousProject: string | null | undefined
   for (const block of active) {
     const project = labelOf(block)?.project ?? null
     if (previous !== null && block.app !== previous) {
       switches++
-      if (previousProject !== undefined && project !== previousProject) switchesProjeto++
+      if (previousProject !== undefined && project !== previousProject) switchesProject++
     }
     previous = block.app
     previousProject = project
   }
 
-  // A fita do dia: blocos curtos viram ruído, então some vizinhos do mesmo app.
+  // A fita do day: blocks curtos viram ruído, então some neighbours do mesmo app.
   const timeline: TimelineBlock[] = []
   for (const block of blocks) {
     const label = block.idle ? null : labelOf(block)
@@ -123,9 +123,9 @@ export function dayReport(day: string) {
     timeline.push({
       start: block.started_at, end: block.ended_at, app: block.app, title: block.title,
       category: label?.category ?? null, idle: block.idle, focus: label?.deep_work ?? null,
-      // Faixa ociosa com agente ativo se desenha diferente: não é buraco no dia.
+      // Faixa ociosa com agente ativo se desenha diferente: não é buraco no day.
       delegado: block.idle
-        ? delegatedSeconds(block.started_at, block.ended_at, agentes) > (block.seconds * 0.4)
+        ? delegatedSeconds(block.started_at, block.ended_at, agents) > (block.seconds * 0.4)
         : false,
     })
   }
@@ -135,21 +135,21 @@ export function dayReport(day: string) {
 
   const bounds = one<any>(
     `select min(started_at) first_at, max(ended_at) last_at from blocks where day = ? and idle = 0`, day)
-  const sessoes = focusSessions(day)
+  const sessions = focusSessions(day)
 
   return {
     day,
-    sessoes,
-    forma: focusShape(sessoes),
+    sessions,
+    forma: focusShape(sessions),
     activeSeconds,
     idleSeconds,
     delegatedSeconds: delegated,
     awaySeconds: Math.max(0, idleSeconds - delegated),
-    agentMinutes: agentes.size,
+    agentMinutes: agents.size,
     focusSeconds,
     focusRatio: activeSeconds ? focusSeconds / activeSeconds : 0,
     switches,
-    switchesProjeto,
+    switchesProject,
     firstAt: bounds?.first_at ?? null,
     lastAt: bounds?.last_at ?? null,
     apps: sortSlices(apps).slice(0, 14),
@@ -159,7 +159,7 @@ export function dayReport(day: string) {
       title: key.split('|').slice(1).join('|'), app: value.app, seconds: value.seconds,
     })).sort((a, b) => b.seconds - a.seconds).slice(0, 12),
     // Abaixo de 20s o trecho não chega a um pixel na fita; some do desenho,
-    // mas a contagem fica visível para o dia não parecer mais limpo do que foi.
+    // mas a contagem fica visível para o day não parecer mais limpo do que foi.
     timeline: timeline.filter((b) => b.end - b.start >= 20),
     timelineOcultos: timeline.filter((b) => b.end - b.start < 20).length,
     shortcuts: all<any>(
@@ -174,7 +174,7 @@ export function dayReport(day: string) {
     visits: one<any>(`select count(*) n from visits where day = ?`, day)?.n ?? 0,
     // Teclas, cliques e rolagem contados pelo sistema — sem permissão e sem
     // guardar o que foi digitado. É o que separa escrever de ler.
-    entrada: one<any>(
+    entry: one<any>(
       `select coalesce(sum(keys),0) teclas, coalesce(sum(clicks),0) cliques,
               coalesce(sum(scroll),0) rolagem from blocks where day = ?`, day),
     entradaPorApp: all<any>(
@@ -182,7 +182,7 @@ export function dayReport(day: string) {
          from blocks where day = ? and idle = 0
         group by app having teclas + cliques + rolagem > 20
         order by teclas + cliques desc limit 8`, day),
-    // Som tocando com microfone parado é mídia; com microfone ativo é chamada.
+    // Som tocando com microfone parado é míday; com microfone ativo é chamada.
     // O microfone da escuta própria já foi descontado na coleta.
     trilha: one<any>(
       `select coalesce(sum(case when som = 1 and mic = 0 then seconds else 0 end), 0) segundos,
@@ -205,7 +205,7 @@ export function dayReport(day: string) {
 
 export type DayReport = ReturnType<typeof dayReport>
 
-/** Totais por dia num intervalo, para tendência e listagem. */
+/** Totais por day num intervalo, para tendência e listagem. */
 export function rangeReport(from: string, to: string) {
   const days = all<any>(
     `select day,
@@ -224,7 +224,7 @@ export function rangeReport(from: string, to: string) {
   }))
 }
 
-/** Mapa hora × dia da semana, em segundos ativos. */
+/** Mapa hora × day da semana, em segundos ativos. */
 export function heatmap(from: string, to: string) {
   const rows = all<any>(
     `select started_at, seconds from blocks where day between ? and ? and idle = 0`, from, to)
@@ -256,7 +256,7 @@ export function overview() {
            (select count(*) from typing) typing,
            (select count(*) from labels) labels,
            (select count(distinct day) from blocks) days`)
-  const span = one<any>(`select min(day) de, max(day) ate from visits`)
+  const span = one<any>(`select min(day) de, max(day) to from visits`)
   return { day, counts, span, dayStartHour: config.dayStartHour }
 }
 
@@ -278,7 +278,7 @@ export function periodSummary(from: string, to: string) {
     const category = label?.category ?? 'unlabelled'
     categories.set(category, (categories.get(category) ?? 0) + block.seconds)
     if (label?.project) projects.set(label.project, (projects.get(label.project) ?? 0) + block.seconds)
-    if (ehFoco(label?.category)) focusSeconds += block.seconds
+    if (isFocus(label?.category)) focusSeconds += block.seconds
   }
 
   const slices = (map: Map<string, number>, limit: number) =>
@@ -301,22 +301,22 @@ export function periodSummary(from: string, to: string) {
       `select coalesce(sum(chars),0) chars, count(*) samples from typing where day between ? and ?`, from, to),
     commits: one<any>(`select count(*) n from commits where day between ? and ?`, from, to)?.n ?? 0,
     aiTurns: one<any>(`select count(*) n from ai_turns where day between ? and ?`, from, to)?.n ?? 0,
-    // Trabalho de agente por nome: a máquina usa Claude Code e Codex, e somar
+    // Trabalho de agente por name: a máquina usa Claude Code e Codex, e somar
     // os dois num rótulo só ("pedidos ao Claude Code") conta mentira.
-    agentes: all<any>(
-      `select agent as name, count(*) as minutos from agent_minutes
-        where day between ? and ? group by agent order by minutos desc`, from, to),
+    agents: all<any>(
+      `select agent as name, count(*) as minutes from agent_minutes
+        where day between ? and ? group by agent order by minutes desc`, from, to),
   }
 }
 
 export type Sessao = { start: number; end: number; minutes: number }
 
 /**
- * Sessão de foco: trecho em que o trabalho concentrado se sustentou.
+ * Sessão de focus: trecho em que o trabalho concentrado se sustentou.
  *
- * O dia vira minutos; um minuto conta como foco quando o bloco que o cobre cai
- * numa categoria de trabalho concentrado. Uma janela deslizante de 15 minutos
- * precisa de 75% desses minutos para valer, e uma quebra menor que 2 minutos não
+ * O day vira minutes; um minute conta como focus when o block que o cobre cai
+ * numa categoria de trabalho concentrado. Uma janela deslizante de 15 minutes
+ * precisa de 75% desses minutes para valer, e uma quebra menor que 2 minutes não
  * encerra a sessão. Os limiares são convenção — o que importa é que fiquem
  * congelados, porque o número só serve para comparar você com você.
  */
@@ -326,110 +326,112 @@ export function focusSessions(day: string): Sessao[] {
       where day = ? and idle = 0 order by started_at`, day)
   if (!blocks.length) return []
 
-  const primeiro = Math.floor(blocks[0].started_at / 60)
-  const ultimo = Math.ceil(blocks[blocks.length - 1].ended_at / 60)
-  const total = ultimo - primeiro
+  const first = Math.floor(blocks[0].started_at / 60)
+  const last = Math.ceil(blocks[blocks.length - 1].ended_at / 60)
+  const total = last - first
   if (total <= 0) return []
 
-  const foco = new Uint8Array(total)
+  const focus = new Uint8Array(total)
   for (const block of blocks) {
-    if (!ehFoco(labelOf(block)?.category)) continue
-    const de = Math.max(0, Math.floor(block.started_at / 60) - primeiro)
-    const ate = Math.min(total, Math.ceil(block.ended_at / 60) - primeiro)
-    for (let m = de; m < ate; m++) foco[m] = 1
+    if (!isFocus(labelOf(block)?.category)) continue
+    const de = Math.max(0, Math.floor(block.started_at / 60) - first)
+    const to = Math.min(total, Math.ceil(block.ended_at / 60) - first)
+    for (let m = de; m < to; m++) focus[m] = 1
   }
 
-  const JANELA = 15
-  const EXIGIDO = 0.75
-  const densa = new Uint8Array(total)
-  let soma = 0
+  const WINDOW = 15
+  const REQUIRED = 0.75
+  const dense = new Uint8Array(total)
+  let sum = 0
   for (let m = 0; m < total; m++) {
-    soma += foco[m]
-    if (m >= JANELA) soma -= foco[m - JANELA]
-    if (m >= JANELA - 1 && soma / JANELA >= EXIGIDO) {
-      for (let j = m - JANELA + 1; j <= m; j++) densa[j] = 1
+    sum += focus[m]
+    if (m >= WINDOW) sum -= focus[m - WINDOW]
+    if (m >= WINDOW - 1 && sum / WINDOW >= REQUIRED) {
+      for (let j = m - WINDOW + 1; j <= m; j++) dense[j] = 1
     }
   }
 
-  const sessoes: Sessao[] = []
-  let inicio = -1
+  const sessions: Sessao[] = []
+  let start = -1
   for (let m = 0; m <= total; m++) {
-    const dentro = m < total && densa[m] === 1
-    if (dentro && inicio < 0) inicio = m
-    if (!dentro && inicio >= 0) {
-      const anterior = sessoes[sessoes.length - 1]
-      const comecoReal = (primeiro + inicio) * 60
-      const fimReal = (primeiro + m) * 60
+    const inside = m < total && dense[m] === 1
+    if (inside && start < 0) start = m
+    if (!inside && start >= 0) {
+      const previous = sessions[sessions.length - 1]
+      const realStart = (first + start) * 60
+      const realEnd = (first + m) * 60
       // Quebra curta demais não separa duas sessões: é respirar, não parar.
-      if (anterior && comecoReal - anterior.end < 120) {
-        anterior.end = fimReal
-        anterior.minutes = Math.round((anterior.end - anterior.start) / 60)
+      if (previous && realStart - previous.end < 120) {
+        previous.end = realEnd
+        previous.minutes = Math.round((previous.end - previous.start) / 60)
       } else {
-        sessoes.push({ start: comecoReal, end: fimReal, minutes: m - inicio })
+        sessions.push({ start: realStart, end: realEnd, minutes: m - start })
       }
-      inicio = -1
+      start = -1
     }
   }
-  return sessoes
+  return sessions
 }
 
-const FAIXAS: [string, number, number][] = [
+const BANDS: [string, number, number][] = [
   ['<15', 0, 15], ['15–25', 15, 25], ['25–50', 25, 50],
   ['50–90', 50, 90], ['90+', 90, Infinity],
 ]
 
-/** A forma do foco do dia: quantos minutos vieram de sessões de cada tamanho. */
-export function focusShape(sessoes: Sessao[]) {
-  const faixas = FAIXAS.map(([nome, de, ate]) => {
-    const dentro = sessoes.filter((s) => s.minutes >= de && s.minutes < ate)
-    return { name: nome, minutes: dentro.reduce((soma, s) => soma + s.minutes, 0), n: dentro.length }
+/** A forma do focus do day: quantos minutes vieram de sessões de cada size. */
+export function focusShape(sessions: Sessao[]) {
+  const bands = BANDS.map(([name, de, to]) => {
+    const inside = sessions.filter((s) => s.minutes >= de && s.minutes < to)
+    return { name: name, minutes: inside.reduce((sum, s) => sum + s.minutes, 0), n: inside.length }
   })
-  const duracoes = sessoes.map((s) => s.minutes).sort((a, b) => a - b)
+  const durations = sessions.map((s) => s.minutes).sort((a, b) => a - b)
   return {
-    faixas,
-    total: duracoes.reduce((soma, m) => soma + m, 0),
-    maior: duracoes[duracoes.length - 1] ?? 0,
-    // Mediana, não média: a cauda de sessões longas puxaria a média para cima.
-    mediana: duracoes.length ? duracoes[Math.floor(duracoes.length / 2)] : 0,
-    sessoes: duracoes.length,
+    bands,
+    total: durations.reduce((sum, m) => sum + m, 0),
+    maior: durations[durations.length - 1] ?? 0,
+    // Mediana, não méday: a cauda de sessões longas puxaria a méday para cima.
+    mediana: durations.length ? durations[Math.floor(durations.length / 2)] : 0,
+    sessions: durations.length,
   }
 }
 
 /**
- * O que aconteceu nesta mesma data, antes.
+ * O que aconteceu nesta mesma data, before.
  *
  * É o recurso que mais segura gente em diário — voltar e reconhecer o próprio
  * passado. Aqui ele é de graça: o dado já está no banco, só faltava perguntar.
  */
 export function onThisDay(day: string) {
-  const [ano, mes, dia] = day.split('-').map(Number)
-  const marcos = [
-    { rotulo: 'há uma semana', data: new Date(ano, mes - 1, dia - 7) },
-    { rotulo: 'há um mês', data: new Date(ano, mes - 2, dia) },
-    { rotulo: 'há três meses', data: new Date(ano, mes - 4, dia) },
-    { rotulo: 'há um ano', data: new Date(ano - 1, mes - 1, dia) },
+  const [year, month, dayOfMonth] = day.split('-').map(Number)
+  // The label is a code, not a sentence: the screen speaks five languages and
+  // a stored phrase would be stuck in the one the app was installed in.
+  const marks = [
+    { label: 'a-week-ago', at: new Date(year, month - 1, dayOfMonth - 7) },
+    { label: 'a-month-ago', at: new Date(year, month - 2, dayOfMonth) },
+    { label: 'three-months-ago', at: new Date(year, month - 4, dayOfMonth) },
+    { label: 'a-year-ago', at: new Date(year - 1, month - 1, dayOfMonth) },
   ]
 
-  return marcos.map(({ rotulo, data }) => {
-    const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
-    const salvo = one<any>(
-      `select day, active_seconds, top_app, narrative from days where day = ?`, chave)
-    const medido = one<any>(
-      `select sum(case when idle = 0 then seconds else 0 end) ativo from blocks where day = ?`, chave)
-    const projetos = all<any>(
-      `select project, sum(minutes) minutos from episodes where day = ? and project is not null
-        group by project order by minutos desc limit 3`, chave)
-    if (!medido?.ativo) return null
+  return marks.map(({ label, at }) => {
+    const key = `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, '0')}-${String(at.getDate()).padStart(2, '0')}`
+    const stored = one<any>(
+      `select day, active_seconds, top_app, narrative from days where day = ?`, key)
+    const measured = one<any>(
+      `select sum(case when idle = 0 then seconds else 0 end) active from blocks where day = ?`, key)
+    const projects = all<any>(
+      `select project, sum(minutes) minutes from episodes where day = ? and project is not null
+        group by project order by minutes desc limit 3`, key)
+    if (!measured?.ativo) return null
     return {
-      rotulo,
-      day: chave,
-      active: medido.ativo as number,
-      topApp: salvo?.top_app ?? null,
-      narrative: salvo?.narrative ?? null,
-      projetos: projetos.map((p) => p.project as string),
+      label,
+      day: key,
+      active: measured.ativo as number,
+      topApp: stored?.top_app ?? null,
+      narrative: stored?.narrative ?? null,
+      projects: projects.map((p) => p.project as string),
     }
   }).filter(Boolean) as {
-    rotulo: string; day: string; active: number
-    topApp: string | null; narrative: string | null; projetos: string[]
+    label: string; day: string; active: number
+    topApp: string | null; narrative: string | null; projects: string[]
   }[]
 }

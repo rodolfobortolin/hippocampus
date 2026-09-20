@@ -1,12 +1,12 @@
-// Os nomes de tecla que o sistema entrega são crus ("up_arrow", "functionright_arrow").
-// Aqui viram o símbolo que aparece no menu do macOS.
-const SIMBOLOS: Record<string, string> = {
+// The key names the system hands over are raw ("up_arrow", "functionright_arrow").
+// Here they become the symbol that shows up in a macOS menu.
+const SYMBOLS: Record<string, string> = {
   up_arrow: '↑', down_arrow: '↓', left_arrow: '←', right_arrow: '→',
   return: '↵', enter: '↵', delete: '⌫', forward_delete: '⌦', escape: '⎋',
   tab: '⇥', space: '␣', home: '↖', end: '↘', page_up: '⇞', page_down: '⇟',
 }
 
-const MODIFICADORES: Record<string, string> = {
+const MODIFIERS: Record<string, string> = {
   command: '⌘', cmd: '⌘', shift: '⇧', option: '⌥', alt: '⌥',
   control: '⌃', ctrl: '⌃', function: 'fn', fn: 'fn',
 }
@@ -15,24 +15,24 @@ const MODIFICADORES: Record<string, string> = {
 export function prettyKey(raw: string): string {
   let key = String(raw ?? '').trim().toLowerCase()
   if (!key) return ''
-  let prefixo = ''
-  // Algumas teclas chegam com o modificador colado no nome.
-  for (const [nome, simbolo] of Object.entries(MODIFICADORES)) {
-    if (key.startsWith(nome) && key.length > nome.length) {
-      prefixo = simbolo
-      key = key.slice(nome.length)
+  let prefix = ''
+  // Algumas teclas chegam com o modificador colado no name.
+  for (const [name, simbolo] of Object.entries(MODIFIERS)) {
+    if (key.startsWith(name) && key.length > name.length) {
+      prefix = simbolo
+      key = key.slice(name.length)
       break
     }
   }
-  return prefixo + (SIMBOLOS[key] ?? (key.length === 1 ? key : key.replace(/_/g, ' ')))
+  return prefix + (SYMBOLS[key] ?? (key.length === 1 ? key : key.replace(/_/g, ' ')))
 }
 
 export function shortcutLabel(keyboard: any): string {
-  const modificadores: string[] = (keyboard?.modifiers ?? [])
-    .map((m: string) => MODIFICADORES[String(m).toLowerCase()] ?? m)
-  const tecla = prettyKey(keyboard?.keyEquivalent ?? keyboard?.key ?? '')
-  if (!tecla) return '' // só modificador não é atalho
-  return modificadores.join('') + tecla
+  const modifiers: string[] = (keyboard?.modifiers ?? [])
+    .map((m: string) => MODIFIERS[String(m).toLowerCase()] ?? m)
+  const key = prettyKey(keyboard?.keyEquivalent ?? keyboard?.key ?? '')
+  if (!key) return '' // a modifier on its own is not a shortcut
+  return modifiers.join('') + key
 }
 
 export function hasModifier(keyboard: any): boolean {

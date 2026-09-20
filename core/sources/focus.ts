@@ -101,7 +101,7 @@ export class FocusCollector {
       // With the message alone, a SQL error becomes a line that does not say
       // which query failed — that is how an insert with one parameter too many
       // stayed invisible for months. The stack says.
-      console.error('[focus] amostra inválida:', (error as Error).stack ?? error)
+      console.error('[focus] invalid sample:', (error as Error).stack ?? error)
     }
   }
 
@@ -140,7 +140,7 @@ export class FocusCollector {
       try {
         this.ingest(JSON.parse(line) as Sample)
       } catch {
-        /* linha parcial ou inválida — ignora */
+        /* a partial or invalid line — ignore it */
       }
     }
   }
@@ -154,32 +154,32 @@ export class FocusCollector {
 
     const ts = Math.floor(new Date(sample.ts).getTime() / 1000)
 
-    // Os contadores são acumulados desde o boot: o que interessa é o quanto
-    // andou desde a amostra anterior. Reinício da máquina zera e o delta sai
-    // negativo — nesse caso a amostra não conta em vez de virar número absurdo.
-    const agora: Counters = {
+    // The counters accumulate since boot: what matters is how far they moved
+    // since the previous sample. A reboot resets them and the delta comes out
+    // negative — then the sample is skipped rather than becoming an absurd number.
+    const now: Counters = {
       keys: sample.keys ?? 0, clicks: sample.clicks ?? 0, scroll: sample.scroll ?? 0,
     }
-    const bruto = this.previous
+    const raw = this.previous
       ? {
-          keys: agora.keys - this.previous.keys,
-          clicks: agora.clicks - this.previous.clicks,
-          scroll: agora.scroll - this.previous.scroll,
+          keys: now.keys - this.previous.keys,
+          clicks: now.clicks - this.previous.clicks,
+          scroll: now.scroll - this.previous.scroll,
         }
       : { keys: 0, clicks: 0, scroll: 0 }
-    const delta = Object.values(bruto).some((v) => v < 0) ? { keys: 0, clicks: 0, scroll: 0 } : bruto
-    this.previous = agora
-    // A escuta própria não conta como chamada.
+    const delta = Object.values(raw).some((v) => v < 0) ? { keys: 0, clicks: 0, scroll: 0 } : raw
+    this.previous = now
+    // Our own listening does not count as a call.
     const mic = sample.mic && !sample.listening ? 1 : 0
     const idle = sample.locked || sample.idle >= config.idleThreshold
     const app = idle ? (sample.locked ? 'Tela bloqueada' : 'Ocioso') : sample.app ?? 'Desconhecido'
     // O tempo num gerenciador de senha ou no banco continua contando; o que
-    // estava escrito na barra de título, não.
-    const sigiloso = !idle && isSecret(sample.app, sample.title, sample.url)
-    const title = idle || sigiloso ? null : sample.title ?? null
+    // was written in the title bar does not.
+    const secret = !idle && isSecret(sample.app, sample.title, sample.url)
+    const title = idle || secret ? null : sample.title ?? null
     const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}|${sample.screen ?? ''}|${sample.playing ?? ''}`
 
-    // Buraco grande (sono, coletor parado) fecha o bloco aberto.
+    // Buraco grande (sono, coletor parado) close o block openedAt.
     const gap = this.open ? ts - this.open.endedAt : 0
     if (this.open && (this.open.key !== key || gap > config.sampleInterval * 4)) this.open = null
 
@@ -192,14 +192,14 @@ export class FocusCollector {
       return
     }
 
-    const url = idle || sigiloso ? null : sample.url ?? null
+    const url = idle || secret ? null : sample.url ?? null
     const result = insert.run(
       ts, ts, 0, dayOf(ts), app, idle ? null : sample.bundle ?? null,
       title, url, hostOf(url ?? undefined), idle ? 1 : 0,
       delta.keys, delta.clicks, delta.scroll, mic, idle ? null : sample.screen ?? null,
       sample.sound ? 1 : 0,
-      // Com a escuta ligada o microfone está sempre aberto por nossa causa;
-      // marcar chamada nesse estado seria inventar reunião todo dia.
+      // With the listener on, the microphone is always open because of us;
+      // marking a call in that state would invent a meeting every day.
       sample.listening ? null : sample.mediaOpen ?? null, sample.playing ?? null,
     )
     this.open = { id: Number(result.lastInsertRowid), key, startedAt: ts, endedAt: ts }

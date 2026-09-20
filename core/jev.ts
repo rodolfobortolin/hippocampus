@@ -2,41 +2,22 @@ import { config } from './config.ts'
 import { db, one } from './db.ts'
 import { CATEGORIES_BY_LANGUAGE, LEVELS_BY_LANGUAGE, JEV_QUESTIONS, validLanguage } from './languages.ts'
 
-// O jev responde perguntas tipadas com probabilidade calibrada em ~100ms.
-// Cada janela vira uma classificação guardada, então a mesma janela nunca
-// custa duas chamadas.
+// jev answers typed questions with a calibrated probability in about 100ms.
+// Each window becomes a stored classification, so the same window never costs
+// two calls.
 const ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
 
 /**
- * As categorias julgam o ASSUNTO, nunca o meio.
+ * The categories judge the SUBJECT, never the medium.
  *
- * A primeira versão dizia que distração era "vídeo, rede social, notícia" — e
- * com isso um vídeo sobre a própria ferramenta que a pessoa estava avaliando
- * naquele dia entrava como distração, com 0,99 de confiança. A confiança era
- * alta justamente porque a instrução não deixava dúvida; ela é que estava
- * errada. YouTube não é uma categoria: depende do vídeo.
+ * The first version said a distraction was "video, social network, news" — and
+ * with that, a video about the very tool the person was evaluating that day
+ * came back as a distraction, at 0.99 confidence. The confidence was high
+ * precisely because the instruction left no doubt; the instruction was what
+ * was wrong. YouTube is not a category: it depends on the video.
  */
-const CATEGORIAS_PT: Record<string, string> = {
-  code: 'Escrever, ler ou revisar código; terminal; git; banco de dados',
-  ai: 'Conversar com um assistente de IA para produzir trabalho',
-  research:
-    'Investigar ou aprender algo que serve ao trabalho: documentação, busca, ' +
-    'artigo, fórum, e também vídeo ou tutorial sobre assunto técnico, ' +
-    'ferramenta, produto concorrente ou tema do projeto. O meio não decide — ' +
-    'um vídeo sobre uma tecnologia é pesquisa, não entretenimento.',
-  communication: 'E-mail, chat, mensagens, reunião, chamada',
-  writing: 'Escrever texto, documento, proposta, nota',
-  design: 'Interface, protótipo, editar imagem ou vídeo do próprio trabalho',
-  admin: 'Arquivos, ajustes, instalação, organização, burocracia, banco, contas',
-  distraction:
-    'Lazer: o assunto não tem relação com o trabalho da pessoa — humor, fofoca, ' +
-    'esporte, jogo, compras, rede social, notícia geral. Um vídeo só entra aqui ' +
-    'quando o ASSUNTO é entretenimento.',
-}
-
-/** As categorias no idioma em vigor. As chaves nunca mudam — só o que se lê. */
-export function categorias(): Record<string, string> {
-  return CATEGORIES_BY_LANGUAGE[validLanguage(config.lang)] ?? CATEGORIAS_PT
+export function categories(): Record<string, string> {
+  return CATEGORIES_BY_LANGUAGE[validLanguage(config.lang)]
 }
 
 export type Label = {
@@ -75,7 +56,7 @@ const save = db.prepare(
      deep_work = excluded.deep_work, confidence = excluded.confidence, model = excluded.model`,
 )
 
-/** Classifica uma janela. Devolve do cache quando já conhece, e null sem chave. */
+/** Classifies a window. Returns from cache when known, and null with no key. */
 export async function classify(
   block: { app: string | null; title: string | null; host: string | null; url: string | null },
   projects: string[],
@@ -96,14 +77,14 @@ export async function classify(
       janela: block.title,
       site: block.host,
       endereco: block.url?.slice(0, 200) ?? null,
-      // Sem saber no que a pessoa trabalha, não há como julgar se o assunto de
-      // um vídeo ou de um artigo serve ao trabalho dela ou é passatempo.
+      // Without knowing what the person works on, there is no way to judge
+      // whether a video's or an article's subject serves that work or is a pastime.
       pessoa_trabalha_com: projects.slice(0, 12),
     },
     questions: {
-      categoria: { type: 'choice', instructions: question.category, criteria: categorias() },
-      projeto: { type: 'choice', instructions: question.project, criteria: projectOptions },
-      foco: { type: 'noul', instructions: question.focus },
+      categoria: { type: 'choice', instructions: question.category, criteria: categories() },
+      project: { type: 'choice', instructions: question.project, criteria: projectOptions },
+      focus: { type: 'noul', instructions: question.focus },
     },
   }
 
@@ -125,23 +106,23 @@ export async function classify(
   }
 
   const data = (await response.json()) as any
-  const project = data.answers?.projeto?.choice
-  const confianca = data.answers?.categoria?.confidence ?? 0
-  // Erro confiante custa mais que lacuna assumida: quem vê um número errado
-  // para de confiar no resto. Abaixo de 0,55 a janela fica sem rótulo.
+  const project = data.answers?.project?.choice
+  const confidence = data.answers?.categoria?.confidence ?? 0
+  // A confident mistake costs more than an admitted gap: someone who sees one
+  // wrong number stops trusting the rest. Below 0.55 the window stays unlabelled.
   const label: Label = {
     key,
-    category: confianca >= 0.55 ? data.answers?.categoria?.choice ?? 'unlabelled' : 'unlabelled',
+    category: confidence >= 0.55 ? data.answers?.categoria?.choice ?? 'unlabelled' : 'unlabelled',
     project: !project || project === 'nenhum' ? null : project,
-    deep_work: data.answers?.foco?.noul ?? 0.5,
-    confidence: confianca,
+    deep_work: data.answers?.focus?.noul ?? 0.5,
+    confidence: confidence,
   }
   save.run(key, block.app, block.title?.slice(0, 200) ?? null, label.category, label.project,
     label.deep_work, label.confidence, data.model ?? config.typesafeModel, Math.floor(Date.now() / 1000))
   return label
 }
 
-/** Classifica as janelas ainda sem rótulo de um dia, em paralelo controlado. */
+/** Classifies a day's still-unlabelled windows, in controlled parallel. */
 export async function classifyDay(day: string, projects: string[]): Promise<number> {
   if (!jevReady()) return 0
   const blocks = db.prepare(
@@ -166,30 +147,30 @@ export async function classifyDay(day: string, projects: string[]): Promise<numb
 /**
  * Qual modelo do Claude Code deve responder.
  *
- * Gastar o modelo mais forte para responder "que horas eu comecei hoje" é
- * desperdício de tempo e de cota. O jev julga a complexidade do pedido em
- * ~110ms, com uma pergunta tipada, e o roteamento acontece aqui no código —
- * quem decide o mapa é você, não o modelo.
+ * Spending the strongest model to answer "what time did I start today" wastes
+ * both time and quota. jev judges the request's complexity in about 110ms,
+ * with a typed question, and the routing happens here in the code — the map is
+ * yours to decide, not the model's.
  */
-const ESCADA = [
-  'claude-haiku-4-5-20251001',  // consulta direta
+const LADDER = [
+  'claude-haiku-4-5-20251001',  // lookup direta
   'claude-sonnet-5',            // cruzar fontes e resumir
-  'claude-opus-5',              // análise longa, escrita, recap
+  'claude-opus-5',              // long analysis, prose, the recap
 ] as const
 
 
-export type Roteamento = { modelo: string; nivel: number; confianca: number }
+export type Roteamento = { modelo: string; level: number; confidence: number }
 
-export async function escolheModelo(pedido: string): Promise<Roteamento | null> {
+export async function pickModel(request: string): Promise<Roteamento | null> {
   if (!jevReady()) return null
 
   try {
-    const resposta = await fetch(ENDPOINT, {
+    const response = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { authorization: `Bearer ${config.typesafeKey}`, 'content-type': 'application/json' },
       body: JSON.stringify({
         model: config.typesafeModel,
-        state: { pedido: pedido.slice(0, 1200) },
+        state: { request: request.slice(0, 1200) },
         questions: {
           complexidade: {
             type: 'score',
@@ -198,19 +179,19 @@ export async function escolheModelo(pedido: string): Promise<Roteamento | null> 
           },
         },
       }),
-      // Teto curto: isto está no caminho crítico da resposta, e escolher o
-      // modelo não pode custar mais do que a escolha economiza.
+      // A short ceiling: this sits on the answer's critical path, and choosing
+      // the model cannot cost more than the choice saves.
       signal: AbortSignal.timeout(2500),
     })
-    if (!resposta.ok) return null
+    if (!response.ok) return null
 
-    const dados = (await resposta.json()) as any
-    const nivel = Math.round(dados.answers?.complexity?.score ?? 1)
-    const confianca = dados.answers?.complexity?.confidence ?? 0
-    // Na dúvida, sobe um degrau: errar para mais forte custa tempo; errar para
-    // mais fraco custa uma resposta ruim, que é pior.
-    const ajustado = confianca < 0.5 ? Math.min(2, nivel + 1) : nivel
-    return { modelo: ESCADA[Math.max(0, Math.min(2, ajustado))], nivel: ajustado, confianca }
+    const data = (await response.json()) as any
+    const level = Math.round(data.answers?.complexity?.score ?? 1)
+    const confidence = data.answers?.complexity?.confidence ?? 0
+    // When in doubt, go one step up: erring stronger costs time; erring
+    // weaker costs a bad answer, which is worse.
+    const adjusted = confidence < 0.5 ? Math.min(2, level + 1) : level
+    return { modelo: LADDER[Math.max(0, Math.min(2, adjusted))], level: adjusted, confidence }
   } catch {
     return null
   }

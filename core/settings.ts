@@ -96,18 +96,18 @@ const DEFAULTS: Settings = {
 function fromOldShape(raw: string): Partial<Settings> {
   const old = JSON.parse(raw) as Record<string, unknown>
   return {
-    language: old.idioma as Language, name: old.nome as string, vault: old.vault as string,
+    language: old.language as Language, name: old.name as string, vault: old.vault as string,
     journalFolder: old.pastaDiario as string, dayStartHour: old.inicioDoDia as number,
     keepTyping: old.guardarDigitacao as boolean, voice: old.voz as string,
   }
 }
 
 export function readSettings(): Settings {
-  const stored = getMeta('settings') || getMeta('ajustes')
+  const stored = getMeta('settings') || getMeta('settings')
   if (!stored) return { ...DEFAULTS }
   try {
     const parsed = JSON.parse(stored) as Record<string, unknown>
-    const data = 'idioma' in parsed ? fromOldShape(stored) : (parsed as Partial<Settings>)
+    const data = 'language' in parsed ? fromOldShape(stored) : (parsed as Partial<Settings>)
     return {
       language: validLanguage(String(data.language ?? DEFAULTS.language)),
       name: String(data.name ?? DEFAULTS.name).trim() || DEFAULTS.name,

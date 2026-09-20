@@ -197,3 +197,17 @@ export const CATEGORY_NAMES: Record<Language, Record<string, string>> = {
     'unlabelled': 'ohne Etikett',
   },
 }
+
+/**
+ * The heading of the section written into the Obsidian vault.
+ *
+ * It lands in someone's own notes, next to what they wrote themselves — so it
+ * speaks their language, not the app's language of origin.
+ */
+export const VAULT_HEADING: Record<Language, string> = {
+  'pt-BR': 'No computador',
+  'en-US': 'On the computer',
+  'es-ES': 'En el ordenador',
+  'fr-FR': 'Sur l’ordinateur',
+  'de-DE': 'Am Rechner',
+}

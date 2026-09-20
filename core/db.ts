@@ -128,7 +128,7 @@ create table if not exists days (
 
 -- Minutes an agent spent working, with or without you in front of the machine.
 -- This is what separates "went to lunch" from "delegated and did something else".
--- A chave inclui o agente: Claude e Codex podem trabalhar no mesmo minuto.
+-- A key inclui o agente: Claude e Codex podem trabalhar no mesmo minute.
 create table if not exists agent_minutes (
   minute integer not null,
   agent text not null default 'claude',

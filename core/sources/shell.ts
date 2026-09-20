@@ -12,7 +12,7 @@ const historyFile = path.join(config.home, '.zsh_history')
 const insert = db.prepare('insert or ignore into shell_cmds (ts, day, cmd) values (?, ?, ?)')
 
 /** The history, or null when it does not exist or cannot be read. */
-async function historico(): Promise<string | null> {
+async function history(): Promise<string | null> {
   try {
     return await fs.readFile(historyFile, 'latin1')
   } catch {
@@ -21,12 +21,12 @@ async function historico(): Promise<string | null> {
 }
 
 export async function shellHasTimestamps(): Promise<boolean> {
-  const raw = await historico()
+  const raw = await history()
   return raw !== null && /^: \d+:\d+;/m.test(raw)
 }
 
 export async function harvestShell(): Promise<{ commands: number; timestamped: boolean }> {
-  const raw = await historico()
+  const raw = await history()
   if (raw === null) return { commands: 0, timestamped: false }
   const lines = raw.split('\n')
   const timestamped = /^: \d+:\d+;/m.test(raw)

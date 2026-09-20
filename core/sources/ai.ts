@@ -5,18 +5,18 @@ import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
 import { exists } from '../guard.ts'
 
-// Cada sessão do Claude Code é um .jsonl que só cresce. Guardamos o deslocamento
-// já lido de cada arquivo para não reprocessar 1 GB a cada rodada.
+// Each Claude Code session is a .jsonl that only grows. The offset already
+// read is stored per file so a round never reprocesses a gigabyte.
 const root = path.join(config.home, '.claude', 'projects')
 
 const insert = db.prepare(
   `insert or ignore into ai_turns (source_id, ts, day, project, session, prompt, tools) values (?, ?, ?, ?, ?, ?, ?)`,
 )
 
-// Cada evento do assistente marca o minuto em que ele estava trabalhando.
-// Depois isso é cruzado com os blocos ociosos: tempo parado com agente ativo
-// não é ausência, é trabalho delegado.
-const marcaMinuto = db.prepare(
+// Cada event do assistente marca o minute em que ele estava trabalhando.
+// Later this is crossed with the idle blocks: time at a standstill with an
+// agent working is not absence, it is delegated work.
+const markMinute = db.prepare(
   `insert into agent_minutes (minute, agent, day, project, events) values (?, 'claude', ?, ?, 1)
    on conflict(minute, agent) do update set events = events + 1`,
 )
@@ -31,23 +31,23 @@ function textOf(content: unknown): string {
 }
 
 /**
- * Lê o que há de novo nas sessões do Claude Code: seus pedidos e as ferramentas
- * usadas.
+ * Reads what is new in the Claude Code sessions: the requests and the tools
+ * that ran.
  *
- * Todo acesso a disco aqui é assíncrono — ver a nota em `existe`. Uma leitura
- * síncrona numa pasta que o macOS resolva proteger levaria o coletor inteiro
- * junto, e não só esta fonte.
+ * Every disk access here is async — see the note on `exists`. A synchronous
+ * read inside a folder macOS decides to protect would take the whole collector
+ * down, not just this one source.
  */
 export async function harvestClaudeSessions(): Promise<{ turns: number }> {
   if (!(await exists(root))) return { turns: 0 }
   const offsets = JSON.parse(getMeta('claude.offsets', '{}')) as Record<string, number>
   let turns = 0
 
-  for (const entrada of await fs.readdir(root, { withFileTypes: true })) {
-    if (!entrada.isDirectory()) continue
-    const dir = path.join(root, entrada.name)
-    // O nome da pasta é o caminho do projeto com as barras trocadas por hífen.
-    const project = entrada.name.split('-').filter(Boolean).pop() ?? entrada.name
+  for (const entry of await fs.readdir(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const dir = path.join(root, entry.name)
+    // O name da pasta é o path do project com as barras trocadas por hífen.
+    const project = entry.name.split('-').filter(Boolean).pop() ?? entry.name
 
     for (const name of await fs.readdir(dir)) {
       if (!name.endsWith('.jsonl')) continue
@@ -70,7 +70,7 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
       offsets[file] = from + Buffer.byteLength(chunk.slice(0, lastBreak + 1), 'utf8')
 
       const session = name.replace('.jsonl', '')
-      // Ferramentas usadas ficam agrupadas no pedido humano que as disparou.
+      // Ferramentas usadas ficam agrupadas no request humano que as disparou.
       let lastPrompt: { id: string; tools: Set<string> } | null = null
 
       for (const line of chunk.slice(0, lastBreak).split('\n')) {
@@ -89,7 +89,7 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
           lastPrompt = { id, tools: new Set() }
           turns++
         } else if (event.type === 'assistant') {
-          marcaMinuto.run(Math.floor(ts / 60), dayOf(ts),
+          markMinute.run(Math.floor(ts / 60), dayOf(ts),
             event.cwd ? path.basename(event.cwd) : project)
         }
 

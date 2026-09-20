@@ -36,7 +36,7 @@ const FIREFOX = {
 
 type Fonte = { name: string; file: string; esquema: typeof CHROMIUM }
 
-const fixas: Fonte[] = [
+const fixed: Fonte[] = [
   { name: 'Chrome', file: 'Library/Application Support/Google/Chrome/Default/History', esquema: CHROMIUM },
   { name: 'Arc', file: 'Library/Application Support/Arc/User Data/Default/History', esquema: CHROMIUM },
   { name: 'Brave', file: 'Library/Application Support/BraveSoftware/Brave-Browser/Default/History', esquema: CHROMIUM },
@@ -45,11 +45,11 @@ const fixas: Fonte[] = [
 ]
 
 /** Firefox keeps its history inside a profile whose name varies. */
-async function perfisFirefox(): Promise<Fonte[]> {
-  const raiz = path.join(config.home, 'Library/Application Support/Firefox/Profiles')
+async function firefoxProfiles(): Promise<Fonte[]> {
+  const root = path.join(config.home, 'Library/Application Support/Firefox/Profiles')
   try {
-    const perfis = await fs.readdir(raiz)
-    return perfis.map((perfil) => ({
+    const profiles = await fs.readdir(root)
+    return profiles.map((perfil) => ({
       name: `Firefox (${perfil.split('.').pop() ?? perfil})`,
       file: path.join('Library/Application Support/Firefox/Profiles', perfil, 'places.sqlite'),
       esquema: FIREFOX,
@@ -65,12 +65,12 @@ const insert = db.prepare(
 
 // A browser that is installed but has no readable history fails every round.
 // The warning is worth saying once; every ten minutes only drowns the log.
-const jaAvisado = new Set<string>()
-function avisaUmaVez(fonte: string, mensagem: string): void {
-  const chave = `${fonte}:${mensagem}`
-  if (jaAvisado.has(chave)) return
-  jaAvisado.add(chave)
-  console.error(`[navegador] ${fonte}: ${mensagem}`)
+const alreadyWarned = new Set<string>()
+function warnOnce(fonte: string, message: string): void {
+  const key = `${fonte}:${message}`
+  if (alreadyWarned.has(key)) return
+  alreadyWarned.add(key)
+  console.error(`[navegador] ${fonte}: ${message}`)
 }
 
 function hostOf(url: string): string {
@@ -79,7 +79,7 @@ function hostOf(url: string): string {
 
 export async function harvestBrowsers(): Promise<{ visits: number }> {
   let total = 0
-  for (const source of [...fixas, ...(await perfisFirefox())]) {
+  for (const source of [...fixed, ...(await firefoxProfiles())]) {
     const original = path.join(config.home, source.file)
     try { await fs.access(original) } catch { continue }
 
@@ -90,7 +90,7 @@ export async function harvestBrowsers(): Promise<{ visits: number }> {
         await fs.copyFile(original + suffix, copy + suffix).catch(() => { /* sem wal/shm */ })
       }
     } catch (error) {
-      avisaUmaVez(source.name, (error as Error).message)
+      warnOnce(source.name, (error as Error).message)
       continue
     }
 
@@ -114,7 +114,7 @@ export async function harvestBrowsers(): Promise<{ visits: number }> {
       history.close()
       setMeta(key, String(latest))
     } catch (error) {
-      avisaUmaVez(source.name, (error as Error).message)
+      warnOnce(source.name, (error as Error).message)
     } finally {
       for (const suffix of ['', '-wal', '-shm']) {
         await fs.unlink(copy + suffix).catch(() => { /* already gone */ })

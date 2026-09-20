@@ -29,15 +29,15 @@ function git(repo: string, args: string[]): string {
  * control back to it.
  */
 export async function harvestGit(days = 3): Promise<{ commits: number }> {
-  let nomes: string[]
+  let names: string[]
   try {
-    nomes = await fs.readdir(config.codeRoot)
+    names = await fs.readdir(config.codeRoot)
   } catch {
     return { commits: 0 }
   }
   let total = 0
 
-  for (const name of nomes) {
+  for (const name of names) {
     const repo = path.join(config.codeRoot, name)
     try {
       await fs.access(path.join(repo, '.git'))
