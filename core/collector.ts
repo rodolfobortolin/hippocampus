@@ -41,7 +41,17 @@ export class Collector {
 
   start(): void {
     this.running = true
-    this.focus.start()
+    // Dá um tempo para o helper do launchd se apresentar. Se ninguém empurrar
+    // amostra, o coletor lança o helper ele mesmo — funciona, mas aí quem
+    // responde pelo TCC é o node, e o título de janela não vem.
+    setTimeout(() => {
+      if (this.focus.empurrado) {
+        console.log('[foco] recebendo do helper do launchd')
+        return
+      }
+      console.log('[foco] nenhum helper empurrando; lançando por conta própria')
+      this.focus.start()
+    }, 12_000)
     setMeta('collector.started', String(Math.floor(Date.now() / 1000)))
     console.log(`[coletor] de pé — amostra a cada ${config.sampleInterval}s`)
     void comLimite('skysight', 20_000, checkSkysight).then((tem) => {
@@ -121,6 +131,7 @@ export class Collector {
     return {
       running: this.running,
       trusted: this.focus.trusted,
+      empurrado: this.focus.empurrado,
       lastSample: this.focus.lastSample,
       skysight: skysightAvailable(),
       lastRun: Object.fromEntries(this.lastRun),

@@ -11,12 +11,29 @@ import CoreGraphics
 import Foundation
 
 let args = CommandLine.arguments
+
+/// Para onde as amostras vão. Sem `--post`, saem no stdout como antes.
+///
+/// O modo `--post` existe por causa do TCC: o macOS atribui a permissão de
+/// Acessibilidade ao *processo responsável*, que é quem lançou o programa. Se o
+/// coletor em Node der o start, quem aparece pedindo é o node — e autorizar o
+/// node daria Acessibilidade a qualquer script Node da máquina. Lançado direto
+/// pelo launchd, este helper responde por si mesmo, e a autorização fica onde
+/// deve: neste app, e só nele.
+let destino: URL? = args.firstIndex(of: "--post").flatMap { i in
+    i + 1 < args.count ? URL(string: args[i + 1]) : nil
+}
 let interval = args.firstIndex(of: "--interval").flatMap { i -> Double? in
     i + 1 < args.count ? Double(args[i + 1]) : nil
 } ?? 4.0
 
-// --ask abre o diálogo de Acessibilidade do sistema uma única vez.
-if args.contains("--ask") {
+// Sem Acessibilidade não há título de janela, e o app fica sabendo *onde* você
+// esteve sem saber *em quê*. Então ele pede — uma vez, ao subir.
+//
+// O pedido só vale a pena vindo daqui: lançado pelo launchd, este processo
+// responde por si mesmo no TCC e aparece na lista como "Hipocampo Focus".
+// Lançado por outro programa, quem apareceria pedindo seria o programa pai.
+if !AXIsProcessTrusted() && !args.contains("--sem-pedido") {
     let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
     AXIsProcessTrustedWithOptions(options as CFDictionary)
 }
@@ -196,8 +213,22 @@ func sample() {
         }
     }
 
-    print("{\(parts.joined(separator: ","))}")
-    fflush(stdout)
+    let linha = "{\(parts.joined(separator: ","))}"
+
+    guard let destino else {
+        print(linha)
+        fflush(stdout)
+        return
+    }
+
+    var pedido = URLRequest(url: destino)
+    pedido.httpMethod = "POST"
+    pedido.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    pedido.httpBody = linha.data(using: .utf8)
+    pedido.timeoutInterval = 5
+    // Falha de envio é silenciosa de propósito: o núcleo pode estar reiniciando,
+    // e derrubar a amostragem por causa disso perderia mais do que ganharia.
+    URLSession.shared.dataTask(with: pedido).resume()
 }
 
 sample()

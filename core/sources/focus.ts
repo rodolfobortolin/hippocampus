@@ -50,6 +50,8 @@ function hostOf(url?: string): string | null {
  */
 export class FocusCollector {
   private child: ChildProcess | null = null
+  /** Verdadeiro quando as amostras chegam de fora, empurradas pelo helper. */
+  empurrado = false
   private open: Open | null = null
   private buffer = ''
   private anterior: Contadores | null = null
@@ -59,6 +61,21 @@ export class FocusCollector {
 
   constructor(options: { onTrust?: (trusted: boolean) => void } = {}) {
     this.onTrust = options.onTrust
+  }
+
+  /**
+   * Recebe uma amostra vinda do helper lançado pelo launchd.
+   *
+   * É o caminho preferido: assim o helper responde por si mesmo no TCC, e a
+   * permissão de Acessibilidade fica com ele em vez de com o node.
+   */
+  push(sample: unknown): void {
+    this.empurrado = true
+    try {
+      this.ingest(sample as Sample)
+    } catch (error) {
+      console.error('[foco] amostra inválida:', (error as Error).message)
+    }
   }
 
   start(): void {

@@ -93,6 +93,21 @@ export function serve(collector?: Collector): http.Server {
         return json(response, result)
       }
 
+      if (route === '/api/amostra' && request.method === 'POST') {
+        // O helper do launchd empurra uma amostra por vez. Responde 204 seco:
+        // não há nada a devolver e o helper não espera corpo.
+        const pedacos: Buffer[] = []
+        for await (const pedaco of request) pedacos.push(pedaco as Buffer)
+        try {
+          ;(collector ?? anexado)?.focus.push(JSON.parse(Buffer.concat(pedacos).toString()))
+        } catch {
+          response.writeHead(400)
+          return response.end()
+        }
+        response.writeHead(204)
+        return response.end()
+      }
+
       if (route === '/api/voz' && request.method === 'POST') {
         // Fala o texto com a voz da OpenAI. Sem chave, o app usa a voz do sistema.
         if (!config.openaiKey) return json(response, { erro: 'sem chave' }, 400)
