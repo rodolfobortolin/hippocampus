@@ -13,8 +13,11 @@ import { config } from './config.ts'
  */
 const START = '<!-- hippocampus:start -->'
 const END = '<!-- hippocampus:end -->'
+// Exactly as they were written into people's notes, in Portuguese. A rename
+// that reaches in here does not fail loudly: `bounds` simply stops finding the
+// old section, and the next write appends a second one underneath it.
 const OLD_START = '<!-- hipocampo:início -->'
-const OLD_END = '<!-- hipocampo:end -->'
+const OLD_END = '<!-- hipocampo:fim -->'
 
 /** The folder where the day is written, created the first time it is needed. */
 function journalFolder(): string {
@@ -35,24 +38,34 @@ function bounds(text: string): { from: number; to: number; end: string } | null 
   return null
 }
 
+/**
+ * Our section, put back into a note that may already carry one.
+ *
+ * Whatever the person wrote around it stays exactly where it was: this only
+ * ever replaces what sits between our own two markers, and when there is no
+ * such pair it appends at the end rather than guessing.
+ */
+export function replaceSection(text: string, body: string, heading: string): string {
+  const section = `${START}\n\n## ${heading}\n\n${body.trim()}\n\n${END}`
+  const found = bounds(text)
+  return found
+    ? text.slice(0, found.from) + section + text.slice(found.to + found.end.length)
+    : text.trimEnd() + '\n\n' + section + '\n'
+}
+
 export function writeDaySection(day: string, body: string, heading: string): string | null {
   if (!vaultReady()) return null
   const folder = journalFolder()
   fs.mkdirSync(folder, { recursive: true })
   const file = path.join(folder, `${day}.md`)
-  const section = `${START}\n\n## ${heading}\n\n${body.trim()}\n\n${END}`
 
   if (!fs.existsSync(file)) {
     const front = `---\ntype: journal\ndate: ${day}\ntags: [journal]\n---\n\n# ${day}\n\n`
+    const section = `${START}\n\n## ${heading}\n\n${body.trim()}\n\n${END}`
     fs.writeFileSync(file, front + section + '\n')
     return file
   }
 
-  const current = fs.readFileSync(file, 'utf8')
-  const found = bounds(current)
-  const next = found
-    ? current.slice(0, found.from) + section + current.slice(found.to + found.end.length)
-    : current.trimEnd() + '\n\n' + section + '\n'
-  fs.writeFileSync(file, next)
+  fs.writeFileSync(file, replaceSection(fs.readFileSync(file, 'utf8'), body, heading))
   return file
 }
