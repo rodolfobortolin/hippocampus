@@ -54,13 +54,32 @@ instead of letting it look like a day when you did nothing.
 
 ```bash
 npm install
-npm run build:native      # builds the helper that reads window focus
-npm run install:agent     # collector starts at login and comes back on its own
-npm run dev:app           # the window
+npm run build:native      # builds the Swift helpers
+npm run dist              # builds and signs Hipocampo.app into release/
 ```
 
-Requirements: macOS, Node 22+, Xcode command line tools (for the helper), and
-`claude` installed and signed in for the written part.
+Drag `release/mac-arm64/Hipocampo.app` to `/Applications`, open it, and turn on
+**measure on its own** in Settings. That registers three login items — the
+collector, the window reader and the wake-word listener — which macOS then asks
+you to approve in **Settings → General → Login Items**. They start with the Mac
+and come back if they fall.
+
+To work on it instead, without packaging:
+
+```bash
+npm run dev:app           # core, interface and window, from source
+npm run install:agent     # the old hand-installed launchd agents
+npm test
+```
+
+Requirements: macOS 13+, Node 24+, Xcode command line tools, and `claude`
+installed and signed in for the written part. The packaged app does not need
+Node at all — it runs the core on the Electron it already ships.
+
+**Keep the app out of `~/Documents`.** macOS protects that folder, and a
+background agent that cannot read it does not fail — it hangs, before writing a
+single line of log. `/Applications` is not protected, which is half the reason
+the app is packaged at all.
 
 Then open **Settings** inside the app: pick your language, tell it what to call
 you, point it at your Obsidian vault, and paste the keys. Nothing there touches
@@ -195,6 +214,27 @@ answers out loud.
 - **⌘⇧Space** does the same without the word. **⌘⇧H** shows and hides it.
 - Drag the sphere to move it; where you leave it is where it comes back.
 - Click it to stop it talking, or to ask something else.
+
+## Signed, and notarized when you want to share it
+
+The build picks up a **Developer ID** certificate from the keychain when one is
+there, and turns on the hardened runtime and least-privilege entitlements. On
+your own machine that is enough — and it is what makes the Accessibility grant
+survive a rebuild, because it binds to the certificate identity rather than to
+the code hash.
+
+Notarization only matters when someone else downloads it: Gatekeeper refuses, on
+first open, a Developer ID app Apple has never seen. Store a credential once and
+one command does the rest:
+
+```bash
+xcrun notarytool store-credentials hipocampo \
+  --apple-id YOU@EXAMPLE.COM --team-id YOURTEAM --password APP-SPECIFIC-PASSWORD
+npm run notarizar
+```
+
+The app-specific password is generated at appleid.apple.com — it is not your
+Apple ID password, and it lives in the Keychain, never in the repository.
 
 ## The closed day
 

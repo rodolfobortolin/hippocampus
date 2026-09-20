@@ -22,17 +22,28 @@ Everything else is open, including disagreeing with how any of it was built.
 
 ## What you need to run it
 
-macOS, Node 24+, and Xcode command line tools for the Swift helper. There is no
-way around the Mac: the collector is built on NSWorkspace, the Accessibility
-API and CoreAudio.
+macOS 13+, Node 24+, and Xcode command line tools for the Swift helpers. There
+is no way around the Mac: the collector is built on NSWorkspace, the
+Accessibility API, CoreAudio and SMAppService.
 
 ```bash
 npm install
 npm run build:native
-npm run install:agent
+npm run install:agent    # hand-installed launchd agents, for development
 npm run permissao        # opens the Accessibility prompt and the right pane
 npm run dev:app
+npm test
 ```
+
+`npm run dist` builds the signed app instead, which registers its agents
+through SMAppService rather than by writing plists into
+`~/Library/LaunchAgents`. Both paths exist on purpose: the packaged one is what
+people install, the hand-installed one is what you can iterate on.
+
+**One trap worth knowing about**: keep the checkout out of a folder macOS
+protects, or run the packaged app from `/Applications`. Under launchd, a
+background agent that cannot read `~/Documents` does not get `EPERM` — it
+hangs, before the first line of its own code runs.
 
 Two optional keys, set inside the app under **Settings** — never in a file:
 
@@ -77,14 +88,41 @@ Commit messages are a sentence about what changed from the user's side, not the
 file list. `Tempo parado com agente trabalhando não é ociosidade`, not
 `fix metrics.ts`.
 
+## Never read disk synchronously in a source
+
+`readdirSync`, `readFileSync`, `existsSync`, `openSync` — none of them, anywhere
+under `core/sources/`. In a folder macOS protects, they do not return an error.
+They stop. And stopped inside the event loop, they stop the whole collector:
+the server has already printed "de pé" and no route answers.
+
+`comLimite` exists to keep one bad source from taking the rest down, and it
+cannot help here — its own timeout needs the event loop to fire. Async is what
+gives the loop back. There is a test that checks this, because the rule was
+applied once, in `skysight.ts`, and came back in four other files.
+
 ## Before you open the pull request
 
 ```bash
-npm run build     # typecheck plus the interface build; CI runs exactly this
+npm run build     # typecheck plus the interface build
+npm test          # CI runs exactly these two
 ```
 
-There are no tests yet. If you are adding something with real logic in it —
-anything in `core/metrics.ts` especially — tests would be very welcome.
+Twelve tests so far, in `testes/`. More are welcome, especially around
+`core/metrics.ts`, where the focus-session window and the delegated-time
+arithmetic live.
+
+## The agents, and why the registrar is signed twice
+
+In the packaged app the collector, the window reader and the listener are login
+items registered through `SMAppService`, with their plists inside the bundle at
+`Contents/Library/LaunchAgents`. `native/agentes.swift` does the registering and
+lives in `Contents/MacOS`, because that is where `Bundle.main` resolves to the
+app.
+
+It is re-signed in `afterPack` with the app's own identifier. SMAppService
+compares the identity of whoever asks against the app's, and "whoever asks" is
+literal — signed under its own filename, registration fails with a bare
+"Operation not permitted" and no hint at all.
 
 ## Reporting a bug
 
