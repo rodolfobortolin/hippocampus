@@ -26,8 +26,8 @@ const tasks: Task[] = [
 ]
 
 /**
- * O coletor: amostra o focus continuamente e passa nas outras fontes de tempos
- * em tempos. Fecha o day previous when a data vira.
+ * The collector: samples focus continuously and visits the other sources from
+ * time to time. Closes the previous day when the date turns.
  */
 export class Collector {
   readonly focus = new FocusCollector({
@@ -133,11 +133,11 @@ export class Collector {
     return {
       running: this.running,
       trusted: this.focus.trusted,
-      empurrado: this.focus.pushed,
+      pushed: this.focus.pushed,
       lastSample: this.focus.lastSample,
       skysight: skysightAvailable(),
       lastRun: Object.fromEntries(this.lastRun),
-      fontes: sourceStates(),
+      sources: sourceStates(),
       startedAt: Number(getMeta('collector.started', '0')),
       lastRollup: getMeta('rollup.last', ''),
     }
