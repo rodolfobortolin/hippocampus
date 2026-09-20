@@ -4,19 +4,19 @@ dist/
 .DS_Store
 *.log
 
-# Resultado de compilação: os bundles nativos são assinados com o Developer ID
-# de quem compila, então não fazem sentido versionados — cada um gera o seu com
+# Build output: the native bundles are signed with the Developer ID of whoever
+# compiles them, so versioning them makes no sense — each person builds their
 # `npm run build:native`.
 native/*.app/
-native/hipocampo-focus
-native/hipocampo-ouvido
-# Só o que sai do compilador. O resto de build/ é fonte: os entitlements, os
-# plists dos agentes e o hook que assina o registrador.
+native/hippocampus-focus
+native/hippocampus-listener
+# Only what comes out of the compiler. The rest of build/ is source: the
+# entitlements, the agent plists and the hook that signs the registrar.
 build/*.icns
 build/*.iconset/
-build/icone-*.png
+build/icon-*.png
 
-# Bundle assinado: sai do `npm run dist`, e a assinatura é de quem compila.
+# The signed bundle: it comes out of `npm run dist`, signed by whoever builds.
 release/
 native/bin/
 public/intro.mp4

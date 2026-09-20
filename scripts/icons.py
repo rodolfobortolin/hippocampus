@@ -21,44 +21,44 @@ import pathlib
 pathlib.Path('build').mkdir(exist_ok=True)
 pathlib.Path('public').mkdir(exist_ok=True)
 
-bruto = Image.open('assets/icone.png').convert('RGBA')
-bruto = bruto.crop(bruto.getbbox())
-MESTRE = 1024
-corpo = bruto.resize((MESTRE, MESTRE), Image.LANCZOS)
+raw = Image.open('assets/icon.png').convert('RGBA')
+raw = raw.crop(raw.getbbox())
+MASTER = 1024
+body = raw.resize((MASTER, MASTER), Image.LANCZOS)
 
 # The background colour comes from the art itself, at a point inside the shape
 # and away from the drawing — so the fill is the same black, wherever the art
 # came from.
-fundo = corpo.convert('RGB').getpixel((int(MESTRE * 0.06), int(MESTRE * 0.5)))
-quadro = Image.new('RGBA', (MESTRE, MESTRE), (*fundo, 255))
-quadro.alpha_composite(corpo)
-quadro.save('build/icone-1024.png')
+background = body.convert('RGB').getpixel((int(MASTER * 0.06), int(MASTER * 0.5)))
+frame = Image.new('RGBA', (MASTER, MASTER), (*background, 255))
+frame.alpha_composite(body)
+frame.save('build/icon-1024.png')
 
-sil = Image.open('assets/silhueta.png').convert('RGBA')
+sil = Image.open('assets/silhouette.png').convert('RGBA')
 sil = sil.crop(sil.getbbox())
 
-for escala in (1, 2):
-    lado = 22 * escala
-    interno = int(lado * 0.88)
-    prop = sil.size[0] / sil.size[1]
-    lg, at = (max(1, round(interno * prop)), interno) if prop < 1 else (interno, max(1, round(interno / prop)))
-    peca = sil.resize((lg, at), Image.LANCZOS)
-    preto = Image.new('RGBA', (lg, at), (0, 0, 0, 255))
-    preto.putalpha(peca.split()[3])
-    caixa = Image.new('RGBA', (lado, lado), (0, 0, 0, 0))
-    caixa.paste(preto, ((lado - lg) // 2, (lado - at) // 2), preto)
-    caixa.save(f'public/trayTemplate{"@2x" if escala == 2 else ""}.png')
+for scale in (1, 2):
+    side = 22 * scale
+    inner = int(side * 0.88)
+    ratio = sil.size[0] / sil.size[1]
+    w, h = (max(1, round(inner * ratio)), inner) if ratio < 1 else (inner, max(1, round(inner / ratio)))
+    piece = sil.resize((w, h), Image.LANCZOS)
+    black = Image.new('RGBA', (w, h), (0, 0, 0, 255))
+    black.putalpha(piece.split()[3])
+    box = Image.new('RGBA', (side, side), (0, 0, 0, 0))
+    box.paste(black, ((side - w) // 2, (side - h) // 2), black)
+    box.save(f'public/trayTemplate{"@2x" if scale == 2 else ""}.png')
 
-for destino, altura, cor in [('public/favicon.png', 56, (255, 150, 60, 255)),
-                             ('public/brand.png', 120, (255, 145, 55, 255))]:
-    prop = sil.size[0] / sil.size[1]
-    lg = max(1, round(altura * prop))
-    peca = sil.resize((lg, altura), Image.LANCZOS)
-    tinta = Image.new('RGBA', (lg, altura), cor)
-    tinta.putalpha(peca.split()[3])
-    folga = 8 if 'marca' in destino else 4
-    fundo = Image.new('RGBA', (lg + folga * 2, altura + folga * 2), (0, 0, 0, 0))
-    fundo.paste(tinta, (folga, folga), tinta)
-    fundo.save(destino)
+for target, height, colour in [('public/favicon.png', 56, (255, 150, 60, 255)),
+                               ('public/brand.png', 120, (255, 145, 55, 255))]:
+    ratio = sil.size[0] / sil.size[1]
+    w = max(1, round(height * ratio))
+    piece = sil.resize((w, height), Image.LANCZOS)
+    ink = Image.new('RGBA', (w, height), colour)
+    ink.putalpha(piece.split()[3])
+    margin = 8 if 'brand' in target else 4
+    sheet = Image.new('RGBA', (w + margin * 2, height + margin * 2), (0, 0, 0, 0))
+    sheet.paste(ink, (margin, margin), ink)
+    sheet.save(target)
 
-print('arte preparada')
+print('art ready')
