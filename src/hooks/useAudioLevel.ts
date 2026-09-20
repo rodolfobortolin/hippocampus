@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * along with the voice.
  */
 export function useAudioLevel() {
-  const [level, setNivel] = useState(0)
+  const [level, setLevel] = useState(0)
   const audioContext = useRef<AudioContext | null>(null)
   const stop = useRef<(() => void) | null>(null)
   // An audio element can only become a source once per audio context.
@@ -20,21 +20,21 @@ export function useAudioLevel() {
     return audioContext.current
   }
 
-  const measure = (analyser: AnalyserNode, aoFim?: () => void) => {
+  const measure = (analyser: AnalyserNode, atEnd?: () => void) => {
     const data = new Uint8Array(analyser.fftSize)
     let frame = 0
     const step = () => {
       analyser.getByteTimeDomainData(data)
       let sum = 0
       for (const sample of data) sum += ((sample - 128) / 128) ** 2
-      setNivel(Math.min(1, Math.sqrt(sum / data.length) * 5))
+      setLevel(Math.min(1, Math.sqrt(sum / data.length) * 5))
       frame = requestAnimationFrame(step)
     }
     step()
     return () => {
       cancelAnimationFrame(frame)
-      setNivel(0)
-      aoFim?.()
+      setLevel(0)
+      atEnd?.()
     }
   }
 
@@ -85,11 +85,11 @@ export function useAudioLevel() {
     const step = () => {
       phase += 0.09
       const wave = 0.34 + Math.sin(phase * 2.3) * 0.16 + Math.sin(phase * 5.7) * 0.1
-      setNivel(Math.max(0, Math.min(1, wave)))
+      setLevel(Math.max(0, Math.min(1, wave)))
       frame = requestAnimationFrame(step)
     }
     step()
-    stop.current = () => { cancelAnimationFrame(frame); setNivel(0) }
+    stop.current = () => { cancelAnimationFrame(frame); setLevel(0) }
   }, [finish])
 
   useEffect(() => () => {
@@ -97,5 +97,8 @@ export function useAudioLevel() {
     void audioContext.current?.close()
   }, [])
 
-  return { level, listenToMic, listenToAudio, pulseAlone, finish }
+  /** A level measured somewhere else — the live session measures its own. */
+  const setExternalLevel = useCallback((value: number) => setLevel(value), [])
+
+  return { level, listenToMic, listenToAudio, pulseAlone, finish, setExternalLevel }
 }

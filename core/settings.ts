@@ -20,6 +20,22 @@ export type Settings = {
   dayStartHour: number
   keepTyping: boolean
   voice: string
+  /**
+   * The keyboard shortcut that calls the core, in Electron's accelerator form
+   * ("CommandOrControl+Shift+Space"). Empty turns it off — a shortcut that
+   * fights another app is worse than none.
+   */
+  shortcut: string
+  /**
+   * How the voice works. `push` records a clip, transcribes it, asks Claude Code
+   * and reads the answer back — turn by turn, and it costs only the
+   * transcription. `live` opens a real-time session: it hears you while you
+   * speak, you can interrupt it, and it bills for the time the session is open.
+   * The choice is the person's, and `push` is what they get without asking.
+   */
+  voiceMode: 'push' | 'live'
+  /** Which GPT-Live-1 voice speaks, when the live mode is on. */
+  liveVoice: string
 }
 
 export type KeyState = 'keychain' | 'environment' | 'empty'
@@ -84,6 +100,9 @@ const DEFAULTS: Settings = {
   dayStartHour: config.dayStartHour,
   keepTyping: config.keepTyping,
   voice: 'onyx',
+  shortcut: 'CommandOrControl+Shift+Space',
+  voiceMode: 'push',
+  liveVoice: 'marin',
 }
 
 /**
@@ -121,6 +140,9 @@ export function readSettings(): Settings {
       dayStartHour: Math.min(12, Math.max(0, Number(data.dayStartHour ?? DEFAULTS.dayStartHour) || 0)),
       keepTyping: data.keepTyping !== false,
       voice: String(data.voice ?? DEFAULTS.voice),
+      shortcut: String(data.shortcut ?? DEFAULTS.shortcut),
+      voiceMode: data.voiceMode === 'live' ? 'live' : 'push',
+      liveVoice: String(data.liveVoice ?? DEFAULTS.liveVoice),
     }
   } catch {
     return { ...DEFAULTS }

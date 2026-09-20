@@ -8,7 +8,7 @@ type State = 'idle' | 'listening' | 'transcribing'
  *
  * `webkitSpeechRecognition` exists in Electron but does not work: it depends on
  * a Google service only Chrome has credentials for, so it fails at
- * hour com error de rede — o microfone acendia por um segundo e apagava. Aqui o
+ * out with a network error — the microphone lit for a second and went out. Here the
  * the audio is recorded, speech is detected by volume, and the stretch goes to
  * transcription when you stop speaking.
  */
@@ -16,13 +16,16 @@ type State = 'idle' | 'listening' | 'transcribing'
 const PATIENCE = 7000
 
 export function useListening(
-  aoOuvir: (text: string) => void,
-  textos: { didNotCatch: string; micDenied: string } =
-    { didNotCatch: 'I did not catch that.', micDenied: 'The microphone was denied.' },
+  onHeard: (text: string) => void,
+  words: { didNotCatch: string; micDenied: string; keyRefused: string } = {
+    didNotCatch: 'I did not catch that.',
+    micDenied: 'The microphone was denied.',
+    keyRefused: 'OpenAI refused the key.',
+  },
 ) {
   const [state, setState] = useState<State>('idle')
-  const [level, setNivel] = useState(0)
-  const [error, setErro] = useState('')
+  const [level, setLevel] = useState(0)
+  const [error, setError] = useState('')
 
   const recorder = useRef<MediaRecorder | null>(null)
   const stream = useRef<MediaStream | null>(null)
@@ -30,10 +33,10 @@ export function useListening(
   const frame = useRef(0)
   const chunks = useRef<Blob[]>([])
   const spoke = useRef(false)
-  const receive = useRef(aoOuvir)
-  receive.current = aoOuvir
-  const says = useRef(textos)
-  says.current = textos
+  const receive = useRef(onHeard)
+  receive.current = onHeard
+  const says = useRef(words)
+  says.current = words
 
   const teardown = useCallback(() => {
     cancelAnimationFrame(frame.current)
@@ -41,7 +44,7 @@ export function useListening(
     stream.current = null
     void audioContext.current?.close().catch(() => {})
     audioContext.current = null
-    setNivel(0)
+    setLevel(0)
   }, [])
 
   const stop = useCallback(() => {
@@ -49,7 +52,7 @@ export function useListening(
   }, [])
 
   const begin = useCallback(async () => {
-    setErro('')
+    setError('')
     try {
       const input = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true },
@@ -81,10 +84,14 @@ export function useListening(
           const text = await api.transcribe(audio)
           setState('idle')
           if (text) receive.current(text)
-          else setErro(says.current.didNotCatch)
-        } catch (falha) {
+          else setError(says.current.didNotCatch)
+        } catch (problem) {
           setState('idle')
-          setErro((falha as Error).message)
+          // The core answers with a code, not a sentence, so the sentence can
+          // be the reader's own — and so a refused key stops arriving as a
+          // paragraph of OpenAI's JSON.
+          const message = (problem as Error).message
+          setError(message === 'key-refused' ? says.current.keyRefused : message)
         }
       }
 
@@ -99,7 +106,7 @@ export function useListening(
         let sum = 0
         for (const sample of data) sum += ((sample - 128) / 128) ** 2
         const volume = Math.min(1, Math.sqrt(sum / data.length) * 5)
-        setNivel(volume)
+        setLevel(volume)
 
         const now = performance.now()
         if (!spoke.current && now - openedAt > PATIENCE) { stop(); return }
@@ -120,7 +127,7 @@ export function useListening(
     } catch (falha) {
       teardown()
       setState('idle')
-      setErro(
+      setError(
         (falha as Error).name === 'NotAllowedError'
           ? says.current.micDenied
           : (falha as Error).message,
@@ -135,5 +142,5 @@ export function useListening(
 
   useEffect(() => () => { stop(); teardown() }, [stop, teardown])
 
-  return { state, level, error, toggle, clearError: () => setErro('') }
+  return { state, level, error, toggle, clearError: () => setError('') }
 }

@@ -66,6 +66,7 @@ export type Strings = {
     title: string; titleStrong: string; explanation: string
     placeholder: string; listening: string; transcribing: string; reconnecting: string
     thinking: string; lookingUp: string; send: string; speak: string; stopListening: string
+    liveStart: string; liveStop: string; liveConnecting: string; liveOn: string
     stopTalking: string; alwaysAloud: string; aloudWhenYouSpeak: string; coreIsDown: string
     listen: string; clickToSpeak: string
     suggestions: string[]
@@ -80,6 +81,8 @@ export type Strings = {
     optional: string; isSet: string; notSet: string; remove: string
     day: string; dayNote: string; hourSuffix: string
     keepTyping: string; keepTypingNote: string
+    shortcut: string; shortcutNote: string; shortcutPress: string; shortcutTaken: string; shortcutOff: string; shortcutClear: string
+    voiceMode: string; voiceModeNote: string; voicePush: string; voicePushNote: string; voiceLive: string; voiceLiveNote: string; voiceLiveNeedsKey: string; liveVoiceLabel: string
     save: string; saved: string; saving: string; test: string; working: string; failed: string
     agents: string; agentsNote: string; agentsOn: string; agentsOff: string
     agentsApprove: string; agentsWhere: string
@@ -96,6 +99,7 @@ export type Strings = {
     at: string; ofActive: string; session: string; sessions: string
     averageOf: string; perDay: string; others: (n: number) => string
     restOnScreen: string; didNotCatch: string; micDenied: string
+    keyRefused: string
   }
 }
 
@@ -179,6 +183,7 @@ const pt: Strings = {
     listening: 'ouvindo… pare de falar que eu envio', transcribing: 'transcrevendo…',
     reconnecting: 'reconectando ao núcleo…', thinking: 'pensando…', lookingUp: 'consultando',
     send: 'enviar', speak: 'falar', stopListening: 'parar de ouvir', stopTalking: 'parar de falar',
+    liveStart: 'conversar ao vivo', liveStop: 'encerrar a conversa', liveConnecting: 'conectando…', liveOn: 'ao vivo',
     alwaysAloud: 'responder sempre falando', aloudWhenYouSpeak: 'responder falando só quando você falar',
     coreIsDown: 'O núcleo está fora do ar. Assim que ele voltar, mande de novo.',
     listen: 'ouvir', clickToSpeak: 'clique para falar',
@@ -204,6 +209,8 @@ const pt: Strings = {
     optional: 'opcional', isSet: 'configurada', notSet: 'não configurada', remove: 'remover',
     day: 'o dia começa às', dayNote: 'madrugada conta para o dia anterior', hourSuffix: 'h',
     keepTyping: 'guardar o que você digita', keepTypingNote: 'já passa por redação de segredos; desligue se preferir só os números',
+    shortcut: 'atalho para chamar', shortcutNote: 'o núcleo aparece onde você deixou, já escutando', shortcutPress: 'aperte a combinação…', shortcutTaken: 'outro app já usa essa combinação', shortcutOff: 'nenhum', shortcutClear: 'desligar',
+    voiceMode: 'como você fala com ele', voiceModeNote: 'os dois usam o Claude Code para pensar; muda só a boca e o ouvido', voicePush: 'apertar e falar', voicePushNote: 'você aperta, fala, ele responde — um turno de cada vez, e só a transcrição custa', voiceLive: 'ao vivo', voiceLiveNote: 'ele ouve enquanto você fala e você pode cortar no meio — cobra pelo tempo de sessão aberta', voiceLiveNeedsKey: 'precisa da chave da OpenAI', liveVoiceLabel: 'voz',
     save: 'salvar', saved: 'salvo', saving: 'salvando…', test: 'testar', working: 'funcionando', failed: 'falhou',
     agents: 'medir sozinho, desde o login',
     agentsNote: 'o coletor, o leitor de janela e a escuta sobem com o Mac e voltam se caírem',
@@ -224,6 +231,7 @@ const pt: Strings = {
     session: 'sessão', sessions: 'sessões', averageOf: 'média de', perDay: 'por dia medido',
     others: (n) => `outros ${n}`,
     restOnScreen: '… o resto está escrito na tela.', didNotCatch: 'Não entendi o que você falou.',
+    keyRefused: 'A OpenAI recusou a chave. Troque em Ajustes → chaves.',
     micDenied: 'O microfone foi negado. Autorize em Ajustes → Privacidade e Segurança → Microfone.',
   },
 }
@@ -308,6 +316,7 @@ const en: Strings = {
     listening: 'listening… stop talking and I send it', transcribing: 'transcribing…',
     reconnecting: 'reconnecting to the core…', thinking: 'thinking…', lookingUp: 'looking up',
     send: 'send', speak: 'speak', stopListening: 'stop listening', stopTalking: 'stop talking',
+    liveStart: 'talk live', liveStop: 'end the conversation', liveConnecting: 'connecting…', liveOn: 'live',
     alwaysAloud: 'always answer out loud', aloudWhenYouSpeak: 'answer out loud only when you speak',
     coreIsDown: 'The core is down. Send it again once it is back.',
     listen: 'listen', clickToSpeak: 'click to speak',
@@ -333,6 +342,8 @@ const en: Strings = {
     optional: 'optional', isSet: 'set', notSet: 'not set', remove: 'remove',
     day: 'the day starts at', dayNote: 'the small hours count as the day before', hourSuffix: ':00',
     keepTyping: 'keep what you type', keepTypingNote: 'secrets are already redacted; turn it off if you prefer only the numbers',
+    shortcut: 'shortcut to call it', shortcutNote: 'the core appears where you left it, already listening', shortcutPress: 'press the combination…', shortcutTaken: 'another app already holds that combination', shortcutOff: 'none', shortcutClear: 'turn off',
+    voiceMode: 'how you talk to it', voiceModeNote: 'both think with Claude Code; only the mouth and the ear change', voicePush: 'press and speak', voicePushNote: 'you press, you speak, it answers — one turn at a time, and only the transcription costs', voiceLive: 'live', voiceLiveNote: 'it hears you while you speak and you can cut in mid-sentence — it bills for the time the session is open', voiceLiveNeedsKey: 'needs the OpenAI key', liveVoiceLabel: 'voice',
     save: 'save', saved: 'saved', saving: 'saving…', test: 'test', working: 'working', failed: 'failed',
     agents: 'measure on its own, from login',
     agentsNote: 'the collector, the window reader and the listener start with the Mac and come back if they fall',
@@ -353,6 +364,7 @@ const en: Strings = {
     session: 'session', sessions: 'sessions', averageOf: 'average of', perDay: 'per measured day',
     others: (n) => `${n} others`,
     restOnScreen: '… the rest is written on screen.', didNotCatch: 'I did not catch that.',
+    keyRefused: 'OpenAI refused the key. Replace it in Settings → keys.',
     micDenied: 'The microphone was denied. Allow it in Settings → Privacy & Security → Microphone.',
   },
 }
@@ -437,6 +449,7 @@ const es: Strings = {
     listening: 'escuchando… deja de hablar y lo envío', transcribing: 'transcribiendo…',
     reconnecting: 'reconectando al núcleo…', thinking: 'pensando…', lookingUp: 'consultando',
     send: 'enviar', speak: 'hablar', stopListening: 'dejar de escuchar', stopTalking: 'dejar de hablar',
+    liveStart: 'hablar en vivo', liveStop: 'terminar la conversación', liveConnecting: 'conectando…', liveOn: 'en vivo',
     alwaysAloud: 'responder siempre en voz alta', aloudWhenYouSpeak: 'responder en voz alta solo cuando hables',
     coreIsDown: 'El núcleo está caído. Envíalo de nuevo cuando vuelva.',
     listen: 'escuchar', clickToSpeak: 'haz clic para hablar',
@@ -462,6 +475,8 @@ const es: Strings = {
     optional: 'opcional', isSet: 'configurada', notSet: 'sin configurar', remove: 'quitar',
     day: 'el día empieza a las', dayNote: 'la madrugada cuenta para el día anterior', hourSuffix: 'h',
     keepTyping: 'guardar lo que escribes', keepTypingNote: 'los secretos ya se redactan; desactívalo si prefieres solo los números',
+    shortcut: 'atajo para llamarlo', shortcutNote: 'el núcleo aparece donde lo dejaste, ya escuchando', shortcutPress: 'pulsa la combinación…', shortcutTaken: 'otra app ya usa esa combinación', shortcutOff: 'ninguno', shortcutClear: 'desactivar',
+    voiceMode: 'cómo hablas con él', voiceModeNote: 'los dos piensan con Claude Code; solo cambian la boca y el oído', voicePush: 'pulsar y hablar', voicePushNote: 'pulsas, hablas, responde — un turno cada vez, y solo cuesta la transcripción', voiceLive: 'en vivo', voiceLiveNote: 'te oye mientras hablas y puedes cortarlo a media frase — cobra por el tiempo de sesión abierta', voiceLiveNeedsKey: 'necesita la clave de OpenAI', liveVoiceLabel: 'voz',
     save: 'guardar', saved: 'guardado', saving: 'guardando…', test: 'probar', working: 'funciona', failed: 'falló',
     agents: 'medir solo, desde el inicio de sesión',
     agentsNote: 'el recolector, el lector de ventanas y la escucha arrancan con el Mac y vuelven si se caen',
@@ -482,6 +497,7 @@ const es: Strings = {
     session: 'sesión', sessions: 'sesiones', averageOf: 'media de', perDay: 'por día medido',
     others: (n) => `otros ${n}`,
     restOnScreen: '… el resto está escrito en la pantalla.', didNotCatch: 'No entendí lo que dijiste.',
+    keyRefused: 'OpenAI rechazó la clave. Cámbiala en Ajustes → claves.',
     micDenied: 'El micrófono fue denegado. Permítelo en Ajustes → Privacidad y seguridad → Micrófono.',
   },
 }
@@ -566,6 +582,7 @@ const fr: Strings = {
     listening: 'j’écoute… arrête de parler et j’envoie', transcribing: 'transcription…',
     reconnecting: 'reconnexion au noyau…', thinking: 'réflexion…', lookingUp: 'consultation',
     send: 'envoyer', speak: 'parler', stopListening: 'arrêter d’écouter', stopTalking: 'arrêter de parler',
+    liveStart: 'parler en direct', liveStop: 'terminer la conversation', liveConnecting: 'connexion…', liveOn: 'en direct',
     alwaysAloud: 'répondre toujours à voix haute', aloudWhenYouSpeak: 'répondre à voix haute seulement quand tu parles',
     coreIsDown: 'Le noyau est éteint. Renvoie-le quand il sera revenu.',
     listen: 'écouter', clickToSpeak: 'clique pour parler',
@@ -591,6 +608,8 @@ const fr: Strings = {
     optional: 'facultatif', isSet: 'configurée', notSet: 'non configurée', remove: 'retirer',
     day: 'la journée commence à', dayNote: 'le petit matin compte pour la veille', hourSuffix: 'h',
     keepTyping: 'garder ce que tu tapes', keepTypingNote: 'les secrets sont déjà masqués ; désactive si tu préfères seulement les chiffres',
+    shortcut: 'raccourci pour l’appeler', shortcutNote: 'le noyau apparaît là où tu l’as laissé, déjà à l’écoute', shortcutPress: 'appuie sur la combinaison…', shortcutTaken: 'une autre app utilise déjà cette combinaison', shortcutOff: 'aucun', shortcutClear: 'désactiver',
+    voiceMode: 'comment tu lui parles', voiceModeNote: 'les deux réfléchissent avec Claude Code ; seuls la bouche et l’oreille changent', voicePush: 'appuyer et parler', voicePushNote: 'tu appuies, tu parles, il répond — un tour à la fois, et seule la transcription coûte', voiceLive: 'en direct', voiceLiveNote: 'il t’entend pendant que tu parles et tu peux le couper — facturé au temps de session ouverte', voiceLiveNeedsKey: 'nécessite la clé OpenAI', liveVoiceLabel: 'voix',
     save: 'enregistrer', saved: 'enregistré', saving: 'enregistrement…', test: 'tester', working: 'fonctionne', failed: 'a échoué',
     agents: 'mesurer tout seul, dès l’ouverture de session',
     agentsNote: 'le collecteur, le lecteur de fenêtre et l’écoute démarrent avec le Mac et reviennent s’ils tombent',
@@ -611,6 +630,7 @@ const fr: Strings = {
     session: 'session', sessions: 'sessions', averageOf: 'moyenne de', perDay: 'par jour mesuré',
     others: (n) => `${n} autres`,
     restOnScreen: '… le reste est écrit à l’écran.', didNotCatch: 'Je n’ai pas compris.',
+    keyRefused: 'OpenAI a refusé la clé. Remplace-la dans Réglages → clés.',
     micDenied: 'Le micro a été refusé. Autorise-le dans Réglages → Confidentialité et sécurité → Microphone.',
   },
 }
@@ -695,6 +715,7 @@ const de: Strings = {
     listening: 'ich höre zu… hör auf zu sprechen und ich schicke es', transcribing: 'transkribiert…',
     reconnecting: 'verbinde neu mit dem Kern…', thinking: 'denkt nach…', lookingUp: 'schlägt nach',
     send: 'senden', speak: 'sprechen', stopListening: 'nicht mehr zuhören', stopTalking: 'nicht mehr sprechen',
+    liveStart: 'live sprechen', liveStop: 'Gespräch beenden', liveConnecting: 'verbinde…', liveOn: 'live',
     alwaysAloud: 'immer laut antworten', aloudWhenYouSpeak: 'nur laut antworten, wenn du sprichst',
     coreIsDown: 'Der Kern ist aus. Schick es noch einmal, wenn er zurück ist.',
     listen: 'zuhören', clickToSpeak: 'klicken zum Sprechen',
@@ -720,6 +741,8 @@ const de: Strings = {
     optional: 'optional', isSet: 'gesetzt', notSet: 'nicht gesetzt', remove: 'entfernen',
     day: 'der Tag beginnt um', dayNote: 'die frühen Stunden zählen zum Vortag', hourSuffix: 'Uhr',
     keepTyping: 'behalten, was du tippst', keepTypingNote: 'Geheimnisse werden schon geschwärzt; schalte es aus, wenn dir die Zahlen reichen',
+    shortcut: 'Kurzbefehl zum Rufen', shortcutNote: 'der Kern erscheint, wo du ihn gelassen hast, und hört schon zu', shortcutPress: 'Tastenkombination drücken…', shortcutTaken: 'eine andere App belegt diese Kombination schon', shortcutOff: 'keiner', shortcutClear: 'ausschalten',
+    voiceMode: 'wie du mit ihm sprichst', voiceModeNote: 'beide denken mit Claude Code; nur Mund und Ohr ändern sich', voicePush: 'drücken und sprechen', voicePushNote: 'du drückst, sprichst, es antwortet — ein Zug nach dem anderen, und nur die Transkription kostet', voiceLive: 'live', voiceLiveNote: 'es hört dich beim Sprechen und du kannst mitten im Satz unterbrechen — abgerechnet wird die offene Sitzungszeit', voiceLiveNeedsKey: 'braucht den OpenAI-Schlüssel', liveVoiceLabel: 'Stimme',
     save: 'speichern', saved: 'gespeichert', saving: 'speichert…', test: 'testen', working: 'funktioniert', failed: 'fehlgeschlagen',
     agents: 'von der Anmeldung an selbst messen',
     agentsNote: 'Sammler, Fensterleser und Mithören starten mit dem Mac und kommen zurück, wenn sie ausfallen',
@@ -740,6 +763,7 @@ const de: Strings = {
     session: 'Sitzung', sessions: 'Sitzungen', averageOf: 'Durchschnitt von', perDay: 'pro gemessenem Tag',
     others: (n) => `${n} weitere`,
     restOnScreen: '… der Rest steht auf dem Bildschirm.', didNotCatch: 'Das habe ich nicht verstanden.',
+    keyRefused: 'OpenAI hat den Schlüssel abgelehnt. Ersetze ihn in Einstellungen → Schlüssel.',
     micDenied: 'Das Mikrofon wurde verweigert. Erlaube es in Einstellungen → Datenschutz & Sicherheit → Mikrofon.',
   },
 }
