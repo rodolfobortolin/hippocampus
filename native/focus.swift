@@ -165,7 +165,7 @@ func oQueEstaTocando() -> String? {
         return faixa
     }
 
-    // A música do Rodolfo toca em aba de navegador, que nenhum player reporta.
+    // Música em aba de navegador, que nenhum player consegue reportar.
     // Entre as abas abertas, a de um site de mídia é a aposta.
     for (bundle, nome) in [("com.google.Chrome", "Google Chrome"),
                            ("company.thebrowser.Browser", "Arc")] {

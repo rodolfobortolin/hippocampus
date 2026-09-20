@@ -2,5 +2,12 @@ node_modules/
 dist/
 .env
 .DS_Store
-native/hipocampo-focus
 *.log
+
+# Resultado de compilação: os bundles nativos são assinados com o Developer ID
+# de quem compila, então não fazem sentido versionados — cada um gera o seu com
+# `npm run build:native`.
+native/*.app/
+native/hipocampo-focus
+native/hipocampo-ouvido
+build/
