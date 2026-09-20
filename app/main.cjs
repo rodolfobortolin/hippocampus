@@ -114,10 +114,14 @@ function abreJanela() {
  * estiver fazendo, escuta com um clique e responde falando. Fechar o painel
  * não encerra nada; esta janela e o coletor seguem por conta própria.
  */
-function abreNucleo() {
+function abreNucleo(roubaFoco = true) {
   if (janelaNucleo) {
-    janelaNucleo.show()
-    janelaNucleo.focus()
+    if (roubaFoco) {
+      janelaNucleo.show()
+      janelaNucleo.focus()
+    } else {
+      janelaNucleo.showInactive()
+    }
     return
   }
 
@@ -150,7 +154,8 @@ function abreNucleo() {
   janelaNucleo.setAlwaysOnTop(true, 'floating')
   janelaNucleo.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   janelaNucleo.loadURL(`${ENDERECO}#nucleo`)
-  janelaNucleo.once('ready-to-show', () => janelaNucleo.show())
+  janelaNucleo.once('ready-to-show', () =>
+    roubaFoco ? janelaNucleo.show() : janelaNucleo.showInactive())
   janelaNucleo.on('moved', guardaPosicao)
   janelaNucleo.on('closed', () => { janelaNucleo = null })
 }
@@ -164,8 +169,7 @@ function abreNucleo() {
  */
 function chamaNucleo() {
   const novo = !janelaNucleo
-  abreNucleo()
-  if (!novo) janelaNucleo.showInactive()
+  abreNucleo(false)
   const acorda = () => janelaNucleo?.webContents.send('nucleo:acordar')
   if (novo) janelaNucleo.webContents.once('did-finish-load', acorda)
   else acorda()
@@ -190,13 +194,17 @@ function escutaONucleo() {
   escuta.on('error', reconecta)
 }
 
+/**
+ * Esconde em vez de fechar.
+ *
+ * Fechar destrói a cena de WebGL, e a palavra de ativação passaria a esperar um
+ * a dois segundos de carregamento antes de poder ouvir. Escondida, a janela
+ * volta na hora — e o Chromium suspende o `requestAnimationFrame` de janela
+ * oculta, então a esfera parada não custa nada.
+ */
 function alternaNucleo() {
-  if (janelaNucleo) {
-    janelaNucleo.close()
-    janelaNucleo = null
-  } else {
-    abreNucleo()
-  }
+  if (janelaNucleo?.isVisible()) janelaNucleo.hide()
+  else abreNucleo()
 }
 
 function montaBandeja() {
@@ -262,10 +270,17 @@ app.whenReady().then(async () => {
   montaBandeja()
   abreJanela()
   escutaONucleo()
-  // Chamar o núcleo de qualquer lugar, sem procurar o app.
-  globalShortcut.register('CommandOrControl+Shift+H', alternaNucleo)
-  // E falar com ele sem nem isso: o atalho traz a esfera já ouvindo.
-  globalShortcut.register('CommandOrControl+Shift+Space', chamaNucleo)
+  // Chamar o núcleo de qualquer lugar, sem procurar o app. Um atalho já tomado
+  // por outro app falha calado, e o sintoma seria "o atalho não funciona" sem
+  // pista nenhuma — daí o aviso.
+  for (const [combinacao, acao] of [
+    ['CommandOrControl+Shift+H', alternaNucleo],
+    ['CommandOrControl+Shift+Space', chamaNucleo],
+  ]) {
+    if (!globalShortcut.register(combinacao, acao)) {
+      console.warn(`[atalho] ${combinacao} já está tomado por outro app`)
+    }
+  }
 })
 
 app.on('activate', abreJanela)
