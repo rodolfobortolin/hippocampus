@@ -211,6 +211,7 @@ export function serve(collector?: Collector): http.Server {
       try {
         for await (const event of chat(String(payload.texto), session)) {
           if (event.type === 'modelo') send({ tipo: 'modelo', modelo: event.modelo, nivel: event.nivel })
+          else if (event.type === 'delta') send({ tipo: 'delta', texto: event.texto })
           else if (event.type === 'fim') send({ tipo: 'fim', texto: event.texto })
           else if (event.type === 'texto') send({ tipo: 'texto', texto: event.texto })
           else if (event.type === 'ferramenta') send({ tipo: 'ferramenta', nome: event.nome })

@@ -52,6 +52,18 @@ export function Conversa({ status }: { status: Status | null }) {
         setFerramenta(dados.nome)
         setEstado(dados.nome ? 'ferramenta' : 'pensando')
       }
+      // Pedaço de texto chegando: escreve na hora, na última fala dele.
+      if (dados.tipo === 'delta') {
+        respostaRef.current += dados.texto
+        setEstado('pensando')
+        setFalas((atuais) => {
+          const ultima = atuais[atuais.length - 1]
+          if (ultima?.de === 'ele') {
+            return [...atuais.slice(0, -1), { ...ultima, texto: ultima.texto + dados.texto }]
+          }
+          return [...atuais, { de: 'ele', texto: dados.texto }]
+        })
+      }
       if (dados.tipo === 'texto') {
         setEstado('pensando')
         respostaRef.current = `${respostaRef.current}\n${dados.texto}`.trim()

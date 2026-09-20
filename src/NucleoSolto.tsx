@@ -27,6 +27,10 @@ export function NucleoSolto() {
   const { ligado, envia } = useSocket(api.socket, (dados) => {
     if (dados.tipo === 'pensando') { setEstado('pensando'); setResposta('') }
     if (dados.tipo === 'ferramenta') setEstado(dados.nome ? 'ferramenta' : 'pensando')
+    if (dados.tipo === 'delta') {
+      respostaRef.current += dados.texto
+      setResposta(respostaRef.current)
+    }
     if (dados.tipo === 'texto') {
       respostaRef.current = `${respostaRef.current}\n${dados.texto}`.trim()
       setResposta(respostaRef.current)

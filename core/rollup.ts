@@ -10,8 +10,15 @@ import { writeDaySection } from './vault.ts'
 const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.round((seconds % 3600) / 60)).padStart(2, '0')}`
 const clock = (ts: number | null) => (ts ? new Date(ts * 1000).toTimeString().slice(0, 5) : '—')
 
-/** O material bruto do dia, em texto curto, para o modelo escrever em cima. */
-export function dossier(day: string): string {
+/**
+ * O material do dia para o modelo.
+ *
+ * `resumo` devolve só os números de cabeça — é o que responde 90% das
+ * perguntas, e mandar o dia inteiro para extrair um número faz o modelo ler
+ * 1.500 tokens à toa. O `completo` existe para escrever a narrativa, onde o
+ * detalhe é o produto.
+ */
+export function dossier(day: string, nivel: 'resumo' | 'completo' = 'completo'): string {
   const report = dayReport(day)
   const lines: string[] = [
     `Dia ${day}. Nas mãos dele: ${hours(report.activeSeconds)}.`,
@@ -41,6 +48,14 @@ export function dossier(day: string): string {
   }
   if (report.projects.length) {
     lines.push('', 'Por projeto:', ...report.projects.map((p) => `- ${p.name}: ${hours(p.seconds)}`))
+  }
+
+  if (nivel === 'resumo') {
+    lines.push('',
+      `Também medido, se precisar peça o detalhe: ${report.commits.length} commits, ` +
+      `${report.aiTurns.length} pedidos a agentes, ${report.visits} visitas de navegador, ` +
+      `${report.windows.length} janelas distintas.`)
+    return lines.join('\n')
   }
   if (report.windows.length) {
     lines.push('', 'Janelas onde mais ficou:',

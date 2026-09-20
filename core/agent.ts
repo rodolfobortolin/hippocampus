@@ -87,9 +87,13 @@ const tools = [
   },
   {
     name: 'dia',
-    description: 'Tudo que foi medido num dia: tempo por app, categoria, projeto, janelas, commits, sites, pedidos ao Claude Code e amostras de escrita.',
-    inputSchema: { data: z.string().describe('AAAA-MM-DD; use "hoje" para o dia corrente') },
-    handler: async ({ data }: { data: string }) => say(dossier(data === 'hoje' ? today() : data)),
+    description: 'O que foi medido num dia. Por padrão vem o resumo — tempo ativo, foco, sessões, trocas, tempo por app, categoria e projeto —, que responde quase tudo. Peça detalhe só quando precisar de janelas, commits, sites, pedidos a agentes e amostras de escrita.',
+    inputSchema: {
+      data: z.string().describe('AAAA-MM-DD; use "hoje" para o dia corrente'),
+      detalhe: z.boolean().optional().describe('true traz o dia inteiro; custa mais e raramente é preciso'),
+    },
+    handler: async ({ data, detalhe }: { data: string; detalhe?: boolean }) =>
+      say(dossier(data === 'hoje' ? today() : data, detalhe ? 'completo' : 'resumo')),
   },
   {
     name: 'periodo',
@@ -194,7 +198,16 @@ const tools = [
   },
 ]
 
-const server = createSdkMcpServer({ name: 'hipocampo', version: '1.0.0', tools: tools as any })
+const server = createSdkMcpServer({
+  name: 'hipocampo',
+  version: '1.0.0',
+  tools: tools as any,
+  // Sem isto o SDK adia as ferramentas e o modelo gasta uma ida e volta
+  // inteira só para descobrir que elas existem — medido em 4,1s antes de
+  // chegar na primeira consulta de verdade. São dez ferramentas pequenas;
+  // cabem no prompt sem drama.
+  alwaysLoad: true,
+})
 
 function persona(): string {
   const now = new Date()
@@ -225,6 +238,7 @@ medição, diga que faltou medição, nunca deixe parecer que ele não fez nada.
 
 export type AgentEvent =
   | { type: 'modelo'; modelo: string; nivel: number }
+  | { type: 'delta'; texto: string }
   | { type: 'texto'; texto: string }
   | { type: 'ferramenta'; nome: string }
   | { type: 'fim'; texto: string }
@@ -244,6 +258,10 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
       ...(config.claudeModel ? { model: config.claudeModel } : rota ? { model: rota.modelo } : {}),
       ...(sessionId ? { resume: sessionId } : {}),
       permissionMode: 'bypassPermissions',
+      // Sem isto a resposta só aparece quando o bloco inteiro termina. Medido
+      // numa pergunta trivial: a primeira letra existe aos 3s e o bloco fecha
+      // aos 6,4s — metade da espera era só esperar.
+      includePartialMessages: true,
       systemPrompt: { type: 'preset', preset: 'claude_code', append: persona() },
       mcpServers: { hipocampo: server },
       allowedTools: tools.map((tool) => `mcp__hipocampo__${tool.name}`),
@@ -254,9 +272,18 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
   let final = ''
   try {
     for await (const message of run as any) {
+      // O texto chega em pedaços; o bloco completo que vem depois repetiria
+      // tudo, então dele só interessa o uso de ferramenta.
+      if (message.type === 'stream_event') {
+        const delta = message.event?.delta
+        if (delta?.type === 'text_delta' && delta.text) {
+          yield { type: 'delta', texto: delta.text }
+        }
+        continue
+      }
+
       if (message.type === 'assistant') {
         for (const block of message.message?.content ?? []) {
-          if (block.type === 'text' && block.text?.trim()) yield { type: 'texto', texto: block.text }
           if (block.type === 'tool_use') {
             const nome = String(block.name)
             // Ferramenta interna do SDK (busca de esquema) não é consulta ao

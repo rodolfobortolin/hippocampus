@@ -203,7 +203,9 @@ export async function escolheModelo(pedido: string): Promise<Roteamento | null> 
           },
         },
       }),
-      signal: AbortSignal.timeout(8000),
+      // Teto curto: isto está no caminho crítico da resposta, e escolher o
+      // modelo não pode custar mais do que a escolha economiza.
+      signal: AbortSignal.timeout(2500),
     })
     if (!resposta.ok) return null
 
