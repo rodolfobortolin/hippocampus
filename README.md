@@ -1,6 +1,6 @@
-# Hipocampo
+# Hippocampus
 
-Your Mac already knows where your time went. Hipocampo keeps it — **all local,
+Your Mac already knows where your time went. Hippocampus keeps it — **all local,
 every day** — and gives it back as charts, as a journal, and as a conversation.
 
 *[Leia em português](README.pt-BR.md).*
@@ -28,7 +28,7 @@ model. That is why they cost so much (a popular competitor burns roughly ten
 dollars in a working day, at about a million input tokens per hour), drain the
 battery, light up the orange screen-sharing dot, and cannot be sold in the EU.
 
-Hipocampo never takes a single screenshot. It reads what is already text: the
+Hippocampus never takes a single screenshot. It reads what is already text: the
 focused window title, the tab URL, the commands, the commits, what you asked
 Claude Code. It comes out two orders of magnitude cheaper, runs on a native
 helper costing a few milliseconds per sample — and "I have never taken a
@@ -55,10 +55,10 @@ instead of letting it look like a day when you did nothing.
 ```bash
 npm install
 npm run build:native      # builds the Swift helpers
-npm run dist              # builds and signs Hipocampo.app into release/
+npm run dist              # builds and signs Hippocampus.app into release/
 ```
 
-Drag `release/mac-arm64/Hipocampo.app` to `/Applications`, open it, and turn on
+Drag `release/mac-arm64/Hippocampus.app` to `/Applications`, open it, and turn on
 **measure on its own** in Settings. That registers three login items — the
 collector, the window reader and the wake-word listener — which macOS then asks
 you to approve in **Settings → General → Login Items**. They start with the Mac
@@ -129,7 +129,7 @@ the sidebar, without blocking the rest.
 | **Access to other apps' data** | Chrome/Arc history and Computer History | loses visited sites and the fine-grained keyboard events |
 
 ```bash
-npm run permissao
+npm run permission
 ```
 
 **Authorize through the dialog, not by flipping the switch by hand.** They look
@@ -142,7 +142,7 @@ permission to whoever asks, but to the **responsible process** — whoever
 launched it. Were the Node collector to launch it, `node` is what would show up
 in the list, and authorizing `node` would grant Accessibility to every Node
 script on the machine. Launched directly by `launchd`, it answers for itself and
-appears as "Hipocampo Focus".
+appears as "Hippocampus Focus".
 
 The build uses the **Developer ID** from the keychain when one exists, and this
 is not about distribution: the grant is bound to the certificate identity, which
@@ -150,7 +150,7 @@ does not change between builds. With an ad-hoc signature it is bound to the code
 hash, and then every `npm run build:native` drops the permission **silently** —
 the switch stays on screen while the system denies underneath. With no Developer
 ID in the keychain the build says so and falls back to ad hoc; `npm run
-permissao` re-grants when that happens.
+permission` re-grants when that happens.
 
 ## What it collects
 
@@ -197,7 +197,7 @@ journal is told to say so.
 The thresholds are a convention, and what matters is that they stay frozen: the
 number is for comparing you with you, never with another person or another app.
 
-Computer History is a cache that OpenAI itself deletes within hours. Hipocampo
+Computer History is a cache that OpenAI itself deletes within hours. Hippocampus
 harvests it before it disappears and archives it compressed in `archive/` —
 which is how it can reconstruct days from before it was installed
 (`npx tsx core/backfill.ts`).
@@ -208,7 +208,7 @@ The floating core is the app when you do not want the app: a frameless window
 with just the sphere, above whatever you are doing. It listens with a click and
 answers out loud.
 
-- Say **"Hipocampo"** and it comes to the front, already listening. The wake
+- Say **"Hippocampus"** and it comes to the front, already listening. The wake
   word is recognised entirely on-device by `SFSpeechRecognizer` — no audio
   leaves the machine, and nothing is recorded until you speak to it.
 - **⌘⇧Space** does the same without the word. **⌘⇧H** shows and hides it.
@@ -228,7 +228,7 @@ first open, a Developer ID app Apple has never seen. Store a credential once and
 one command does the rest:
 
 ```bash
-xcrun notarytool store-credentials hipocampo \
+xcrun notarytool store-credentials hippocampus \
   --apple-id YOU@EXAMPLE.COM --team-id YOURTEAM --password APP-SPECIFIC-PASSWORD
 npm run notarizar
 ```
@@ -255,10 +255,10 @@ npm run rollup -- 2026-09-19 --sem-narrativa   # numbers only
 ## Where the data lives
 
 ```
-~/Library/Application Support/Hipocampo/
-  hipocampo.db          everything measured
+~/Library/Application Support/Hippocampus/
+  hippocampus.db          everything measured
   archive/              Computer History events, compressed
-~/Library/Logs/Hipocampo/collector.log
+~/Library/Logs/Hippocampus/collector.log
 ```
 
 To leave without a trace: `npm run uninstall:agent` and delete that folder. To

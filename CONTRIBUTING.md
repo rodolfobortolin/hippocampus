@@ -5,7 +5,7 @@ on this, because some of them are not obvious from the code.
 
 ## Two rules that are not up for negotiation
 
-**No screenshots.** Hipocampo reads what is already text — window titles, tab
+**No screenshots.** Hippocampus reads what is already text — window titles, tab
 URLs, commands, commits. It never captures the screen, and it never will. This
 is what makes it cheap, battery-friendly, free of the orange recording dot, and
 sellable in the EU. A pull request that adds screen capture, OCR or a vision
@@ -30,7 +30,7 @@ Accessibility API, CoreAudio and SMAppService.
 npm install
 npm run build:native
 npm run install:agent    # hand-installed launchd agents, for development
-npm run permissao        # opens the Accessibility prompt and the right pane
+npm run permission        # opens the Accessibility prompt and the right pane
 npm run dev:app
 npm test
 ```
@@ -85,7 +85,7 @@ especially when the obvious approach was tried and failed — most of the commen
 in `native/` and `app/main.cjs` exist because macOS punished a reasonable idea.
 
 Commit messages are a sentence about what changed from the user's side, not the
-file list. `Tempo parado com agente trabalhando não é ociosidade`, not
+file list. `Idle time with an agent working is not idleness`, not
 `fix metrics.ts`.
 
 ## Never read disk synchronously in a source
@@ -93,7 +93,7 @@ file list. `Tempo parado com agente trabalhando não é ociosidade`, not
 `readdirSync`, `readFileSync`, `existsSync`, `openSync` — none of them, anywhere
 under `core/sources/`. In a folder macOS protects, they do not return an error.
 They stop. And stopped inside the event loop, they stop the whole collector:
-the server has already printed "de pé" and no route answers.
+the server has already said it is up and no route answers.
 
 `comLimite` exists to keep one bad source from taking the rest down, and it
 cannot help here — its own timeout needs the event loop to fire. Async is what
@@ -129,11 +129,11 @@ literal — signed under its own filename, registration fails with a bare
 Most problems on macOS are permissions, and they fail quietly. Please include:
 
 - your macOS version,
-- whether **Hipocampo Focus** is listed and enabled under Privacy & Security →
+- whether **Hippocampus Focus** is listed and enabled under Privacy & Security →
   Accessibility,
 - what the sidebar says at the bottom left — it names any source that is
   waiting on a permission,
-- the tail of `~/Library/Logs/Hipocampo/collector.log`.
+- the tail of `~/Library/Logs/Hippocampus/collector.log`.
 
 Your database is never needed to diagnose anything, and you should not send it.
 It is your day.

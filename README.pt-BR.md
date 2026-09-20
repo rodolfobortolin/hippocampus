@@ -1,6 +1,8 @@
-# Hipocampo
+# Hippocampus
 
-O seu Mac já sabe onde o seu tempo foi. O Hipocampo guarda isso — **tudo local, todo dia** — e devolve em gráfico, em diário e em conversa.
+*[Read in English](README.md).*
+
+O seu Mac já sabe onde o seu tempo foi. O Hippocampus guarda isso — **tudo local, todo dia** — e devolve em gráfico, em diário e em conversa.
 
 ```
 helper nativo (Swift)  ─┐
@@ -26,7 +28,7 @@ dez dólares num expediente, com cerca de um milhão de tokens de entrada por
 hora), comem bateria, acendem o ícone laranja de compartilhamento de tela e
 não podem ser vendidos na União Europeia.
 
-O Hipocampo não tira um único screenshot. Ele lê o que já é texto: o título da
+O Hippocampus não tira um único screenshot. Ele lê o que já é texto: o título da
 janela em foco, a URL da aba, os comandos, os commits, o que você pediu ao
 Claude Code. Sai mais barato em duas ordens de grandeza, roda com um helper
 nativo de alguns milissegundos por amostra — e "nunca tirei um screenshot" é
@@ -73,7 +75,7 @@ como *aguardando permissão* na barra lateral, sem travar o resto.
 | **Acesso a dados de outros apps** | histórico do Chrome/Arc e o Computer History | perde sites visitados e os eventos finos de teclado |
 
 ```bash
-npm run permissao
+npm run permission
 ```
 
 **Autorize pelo diálogo, não ligando o interruptor à mão.** Os dois parecem a
@@ -85,14 +87,14 @@ O helper tem agente próprio no `launchd` de propósito. O macOS não atribui a
 permissão a quem pede, e sim ao **processo responsável** — quem lançou. Fosse o
 coletor em Node a lançá-lo, quem apareceria na lista seria o `node`, e autorizar
 o `node` daria Acessibilidade a qualquer script Node da máquina. Lançado direto
-pelo `launchd`, ele responde por si mesmo e aparece como "Hipocampo Focus".
+pelo `launchd`, ele responde por si mesmo e aparece como "Hippocampus Focus".
 
 O build usa o **Developer ID** do chaveiro quando existe, e isso não é sobre
 distribuição: a autorização fica amarrada à identidade do certificado, que não
 muda entre compilações. Com assinatura ad hoc ela fica amarrada ao hash do
 código, e aí cada `npm run build:native` derruba a permissão **em silêncio** —
 o interruptor continua ligado na tela enquanto o sistema nega por dentro. Sem
-Developer ID no chaveiro o build avisa e cai para ad hoc; `npm run permissao`
+Developer ID no chaveiro o build avisa e cai para ad hoc; `npm run permission`
 reconcede quando isso acontecer.
 
 ## O que ele coleta
@@ -137,7 +139,7 @@ Os limiares são convenção, e o que importa é que fiquem congelados: o númer
 serve para comparar você com você, nunca com outra pessoa nem com outro app.
 
 O Computer History é um cache que a própria OpenAI apaga em poucas horas. O
-Hipocampo colhe antes de sumir e arquiva em `archive/` compactado — é por isso
+Hippocampus colhe antes de sumir e arquiva em `archive/` compactado — é por isso
 que ele consegue reconstruir dias anteriores ao dia em que foi instalado
 (`npx tsx core/backfill.ts`).
 
@@ -172,10 +174,10 @@ npm run rollup -- 2026-09-19 --sem-narrativa   # só os números
 ## Onde ficam os dados
 
 ```
-~/Library/Application Support/Hipocampo/
-  hipocampo.db          tudo que foi medido
+~/Library/Application Support/Hippocampus/
+  hippocampus.db          tudo que foi medido
   archive/              eventos do Computer History, compactados
-~/Library/Logs/Hipocampo/collector.log
+~/Library/Logs/Hippocampus/collector.log
 ```
 
 Para sair sem deixar rastro: `npm run uninstall:agent` e apague essa pasta.

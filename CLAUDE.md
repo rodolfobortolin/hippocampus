@@ -1,8 +1,8 @@
-# Hipocampo
+# Hippocampus
 
-Medidor local do dia no Mac. Leia o `README.md` para o que ele é e o
-`CONTRIBUTING.md` para as duas regras que não se negociam — nunca tirar
-screenshot, e nunca dar nota em quem usa.
+A local measure of your day on a Mac. Read `README.md` for what it is and
+`CONTRIBUTING.md` for the two rules that are not up for negotiation — never
+take a screenshot, and never score the person.
 
 ## Commit messages
 
@@ -32,58 +32,67 @@ matter most is `native/` and `app/main.cjs`: nearly every comment there exists
 because macOS punished a reasonable idea, and without the record someone
 reintroduces the idea.
 
-## Antes de dizer que terminou
+## Before saying it is done
 
 ```bash
-npm run build     # tipos e interface
-npm test          # é o que a CI roda, os dois
+npm run build     # types and the interface
+npm test          # CI runs both of these
 ```
 
-Mexeu no núcleo? Reinicie e confira que ele voltou inteiro:
+Touched the core? Restart it and check it came back whole:
 
 ```bash
-launchctl kickstart -k gui/$(id -u)/com.hipocampo.coletor
+launchctl kickstart -k gui/$(id -u)/com.hippocampus.collector
 curl -s http://127.0.0.1:7878/api/status
 ```
 
-## Os cinco idiomas são checados pelo compilador
+## The five languages are checked by the compiler
 
-`src/lib/textos.ts` tem um tipo fechado: acrescentar uma chave quebra o build
-até os cinco idiomas terem tradução. Isso é proposital. O mesmo vale no núcleo,
-em `core/idiomas.ts`, `core/personas.ts` e `core/dossie.ts`.
+`src/lib/strings.ts` has a closed type: adding a key breaks the build until all
+five languages carry a translation. That is deliberate. The same holds in the
+core, in `core/languages.ts`, `core/personas.ts` and `core/dossier.ts`.
 
-Nunca traduzir chave guardada no banco (`codigo`, `ia`, `distracao`): trocar de
-idioma não pode reescrever o passado. Só muda o nome exibido, em
-`NOMES_CATEGORIA`.
+Never translate a key stored in the database (`code`, `ai`, `distraction`):
+switching language cannot rewrite the past. Only the displayed name changes, in
+`CATEGORY_NAMES`.
 
-## Disco síncrono é proibido nas fontes
+## Synchronous disk is forbidden in the sources
 
-Nada de `readdirSync`, `readFileSync`, `existsSync` ou `openSync` sob
-`core/sources/`. Em pasta que o macOS protege, essas chamadas não devolvem
-erro — elas param, e param o coletor inteiro junto. O `comLimite` não salva,
-porque o timeout dele também precisa do event loop. Há um teste verificando.
+No `readdirSync`, `readFileSync`, `existsSync` or `openSync` anywhere under
+`core/sources/`. In a folder macOS protects, those calls do not return an error
+— they stop, and stop the whole collector with them. `withTimeout` cannot save
+it, because its own timeout also needs the event loop. A test checks this.
 
-Pelo mesmo motivo, o app empacotado roda de `/Applications`: sob launchd, o
-Node não consegue nem carregar os próprios arquivos de `~/Documents`.
+For the same reason the packaged app runs from `/Applications`: under launchd,
+Node cannot even load its own files out of `~/Documents`.
 
-## Os agentes
+## The agents
 
-No app empacotado, os três agentes — coletor, foco e ouvido — são login items
-registrados por `SMAppService`, com os plists dentro do bundle em
-`Contents/Library/LaunchAgents`. Quem registra é `native/agentes.swift`, que
-mora em `Contents/MacOS` porque é de lá que `Bundle.main` resolve para o app.
+In the packaged app the three agents — collector, focus and listener — are
+login items registered by `SMAppService`, with their plists inside the bundle
+at `Contents/Library/LaunchAgents`. `native/agents.swift` does the registering
+and lives in `Contents/MacOS`, because that is where `Bundle.main` resolves to
+the app.
 
-O `scripts/agent.sh`, que escreve plists à mão em `~/Library/LaunchAgents`,
-continua existindo para desenvolvimento.
+`scripts/agent.sh`, which writes plists by hand into `~/Library/LaunchAgents`,
+still exists for development.
 
-**O registrador precisa ser assinado com o identificador do app.** O
-SMAppService compara a identidade de quem pede com a do app, e "quem pede" é
-literal. Assinado com o nome do arquivo, o registro falha com um seco
-"Operation not permitted" e nenhuma pista. É o que o `build/assina-registrador.cjs`
-faz no afterPack, antes do selo.
+**The registrar has to be signed with the app's identifier.** SMAppService
+compares the identity of whoever asks against the app's, and "whoever asks" is
+literal. Signed under its filename, registration fails with a bare "Operation
+not permitted" and no hint at all. That is what `build/sign-registrar.cjs` does
+in afterSign, before the seal.
 
-## Chaves
+## Keys
 
-Vivem no Chaveiro do macOS, gravadas pela tela de Ajustes. Nunca em arquivo,
-nunca em commit, nunca num argumento de processo — argumento qualquer `ps` lê.
-O `.env` existe só para desenvolvimento e perde para o Chaveiro.
+They live in the macOS Keychain, written through the Settings screen. Never in
+a file, never in a commit, never in a process argument — any `ps` reads an
+argument. A `.env` exists only for development and loses to the Keychain.
+
+## The name
+
+The app was called Hipocampo before it was called Hippocampus. The old name
+survives only where it has to: the Keychain service read as a fallback, the
+settings row read in its old shape, the vault marker already sitting in
+people's notes, and the migration map from the old category keys. Everywhere
+else it is gone.
