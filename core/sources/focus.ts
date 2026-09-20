@@ -33,15 +33,28 @@ type Sample = {
 type Open = { id: number; key: string; startedAt: number; endedAt: number }
 type Contadores = { keys: number; clicks: number; scroll: number }
 
+// A lista de colunas e a de valores têm que andar juntas. Quando `tela`, `som`,
+// `midia` e `tocando` nasceram, só os valores foram acrescentados — e o
+// node:sqlite da época engolia os parâmetros sobrando calado, então 887 blocos
+// foram gravados com os quatro campos vazios sem ninguém perceber. Versão nova
+// recusa com "column index out of range", que é o comportamento certo.
 const insert = db.prepare(
   `insert into blocks (started_at, ended_at, seconds, day, app, bundle, title, url, host, idle,
-                       keys, clicks, scroll, mic)
-   values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                       keys, clicks, scroll, mic, tela, som, midia, tocando)
+   values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 )
+
+// Dentro de um mesmo bloco a faixa muda, a chamada começa e o som para. Por
+// isso o que é estado acumulado usa `max` e o que é o valor do momento usa
+// `coalesce(?, coluna)`: chegou valor novo, vale ele; chegou nulo, fica o que
+// havia. O `coalesce` em volta de `mic` e `som` é necessário porque `max` com
+// NULL devolve NULL — era assim que `som` ficava eternamente vazio mesmo com o
+// helper informando que havia som tocando.
 const extend = db.prepare(
   `update blocks set ended_at = ?, seconds = ?,
           keys = keys + ?, clicks = clicks + ?, scroll = scroll + ?,
-          mic = max(mic, ?), som = max(som, ?)
+          mic = max(coalesce(mic, 0), ?), som = max(coalesce(som, 0), ?),
+          midia = coalesce(?, midia), tocando = coalesce(?, tocando)
      where id = ?`,
 )
 
@@ -85,7 +98,10 @@ export class FocusCollector {
     try {
       this.ingest(sample as Sample)
     } catch (error) {
-      console.error('[foco] amostra inválida:', (error as Error).message)
+      // Com a mensagem sozinha, um erro de SQL vira uma linha que não diz qual
+      // consulta falhou — foi assim que um insert com parâmetro sobrando ficou
+      // meses invisível. A pilha diz.
+      console.error('[foco] amostra inválida:', (error as Error).stack ?? error)
     }
   }
 
@@ -168,7 +184,9 @@ export class FocusCollector {
     if (this.open) {
       this.open.endedAt = ts
       extend.run(ts, ts - this.open.startedAt, delta.keys, delta.clicks, delta.scroll,
-        mic, sample.som ? 1 : 0, this.open.id)
+        mic, sample.som ? 1 : 0,
+        sample.escuta ? null : sample.midiaAberta ?? null, sample.tocando ?? null,
+        this.open.id)
       return
     }
 

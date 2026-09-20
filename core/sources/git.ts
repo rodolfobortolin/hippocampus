@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import { config, dayOf } from '../config.ts'
 import { db } from '../db.ts'
@@ -17,14 +17,32 @@ function git(repo: string, args: string[]): string {
   }
 }
 
-/** Varre os repositórios e guarda os commits dos últimos `days` dias. */
-export function harvestGit(days = 3): { commits: number } {
-  if (!fs.existsSync(config.codeRoot)) return { commits: 0 }
+/**
+ * Varre os repositórios e guarda os commits dos últimos `days` dias.
+ *
+ * Tudo que toca o disco aqui é assíncrono de propósito. A pasta de código mora
+ * em `~/Documents`, que o macOS protege: sem a permissão, um `readdirSync` não
+ * devolve erro — ele para. E parado no event loop, para o coletor inteiro, com
+ * o servidor já dizendo "de pé" e nenhuma rota respondendo. O `comLimite` que
+ * embrulha esta função não salva disso, porque o timeout dele também precisa
+ * do event loop para disparar; assíncrono é o que devolve o controle a ele.
+ */
+export async function harvestGit(days = 3): Promise<{ commits: number }> {
+  let nomes: string[]
+  try {
+    nomes = await fs.readdir(config.codeRoot)
+  } catch {
+    return { commits: 0 }
+  }
   let total = 0
 
-  for (const name of fs.readdirSync(config.codeRoot)) {
+  for (const name of nomes) {
     const repo = path.join(config.codeRoot, name)
-    if (!fs.existsSync(path.join(repo, '.git'))) continue
+    try {
+      await fs.access(path.join(repo, '.git'))
+    } catch {
+      continue
+    }
 
     // %x1f separa campos e %x1e ABRE cada commit — não fecha.
     //

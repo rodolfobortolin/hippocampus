@@ -66,14 +66,38 @@ export const config = {
   keepTyping: env('HIPOCAMPO_KEEP_TYPING', '1') === '1',
 }
 
+/**
+ * Onde está o helper nativo.
+ *
+ * Ele mora dentro de um `.app` para ter identidade própria no macOS — é o que
+ * faz a permissão de Acessibilidade aparecer com nome e colar. Mas o `.app`
+ * fica em lugares diferentes conforme quem está rodando: no repositório é
+ * `native/` ao lado do `core/`; dentro do bundle empacotado, o Electron põe os
+ * recursos extras em `Contents/Resources/`, um nível acima do `app/`. Procurar
+ * nos dois é mais honesto do que escolher um e quebrar no outro em silêncio.
+ *
+ * Procurar custa uma ida ao disco, e por isso acontece na primeira vez que
+ * alguém pergunta — nunca na importação. O projeto mora em `~/Documents`, que
+ * é pasta protegida pelo TCC: um agente de fundo que toca nela antes de abrir
+ * o servidor fica esperando um diálogo de permissão que ninguém vê, e o
+ * processo inteiro congela sem escrever uma linha de log.
+ */
+let helperLembrado: string | undefined
+function achaOHelper(): string {
+  if (helperLembrado) return helperLembrado
+  const aqui = path.dirname(fileURLToPath(import.meta.url))
+  const dentroDoApp = ['Hipocampo Focus.app', 'Contents', 'MacOS', 'hipocampo-focus']
+  const candidatos = [
+    path.join(aqui, '..', 'native', ...dentroDoApp),        // repositório
+    path.join(aqui, '..', '..', 'native', ...dentroDoApp),  // bundle empacotado
+  ]
+  helperLembrado = candidatos.find((caminho) => fs.existsSync(caminho)) ?? candidatos[0]
+  return helperLembrado
+}
+
 export const paths = {
   db: path.join(config.dataDir, 'hipocampo.db'),
-  // O helper mora dentro de um .app para ter identidade própria no macOS —
-  // é o que faz a permissão de Acessibilidade aparecer com nome e colar.
-  native: path.join(
-    path.dirname(fileURLToPath(import.meta.url)), '..',
-    'native', 'Hipocampo Focus.app', 'Contents', 'MacOS', 'hipocampo-focus',
-  ),
+  get native() { return achaOHelper() },
   archive: path.join(config.dataDir, 'archive'),
 }
 
