@@ -387,7 +387,8 @@ body[data-mode='floating']::after { display: none; }
   place-items: center;
   opacity: 1;
   transition: opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1);
-  -webkit-app-region: drag;
+  /* No drag region here: it swallows the click, and the click is the way out
+     of an opening that has outstayed its welcome. */
 }
 .intro.leaving { opacity: 0; pointer-events: none; }
 .intro video {

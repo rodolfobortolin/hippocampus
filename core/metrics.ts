@@ -47,7 +47,7 @@ function agentMinutes(day: string): Set<number> {
     all<any>('select minute from agent_minutes where day = ?', day).map((r) => r.minute as number))
 }
 
-/** Quantos segundos de um intervalo caem em minutes com agente ativo. */
+/** Quantos seconds de um intervalo caem em minutes com agente ativo. */
 function delegatedSeconds(start: number, end: number, ativos: Set<number>): number {
   let total = 0
   for (let minute = Math.floor(start / 60); minute <= Math.floor(end / 60); minute++) {
@@ -189,17 +189,17 @@ export function dayReport(day: string) {
     // active it is a call. Our own listener's microphone was already discounted
     // at collection time.
     trilha: one<any>(
-      `select coalesce(sum(case when som = 1 and mic = 0 then seconds else 0 end), 0) segundos,
+      `select coalesce(sum(case when sound = 1 and mic = 0 then seconds else 0 end), 0) seconds,
               coalesce(sum(case when mic = 1 then seconds else 0 end), 0) emChamada
          from blocks where day = ? and idle = 0`, day),
     midias: all<any>(
-      `select midia as name, sum(seconds) seconds from blocks
-        where day = ? and idle = 0 and midia is not null and som = 1
-        group by midia order by seconds desc`, day),
-    telas: all<any>(
-      `select tela as name, sum(seconds) seconds from blocks
-        where day = ? and idle = 0 and tela is not null
-        group by tela order by seconds desc`, day),
+      `select media as name, sum(seconds) seconds from blocks
+        where day = ? and idle = 0 and media is not null and sound = 1
+        group by media order by seconds desc`, day),
+    screens: all<any>(
+      `select screen as name, sum(seconds) seconds from blocks
+        where day = ? and idle = 0 and screen is not null
+        group by screen order by seconds desc`, day),
     aiTurns: all<any>(
       `select project, prompt, tools, ts from ai_turns where day = ? order by ts`, day),
     stored: one<any>(
@@ -228,7 +228,7 @@ export function rangeReport(from: string, to: string) {
   }))
 }
 
-/** Mapa hora × day da semana, em segundos ativos. */
+/** Mapa hora × day da semana, em seconds ativos. */
 export function heatmap(from: string, to: string) {
   const rows = all<any>(
     `select started_at, seconds from blocks where day between ? and ? and idle = 0`, from, to)
@@ -260,8 +260,8 @@ export function overview() {
            (select count(*) from typing) typing,
            (select count(*) from labels) labels,
            (select count(distinct day) from blocks) days`)
-  const span = one<any>(`select min(day) de, max(day) to from visits`)
-  return { day, counts, span, dayStartHour: config.dayStartHour }
+  const span = one<any>(`select min(day) first_day, max(day) last_day from visits`)
+  return { day, counts, span: { from: span?.first_day, to: span?.last_day }, dayStartHour: config.dayStartHour }
 }
 
 /** A whole range aggregated: where the time went over a week, over a month. */

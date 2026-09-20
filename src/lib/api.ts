@@ -56,7 +56,7 @@ export type Status = {
   jev: boolean; claude: boolean; vault: boolean; voice: boolean; user: string; language: string
   day: string
   counts: Record<string, number>
-  span: { of: string; to: string }
+  span: { from: string; to: string }
 }
 
 export type Settings = {

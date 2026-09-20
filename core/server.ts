@@ -208,7 +208,7 @@ export function serve(collector?: Collector): http.Server {
       json(response, { error: 'not found' }, 404)
     } catch (error) {
       console.error('[api]', route, (error as Error).message)
-      json(response, { erro: (error as Error).message }, 500)
+      json(response, { error: (error as Error).message }, 500)
     }
   })
 

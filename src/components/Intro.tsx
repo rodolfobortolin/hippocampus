@@ -31,6 +31,11 @@ export function Intro() {
     try { localStorage.setItem(LAST_SEEN, String(Date.now())) } catch { /* fine without it */ }
 
     const leave = () => setLeaving(true)
+    // The opening is decoration. Whatever happens — a codec that will not
+    // decode, a transition event that never arrives, a frame that stalls — it
+    // has to come off the screen on its own. A decoration that can cover the
+    // app is worse than no decoration.
+    const ceiling = setTimeout(() => setPlaying(false), 9000)
     window.addEventListener('keydown', leave)
     window.addEventListener('pointerdown', leave)
     // A video that fails to decode must not leave a black rectangle on top of
@@ -40,6 +45,7 @@ export function Intro() {
       window.removeEventListener('keydown', leave)
       window.removeEventListener('pointerdown', leave)
       clearTimeout(failed)
+      clearTimeout(ceiling)
     }
   }, [playing])
 
@@ -47,8 +53,9 @@ export function Intro() {
 
   return (
     <div
-      className={`intro ${leaving ? 'saindo' : ''}`}
+      className={`intro ${leaving ? 'leaving' : ''}`}
       onTransitionEnd={() => leaving && setPlaying(false)}
+      onClick={() => setLeaving(true)}
       aria-hidden>
       <video
         ref={video}

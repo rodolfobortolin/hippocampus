@@ -57,7 +57,7 @@ func register() -> Int32 {
     }
     do {
       try servico.register()
-      print("\(label): ligado — \(whatItDoes)")
+      print("\(label): on — \(whatItDoes)")
     } catch {
       // requiresApproval is not an error: macOS registered it and is waiting
       // for the person to approve. Saying "failed" here would send someone
@@ -77,7 +77,7 @@ func unregister() -> Int32 {
   for (label, _) in AGENTS.sorted(by: { $0.key < $1.key }) {
     do {
       try service(label).unregister()
-      print("\(label): desligado")
+      print("\(label): off")
     } catch {
       // Unregistering what is no longer there is the desired outcome.
       print("\(label): was not registered anyway")
