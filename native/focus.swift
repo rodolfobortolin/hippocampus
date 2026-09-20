@@ -21,7 +21,7 @@ let args = CommandLine.arguments
 /// asking — and authorising node would grant Accessibility to every Node script
 /// on the machine. Launched directly by launchd, this helper answers for
 /// itself, and the grant stays where it belongs: on this app, and only on it.
-let destino: URL? = args.firstIndex(of: "--post").flatMap { i in
+let target: URL? = args.firstIndex(of: "--post").flatMap { i in
     i + 1 < args.count ? URL(string: args[i + 1]) : nil
 }
 let interval = args.firstIndex(of: "--interval").flatMap { i -> Double? in
@@ -39,7 +39,7 @@ if args.contains("--check") {
 // launchd agent (which is what uses --post) or an explicit request. Launched by
 // another program, the dialog would go out in the parent's name, which is not
 // what anyone means to authorise.
-if !AXIsProcessTrusted() && (destino != nil || args.contains("--ask")) {
+if !AXIsProcessTrusted() && (target != nil || args.contains("--ask")) {
     let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
     AXIsProcessTrustedWithOptions(options as CFDictionary)
 }
@@ -87,23 +87,23 @@ let browsers: Set<String> = [
 /// O delta entre amostras mede *engajamento* — ler tem rolagem e zero tecla;
 /// writing has keys. This is the signal that was missing to stop depending on
 /// the title alone.
-func contador(_ tipo: CGEventType) -> Int {
-    Int(CGEventSource.counterForEventType(.hidSystemState, eventType: tipo))
+func counter(_ kind: CGEventType) -> Int {
+    Int(CGEventSource.counterForEventType(.hidSystemState, eventType: kind))
 }
 
 /// A media app that is open, if any. It comes from the list of running apps,
 /// which costs no permission — unlike asking the player what is playing, which
 /// needs Automation and returns the track name.
-let APPS_DE_MIDIA: [String: String] = [
+let MEDIA_APPS: [String: String] = [
     "com.apple.Music": "Music", "com.spotify.client": "Spotify",
     "com.apple.TV": "TV", "org.videolan.vlc": "VLC",
     "com.deezer.deezer-desktop": "Deezer", "com.tidal.desktop": "Tidal",
     "com.soundcloud.desktop": "SoundCloud", "com.apple.Podcasts": "Podcasts",
 ]
 
-func appDeMidiaAberto() -> String? {
+func openMediaApp() -> String? {
     for app in NSWorkspace.shared.runningApplications {
-        if let bundle = app.bundleIdentifier, let nome = APPS_DE_MIDIA[bundle] { return nome }
+        if let bundle = app.bundleIdentifier, let name = MEDIA_APPS[bundle] { return name }
     }
     return nil
 }
@@ -113,28 +113,28 @@ func appDeMidiaAberto() -> String? {
 /// Without knowing that, "microphone in use" would be true forever and call
 /// detection would turn to noise — which is exactly what happened the moment
 /// the listener was switched on.
-func escutaPropriaAtiva() -> Bool {
+func ownListeningIsOn() -> Bool {
     // By its liveness file, not by the application list: the listener is a loop
     // with a recogniser inside, never calls NSApplicationMain, and therefore
     // does not appear as an application to the system.
-    let vivo = FileManager.default
+    let alive = FileManager.default
         .homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Application Support/Hipocampo/ouvido.vivo")
-    guard let atributos = try? FileManager.default.attributesOfItem(atPath: vivo.path),
-          let modificado = atributos[.modificationDate] as? Date
+        .appendingPathComponent("Library/Application Support/Hippocampus/listener.alive")
+    guard let attributes = try? FileManager.default.attributesOfItem(atPath: alive.path),
+          let modifiedAt = attributes[.modificationDate] as? Date
     else { return false }
-    return Date().timeIntervalSince(modificado) < 90
+    return Date().timeIntervalSince(modifiedAt) < 90
 }
 
 /// Sites that are a source of music or video. Used to pick, among the open
 /// tabs, the one that is probably playing.
 /// In two tiers because the browser does not say which tab has audio: with
 /// YouTube and a music service open at once, the safe bet is the music.
-let SITES_DE_MUSICA = [
+let MUSIC_SITES = [
     "flowmusic.app", "open.spotify.com", "music.youtube.com", "soundcloud.com",
     "deezer.com", "tidal.com", "music.apple.com", "bandcamp.com",
 ]
-let SITES_DE_VIDEO = ["youtube.com", "twitch.tv", "netflix.com", "vimeo.com"]
+let VIDEO_SITES = ["youtube.com", "twitch.tv", "netflix.com", "vimeo.com"]
 
 /// Asks the app what is playing. Needs the Automation permission.
 ///
@@ -142,55 +142,55 @@ let SITES_DE_VIDEO = ["youtube.com", "twitch.tv", "netflix.com", "vimeo.com"]
 /// against
 /// um app fechado pode travar por minutos, e travar a amostragem por causa de
 /// a track name would be a terrible bargain.
-func consultaPorAppleScript(_ script: String) -> String? {
-    var erro: NSDictionary?
-    guard let resultado = NSAppleScript(source: script)?.executeAndReturnError(&erro),
-          erro == nil, let texto = resultado.stringValue, !texto.isEmpty
+func askByAppleScript(_ script: String) -> String? {
+    var error: NSDictionary?
+    guard let result = NSAppleScript(source: script)?.executeAndReturnError(&error),
+          error == nil, let text = result.stringValue, !text.isEmpty
     else { return nil }
-    return texto
+    return text
 }
 
-func appEstaAberto(_ bundle: String) -> Bool {
+func appIsOpen(_ bundle: String) -> Bool {
     NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundle }
 }
 
 /// What is playing: the players first, then the browser tab.
-func oQueEstaTocando() -> String? {
-    if appEstaAberto("com.spotify.client"),
-       let faixa = consultaPorAppleScript(
+func whatIsPlaying() -> String? {
+    if appIsOpen("com.spotify.client"),
+       let track = askByAppleScript(
         "tell application \"Spotify\" to if player state is playing "
         + "then return name of current track & \" — \" & artist of current track") {
-        return faixa
+        return track
     }
 
-    if appEstaAberto("com.apple.Music"),
-       let faixa = consultaPorAppleScript(
+    if appIsOpen("com.apple.Music"),
+       let track = askByAppleScript(
         "tell application \"Music\" to if player state is playing "
         + "then return name of current track & \" — \" & artist of current track") {
-        return faixa
+        return track
     }
 
     // Music in a browser tab, which no player can report. Among the open tabs,
     // one on a media site is the bet.
-    for (bundle, nome) in [("com.google.Chrome", "Google Chrome"),
+    for (bundle, name) in [("com.google.Chrome", "Google Chrome"),
                            ("company.thebrowser.Browser", "Arc")] {
-        guard appEstaAberto(bundle) else { continue }
+        guard appIsOpen(bundle) else { continue }
         // Asking for every title at once glues them into one string with no
         // separator, and there is no telling which title belongs to which
         // address. So the search happens inside the AppleScript itself, tab by tab.
-        for lista in [SITES_DE_MUSICA, SITES_DE_VIDEO] {
-            let condicoes = lista.map { "(u contains \"\($0)\")" }.joined(separator: " or ")
+        for list in [MUSIC_SITES, VIDEO_SITES] {
+            let conditions = list.map { "(u contains \"\($0)\")" }.joined(separator: " or ")
             let script = """
-            tell application "\(nome)"
+            tell application "\(name)"
               repeat with j in windows
                 repeat with a in tabs of j
                   set u to URL of a
-                  if \(condicoes) then return title of a
+                  if \(conditions) then return title of a
                 end repeat
               end repeat
             end tell
             """
-            if let titulo = consultaPorAppleScript(script) { return titulo }
+            if let title = askByAppleScript(script) { return title }
         }
     }
     return nil
@@ -202,9 +202,9 @@ func oQueEstaTocando() -> String? {
 /// up too, and so does a system sound. Crossed with an open media app and with
 /// the absence
 /// de microfone em uso, vira um sinal decente de "estava ouvindo algo".
-func somTocando() -> Bool {
-    dispositivosDeAudio().contains { dispositivo in
-        temFluxo(dispositivo, entrada: false) && dispositivoAtivo(dispositivo)
+func soundIsPlaying() -> Bool {
+    audioDevices().contains { device in
+        hasStream(device, input: false) && deviceIsRunning(device)
     }
 }
 
@@ -212,51 +212,51 @@ func somTocando() -> Bool {
 /// This is the hardware layer, not AVCaptureDevice — which is why it asks for
 /// no permission. It works as a meeting detector independent of Zoom, Teams or
 /// Meet.
-func dispositivosDeAudio() -> [AudioDeviceID] {
-    var endereco = AudioObjectPropertyAddress(
+func audioDevices() -> [AudioDeviceID] {
+    var address = AudioObjectPropertyAddress(
         mSelector: kAudioHardwarePropertyDevices,
         mScope: kAudioObjectPropertyScopeGlobal,
         mElement: kAudioObjectPropertyElementMain)
-    var tamanho: UInt32 = 0
+    var size: UInt32 = 0
     guard AudioObjectGetPropertyDataSize(
-        AudioObjectID(kAudioObjectSystemObject), &endereco, 0, nil, &tamanho) == noErr
+        AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size) == noErr
     else { return [] }
-    let quantidade = Int(tamanho) / MemoryLayout<AudioDeviceID>.size
-    if quantidade == 0 { return [] }
-    var lista = [AudioDeviceID](repeating: 0, count: quantidade)
+    let count = Int(size) / MemoryLayout<AudioDeviceID>.size
+    if count == 0 { return [] }
+    var list = [AudioDeviceID](repeating: 0, count: count)
     guard AudioObjectGetPropertyData(
-        AudioObjectID(kAudioObjectSystemObject), &endereco, 0, nil, &tamanho, &lista) == noErr
+        AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &list) == noErr
     else { return [] }
-    return lista
+    return list
 }
 
 /// With no stream on that side, the device is no use for that.
-func temFluxo(_ dispositivo: AudioDeviceID, entrada: Bool) -> Bool {
-    var endereco = AudioObjectPropertyAddress(
+func hasStream(_ device: AudioDeviceID, input: Bool) -> Bool {
+    var address = AudioObjectPropertyAddress(
         mSelector: kAudioDevicePropertyStreams,
-        mScope: entrada ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput,
+        mScope: input ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput,
         mElement: kAudioObjectPropertyElementMain)
-    var tamanho: UInt32 = 0
-    guard AudioObjectGetPropertyDataSize(dispositivo, &endereco, 0, nil, &tamanho) == noErr
+    var size: UInt32 = 0
+    guard AudioObjectGetPropertyDataSize(device, &address, 0, nil, &size) == noErr
     else { return false }
-    return tamanho > 0
+    return size > 0
 }
 
-func dispositivoAtivo(_ dispositivo: AudioDeviceID) -> Bool {
-    var endereco = AudioObjectPropertyAddress(
+func deviceIsRunning(_ device: AudioDeviceID) -> Bool {
+    var address = AudioObjectPropertyAddress(
         mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
         mScope: kAudioObjectPropertyScopeGlobal,
         mElement: kAudioObjectPropertyElementMain)
-    var ativo: UInt32 = 0
-    var tamanho = UInt32(MemoryLayout<UInt32>.size)
-    guard AudioObjectGetPropertyData(dispositivo, &endereco, 0, nil, &tamanho, &ativo) == noErr
+    var running: UInt32 = 0
+    var size = UInt32(MemoryLayout<UInt32>.size)
+    guard AudioObjectGetPropertyData(device, &address, 0, nil, &size, &running) == noErr
     else { return false }
-    return ativo != 0
+    return running != 0
 }
 
-func microfoneEmUso() -> Bool {
-    dispositivosDeAudio().contains { dispositivo in
-        temFluxo(dispositivo, entrada: true) && dispositivoAtivo(dispositivo)
+func microphoneInUse() -> Bool {
+    audioDevices().contains { device in
+        hasStream(device, input: true) && deviceIsRunning(device)
     }
 }
 
@@ -265,26 +265,26 @@ func microfoneEmUso() -> Bool {
 /// Nothing here is per monitor — the focused app is global — but knowing where
 /// the window
 /// estava responde "trabalho mais no monitor grande ou no notebook?" e serve de
-/// prova de que nenhuma tela fica de fora.
-func telaDaJanela(_ janela: AXUIElement) -> String? {
-    var valor: CFTypeRef?
-    guard AXUIElementCopyAttributeValue(janela, kAXPositionAttribute as CFString, &valor) == .success,
-          let bruto = valor, CFGetTypeID(bruto) == AXValueGetTypeID()
+/// prova de que nenhuma screen fica de fora.
+func screenOfWindow(_ window: AXUIElement) -> String? {
+    var value: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &value) == .success,
+          let raw = value, CFGetTypeID(raw) == AXValueGetTypeID()
     else { return nil }
 
-    var ponto = CGPoint.zero
-    guard AXValueGetValue(bruto as! AXValue, .cgPoint, &ponto) else { return nil }
+    var point = CGPoint.zero
+    guard AXValueGetValue(raw as! AXValue, .cgPoint, &point) else { return nil }
 
-    // A acessibilidade mede do topo da tela principal para baixo; o NSScreen
-    // mede de baixo para cima. Sem converter, tudo cai na tela errada.
-    guard let principal = NSScreen.screens.first else { return nil }
-    let alturaTotal = principal.frame.maxY
-    let convertido = CGPoint(x: ponto.x, y: alturaTotal - ponto.y)
+    // A acessibilidade mede do topo da screen main para baixo; o NSScreen
+    // mede de baixo para cima. Sem converter, tudo cai na screen errada.
+    guard let main = NSScreen.screens.first else { return nil }
+    let fullHeight = main.frame.maxY
+    let converted = CGPoint(x: point.x, y: fullHeight - point.y)
 
-    for (indice, tela) in NSScreen.screens.enumerated() {
-        if tela.frame.contains(convertido) {
-            let nome = tela.localizedName
-            return nome.isEmpty ? "Tela \(indice + 1)" : nome
+    for (index, screen) in NSScreen.screens.enumerated() {
+        if screen.frame.contains(converted) {
+            let name = screen.localizedName
+            return name.isEmpty ? "Screen \(index + 1)" : name
         }
     }
     return nil
@@ -328,53 +328,53 @@ func field(_ key: String, _ value: String?) -> String? {
 }
 
 /// A debugging hook: if the marker file exists, it dumps the accessibility
-/// acessibilidade do app em foco e apaga a marca. Serve para descobrir onde um
+/// acessibilidade do app em foco e apaga a marker. Serve para descobrir onde um
 /// app stores what matters without recompiling blind — and only the helper can
 /// do this, because only it holds the permission.
-func despejaArvoreSePedido(_ janela: AXUIElement, app: String) {
-    let marca = "/tmp/hipocampo-arvore"
-    guard FileManager.default.fileExists(atPath: marca) else { return }
-    try? FileManager.default.removeItem(atPath: marca)
+func dumpTreeIfAsked(_ window: AXUIElement, app: String) {
+    let marker = "/tmp/hippocampus-tree"
+    guard FileManager.default.fileExists(atPath: marker) else { return }
+    try? FileManager.default.removeItem(atPath: marker)
 
-    var linhas: [String] = ["APP: \(app)"]
-    var fila: [(AXUIElement, Int)] = [(janela, 0)]
-    var vistos = 0
+    var lines: [String] = ["APP: \(app)"]
+    var queue: [(AXUIElement, Int)] = [(window, 0)]
+    var seen = 0
 
-    while !fila.isEmpty, vistos < 900 {
-        let (elemento, nivel) = fila.removeFirst()
-        vistos += 1
-        if nivel > 12 { continue }
+    while !queue.isEmpty, seen < 900 {
+        let (element, depth) = queue.removeFirst()
+        seen += 1
+        if depth > 12 { continue }
 
-        let papel = stringAttribute(elemento, kAXRoleAttribute as String) ?? "?"
-        let titulo = stringAttribute(elemento, kAXTitleAttribute as String) ?? ""
-        let descricao = stringAttribute(elemento, kAXDescriptionAttribute as String) ?? ""
-        let valor = stringAttribute(elemento, kAXValueAttribute as String) ?? ""
-        let selecionado = (attribute(elemento, kAXSelectedAttribute as String) as? Bool) == true
+        let role = stringAttribute(element, kAXRoleAttribute as String) ?? "?"
+        let title = stringAttribute(element, kAXTitleAttribute as String) ?? ""
+        let description = stringAttribute(element, kAXDescriptionAttribute as String) ?? ""
+        let value = stringAttribute(element, kAXValueAttribute as String) ?? ""
+        let selected = (attribute(element, kAXSelectedAttribute as String) as? Bool) == true
 
-        if !titulo.isEmpty || !descricao.isEmpty || !valor.isEmpty || selecionado {
-            let recuo = String(repeating: "  ", count: nivel)
-            linhas.append("\(recuo)\(papel)\(selecionado ? " [SELECIONADO]" : "")"
-                + " | t=\(titulo.prefix(70)) | d=\(descricao.prefix(70)) | v=\(valor.prefix(70))")
+        if !title.isEmpty || !description.isEmpty || !value.isEmpty || selected {
+            let indent = String(repeating: "  ", count: depth)
+            lines.append("\(indent)\(role)\(selected ? " [SELECTED]" : "")"
+                + " | t=\(title.prefix(70)) | d=\(description.prefix(70)) | v=\(value.prefix(70))")
         }
 
-        if let filhos = attribute(elemento, kAXChildrenAttribute as String) as? [AXUIElement] {
-            for filho in filhos.prefix(60) { fila.append((filho, nivel + 1)) }
+        if let children = attribute(element, kAXChildrenAttribute as String) as? [AXUIElement] {
+            for child in children.prefix(60) { queue.append((child, depth + 1)) }
         }
     }
 
-    try? linhas.joined(separator: "\n").write(
-        toFile: "/tmp/hipocampo-arvore.txt", atomically: true, encoding: .utf8)
+    try? lines.joined(separator: "\n").write(
+        toFile: "/tmp/hippocampus-tree.txt", atomically: true, encoding: .utf8)
 }
 
-var tocandoCache: (valor: String?, quando: Date) = (nil, .distantPast)
+var playingCache: (value: String?, at: Date) = (nil, .distantPast)
 
 /// The AppleScript query is expensive and asks for a permission; repeating it
 /// now and then makes sense, on every 4-second sample it does not.
-func tocandoAgora(_ temSom: Bool) -> String? {
-    guard temSom else { tocandoCache = (nil, Date()); return nil }
-    if Date().timeIntervalSince(tocandoCache.quando) < 30 { return tocandoCache.valor }
-    tocandoCache = (oQueEstaTocando(), Date())
-    return tocandoCache.valor
+func playingNow(_ hasSound: Bool) -> String? {
+    guard hasSound else { playingCache = (nil, Date()); return nil }
+    if Date().timeIntervalSince(playingCache.at) < 30 { return playingCache.value }
+    playingCache = (whatIsPlaying(), Date())
+    return playingCache.value
 }
 
 let formatter = ISO8601DateFormatter()
@@ -389,19 +389,19 @@ func sample() {
     parts.append("\"idle\":\(Int(idle.rounded()))")
     parts.append("\"locked\":\(locked)")
     parts.append("\"trusted\":\(trusted)")
-    parts.append("\"keys\":\(contador(.keyDown))")
-    parts.append("\"clicks\":\(contador(.leftMouseDown) + contador(.rightMouseDown))")
-    parts.append("\"scroll\":\(contador(.scrollWheel))")
-    let escutaPropria = escutaPropriaAtiva()
-    parts.append("\"mic\":\(microfoneEmUso())")
-    parts.append("\"escuta\":\(escutaPropria)")
-    let temSom = somTocando()
-    parts.append("\"som\":\(temSom)")
-    if let faixa = field("tocando", tocandoAgora(temSom)) { parts.append(faixa) }
+    parts.append("\"keys\":\(counter(.keyDown))")
+    parts.append("\"clicks\":\(counter(.leftMouseDown) + counter(.rightMouseDown))")
+    parts.append("\"scroll\":\(counter(.scrollWheel))")
+    let ownListening = ownListeningIsOn()
+    parts.append("\"mic\":\(microphoneInUse())")
+    parts.append("\"listening\":\(ownListening)")
+    let hasSound = soundIsPlaying()
+    parts.append("\"sound\":\(hasSound)")
+    if let track = field("playing", playingNow(hasSound)) { parts.append(track) }
     // An open media app is a weak hint, not a source: a player that is open and
     // paused looks the same, and sound from a browser tab does not show up here
     // at all.
-    if let midia = field("midiaAberta", appDeMidiaAberto()) { parts.append(midia) }
+    if let midia = field("mediaOpen", openMediaApp()) { parts.append(midia) }
 
     if !locked, let app = NSWorkspace.shared.frontmostApplication {
         if let name = field("app", app.localizedName) { parts.append(name) }
@@ -415,7 +415,7 @@ func sample() {
                 window = windows.first
             }
             if let window {
-                despejaArvoreSePedido(window, app: app.localizedName ?? "?")
+                dumpTreeIfAsked(window, app: app.localizedName ?? "?")
                 if let title = field("title", stringAttribute(window, kAXTitleAttribute as String)) {
                     parts.append(title)
                 }
@@ -423,29 +423,29 @@ func sample() {
                    let url = field("url", findURL(in: window)) {
                     parts.append(url)
                 }
-                if let tela = field("tela", telaDaJanela(window)) {
-                    parts.append(tela)
+                if let screen = field("screen", screenOfWindow(window)) {
+                    parts.append(screen)
                 }
             }
         }
     }
 
-    let linha = "{\(parts.joined(separator: ","))}"
+    let line = "{\(parts.joined(separator: ","))}"
 
-    guard let destino else {
-        print(linha)
+    guard let target else {
+        print(line)
         fflush(stdout)
         return
     }
 
-    var pedido = URLRequest(url: destino)
-    pedido.httpMethod = "POST"
-    pedido.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    pedido.httpBody = linha.data(using: .utf8)
-    pedido.timeoutInterval = 5
+    var request = URLRequest(url: target)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = line.data(using: .utf8)
+    request.timeoutInterval = 5
     // A failed send is silent on purpose: the core may be restarting,
     // e derrubar a amostragem por causa disso perderia mais do que ganharia.
-    URLSession.shared.dataTask(with: pedido).resume()
+    URLSession.shared.dataTask(with: request).resume()
 }
 
 sample()

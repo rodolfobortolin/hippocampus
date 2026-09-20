@@ -86,7 +86,7 @@ func unregister() -> Int32 {
   return 0
 }
 
-/// O estado de cada agente, em JSON, para o app mostrar sem interpretar texto.
+/// Each agent's state, as JSON, so the app can show it without parsing prose.
 func status() -> Int32 {
   let linhas = AGENTS.keys.sorted().map { label -> String in
     let e = service(label).status

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Installs (or removes) the collector as a launchd agent, writing plists by hand
-# em ~/Library/LaunchAgents.
+# into ~/Library/LaunchAgents.
 #
 # This is the development path. The packaged app does not use it: there the
 # three agents are login items registered through SMAppService, with the plists
@@ -9,30 +9,30 @@
 # turning the other on.
 set -e
 
-RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Inside the packaged bundle the pieces sit in sibling folders: the code in
-# Contents/Resources/app e os recursos extras em Contents/Resources. No
-# the repository everything shares one root. Looking in both avoids an
-# installer that only works one way.
-if [ -f "$RAIZ/core/index.ts" ]; then
-  RAIZ_CODIGO="$RAIZ"
-elif [ -f "$RAIZ/app/core/index.ts" ]; then
-  RAIZ_CODIGO="$RAIZ/app"
+# Contents/Resources/app and the extra resources in Contents/Resources. In the
+# repository everything shares one root. Looking in both avoids an installer
+# that only works one way.
+if [ -f "$ROOT/core/index.ts" ]; then
+  CODE_ROOT="$ROOT"
+elif [ -f "$ROOT/app/core/index.ts" ]; then
+  CODE_ROOT="$ROOT/app"
 else
-  echo "could not find core/index.ts from $RAIZ"; exit 1
+  echo "could not find core/index.ts from $ROOT"; exit 1
 fi
-ETIQUETA="com.hippocampus.collector"
-ETIQUETA_FOCO="com.hippocampus.focus"
-PLIST="$HOME/Library/LaunchAgents/$ETIQUETA.plist"
-PLIST_FOCO="$HOME/Library/LaunchAgents/$ETIQUETA_FOCO.plist"
-APP_FOCO="$RAIZ/native/Hippocampus Focus.app/Contents/MacOS/hippocampus-focus"
+LABEL="com.hippocampus.collector"
+LABEL_FOCUS="com.hippocampus.focus"
+PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+PLIST_FOCUS="$HOME/Library/LaunchAgents/$LABEL_FOCUS.plist"
+FOCUS_APP="$ROOT/native/Hippocampus Focus.app/Contents/MacOS/hippocampus-focus"
 LOGS="$HOME/Library/Logs/Hippocampus"
 NODE="$(command -v node)"
 
-instalar() {
+install_agents() {
   [ -x "$NODE" ] || { echo "node not found on PATH"; exit 1; }
-  [ -x "$APP_FOCO" ] || { echo "helper nativo ausente — rode npm run build:native"; exit 1; }
+  [ -x "$FOCUS_APP" ] || { echo "native helper missing — run npm run build:native"; exit 1; }
 
   mkdir -p "$LOGS" "$HOME/Library/LaunchAgents"
   cat > "$PLIST" <<PLISTEOF
@@ -40,15 +40,15 @@ instalar() {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>$ETIQUETA</string>
+  <key>Label</key><string>$LABEL</string>
   <key>ProgramArguments</key>
   <array>
     <string>$NODE</string>
     <string>--experimental-strip-types</string>
     <string>--disable-warning=ExperimentalWarning</string>
-    <string>$RAIZ_CODIGO/core/index.ts</string>
+    <string>$CODE_ROOT/core/index.ts</string>
   </array>
-  <key>WorkingDirectory</key><string>$RAIZ_CODIGO</string>
+  <key>WorkingDirectory</key><string>$CODE_ROOT</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
@@ -65,83 +65,58 @@ PLISTEOF
 
   # The helper has an agent of its own on purpose: launched by launchd, it
   # answers for itself in the TCC and the Accessibility grant belongs to it.
-  # Launched
-  # pelo coletor, quem apareceria pedindo seria o node — e autorizar o node daria
-  # Accessibility to every Node script on the machine.
-  cat > "$PLIST_FOCO" <<FOCOEOF
+  # Launched by the collector, what would show up asking is node — and
+  # authorising node would grant Accessibility to every Node script on the
+  # machine.
+  cat > "$PLIST_FOCUS" <<FOCUSEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>$ETIQUETA_FOCO</string>
+  <key>Label</key><string>$LABEL_FOCUS</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$APP_FOCO</string>
+    <string>$FOCUS_APP</string>
     <string>--post</string>
-    <string>http://127.0.0.1:7878/api/amostra</string>
+    <string>http://127.0.0.1:7878/api/sample</string>
     <string>--interval</string>
     <string>4</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
   <key>ProcessType</key><string>Background</string>
-  <key>StandardErrorPath</key><string>$LOGS/foco.log</string>
+  <key>StandardErrorPath</key><string>$LOGS/focus.log</string>
 </dict>
 </plist>
-FOCOEOF
+FOCUSEOF
 
-  launchctl bootout "gui/$(id -u)/$ETIQUETA_FOCO" 2>/dev/null || true
-  launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
+  launchctl bootout "gui/$(id -u)/$LABEL_FOCUS" 2>/dev/null || true
+  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
   # bootout kills the main process, but a surviving child gets reparented to
   # launchd instead of dying with it. Two collectors on one database is trouble.
-  pkill -f "$RAIZ_CODIGO/core/index.ts" 2>/dev/null || true
+  pkill -f "$CODE_ROOT/core/index.ts" 2>/dev/null || true
   sleep 1
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
-  launchctl bootstrap "gui/$(id -u)" "$PLIST_FOCO"
+  launchctl bootstrap "gui/$(id -u)" "$PLIST_FOCUS"
   echo "collector and focus helper installed — they start with the session"
   echo
-  echo "Na primeira vez o macOS vai pedir Acessibilidade para 'Hipocampo Focus'."
+  echo "The first time, macOS asks for Accessibility for 'Hippocampus Focus'."
   echo "The prompt now comes from it, not from node — that is the name in the list."
-  echo "registro: $LOGS/collector.log"
+  echo "log: $LOGS/collector.log"
 }
 
-remover() {
-  # The helper has an agent of its own on purpose: launched by launchd, it
-  # answers for itself in the TCC and the Accessibility grant belongs to it.
-  # Launched
-  # pelo coletor, quem apareceria pedindo seria o node — e autorizar o node daria
-  # Accessibility to every Node script on the machine.
-  cat > "$PLIST_FOCO" <<FOCOEOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>$ETIQUETA_FOCO</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>$APP_FOCO</string>
-    <string>--post</string>
-    <string>http://127.0.0.1:7878/api/amostra</string>
-    <string>--interval</string>
-    <string>4</string>
-  </array>
-  <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>ProcessType</key><string>Background</string>
-  <key>StandardErrorPath</key><string>$LOGS/foco.log</string>
-</dict>
-</plist>
-FOCOEOF
-
-  launchctl bootout "gui/$(id -u)/$ETIQUETA_FOCO" 2>/dev/null || true
-  launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
-  pkill -f "$RAIZ_CODIGO/core/index.ts" 2>/dev/null || true
-  rm -f "$PLIST"
+uninstall_agents() {
+  launchctl bootout "gui/$(id -u)/$LABEL_FOCUS" 2>/dev/null || true
+  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+  # bootout kills the main process, but a surviving child gets reparented to
+  # launchd instead of dying with it.
+  pkill -f "$CODE_ROOT/core/index.ts" 2>/dev/null || true
+  rm -f "$PLIST" "$PLIST_FOCUS"
   echo "collector removed (whatever was already stored stays where it is)"
 }
 
 case "${1:-install}" in
-  install) instalar ;;
-  uninstall) remover ;;
-  *) echo "uso: agent.sh [install|uninstall]"; exit 1 ;;
+  install) install_agents ;;
+  uninstall) uninstall_agents ;;
+  *) echo "usage: agent.sh [install|uninstall]"; exit 1 ;;
 esac

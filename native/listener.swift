@@ -11,65 +11,65 @@ import Speech
 
 let args = CommandLine.arguments
 
-func valor(_ nome: String, _ padrao: String) -> String {
-    guard let i = args.firstIndex(of: nome), i + 1 < args.count else { return padrao }
+func value(_ name: String, _ fallback: String) -> String {
+    guard let i = args.firstIndex(of: name), i + 1 < args.count else { return fallback }
     return args[i + 1]
 }
 
-let destino = URL(string: valor("--post", "http://127.0.0.1:7878/api/acordar"))!
-let language = valor("--language", "pt-BR")
+let target = URL(string: value("--post", "http://127.0.0.1:7878/api/wake"))!
+let language = value("--language", "pt-BR")
 // Variations, because the recogniser mishears a proper noun in predictable ways.
-let gatilhos = valor("--palavra", "hipocampo,hipocampa,ipocampo,hipo campo")
+let triggers = value("--word", "hippocampus,hipocampo,hipocampa,ipocampo,hipo campo,hippocampo")
     .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
 
-let motor = AVAudioEngine()
-var tarefa: SFSpeechRecognitionTask?
-var pedido: SFSpeechAudioBufferRecognitionRequest?
-var ultimoAviso = Date.distantPast
+let engine = AVAudioEngine()
+var task: SFSpeechRecognitionTask?
+var request: SFSpeechAudioBufferRecognitionRequest?
+var lastNotice = Date.distantPast
 
-guard let reconhecedor = SFSpeechRecognizer(locale: Locale(identifier: language)),
-      reconhecedor.supportsOnDeviceRecognition else {
+guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: language)),
+      recognizer.supportsOnDeviceRecognition else {
     FileHandle.standardError.write("on-device recognition unavailable for \(language)\n".data(using: .utf8)!)
     exit(1)
 }
 
-func avisa() {
-    // Uma chamada por vez: o reconhecedor repete o trecho enquanto refina.
-    guard Date().timeIntervalSince(ultimoAviso) > 2 else { return }
-    ultimoAviso = Date()
-    var pedidoHTTP = URLRequest(url: destino)
-    pedidoHTTP.httpMethod = "POST"
-    pedidoHTTP.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    pedidoHTTP.httpBody = "{\"palavra\":\"\(gatilhos.first ?? "")\"}".data(using: .utf8)
-    pedidoHTTP.timeoutInterval = 4
-    URLSession.shared.dataTask(with: pedidoHTTP).resume()
-    print("acordou")
+func notify() {
+    // Uma chamada por vez: o recognizer repete o trecho enquanto refina.
+    guard Date().timeIntervalSince(lastNotice) > 2 else { return }
+    lastNotice = Date()
+    var httpRequest = URLRequest(url: target)
+    httpRequest.httpMethod = "POST"
+    httpRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    httpRequest.httpBody = "{\"word\":\"\(triggers.first ?? "")\"}".data(using: .utf8)
+    httpRequest.timeoutInterval = 4
+    URLSession.shared.dataTask(with: httpRequest).resume()
+    print("woke")
     fflush(stdout)
 }
 
-func escuta() {
-    tarefa?.cancel()
-    tarefa = nil
+func listen() {
+    task?.cancel()
+    task = nil
 
-    let novo = SFSpeechAudioBufferRecognitionRequest()
-    novo.shouldReportPartialResults = true
+    let fresh = SFSpeechAudioBufferRecognitionRequest()
+    fresh.shouldReportPartialResults = true
     // This is what guarantees nothing leaves the machine.
-    novo.requiresOnDeviceRecognition = true
-    pedido = novo
+    fresh.requiresOnDeviceRecognition = true
+    request = fresh
 
-    tarefa = reconhecedor.recognitionTask(with: novo) { resultado, erro in
-        if let resultado {
-            let dito = resultado.bestTranscription.formattedString.lowercased()
+    task = recognizer.recognitionTask(with: fresh) { result, error in
+        if let result {
+            let said = result.bestTranscription.formattedString.lowercased()
             // Only the end of the phrase matters: the recogniser accumulates the whole session.
-            let cauda = String(dito.suffix(40))
-            if gatilhos.contains(where: { cauda.contains($0) }) {
-                avisa()
+            let cauda = String(said.suffix(40))
+            if triggers.contains(where: { cauda.contains($0) }) {
+                notify()
                 // Restart so the same stretch does not fire it again.
-                DispatchQueue.main.async { escuta() }
+                DispatchQueue.main.async { listen() }
             }
         }
-        if erro != nil || resultado?.isFinal == true {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { escuta() }
+        if error != nil || result?.isFinal == true {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { listen() }
         }
     }
 }
@@ -81,34 +81,34 @@ SFSpeechRecognizer.requestAuthorization { estado in
     }
 
     DispatchQueue.main.async {
-        let entrada = motor.inputNode
+        let entrada = engine.inputNode
         entrada.installTap(onBus: 0, bufferSize: 2048, format: entrada.outputFormat(forBus: 0)) { buffer, _ in
-            pedido?.append(buffer)
+            request?.append(buffer)
         }
-        motor.prepare()
+        engine.prepare()
         do {
-            try motor.start()
+            try engine.start()
         } catch {
             FileHandle.standardError.write("could not open the microphone: \(error)\n".data(using: .utf8)!)
             exit(1)
         }
-        escuta()
-        print("ouvindo \"\(gatilhos.first ?? "")\" — local, sem nuvem")
+        listen()
+        print("listening for \"\(triggers.first ?? "")\" — on device, no cloud")
         fflush(stdout)
 
-        // Sinal de vida em arquivo. O coletor precisa saber que o microfone
+        // A sign of life, in a file. The collector needs to know the microphone
         // is busy because of us, or it counts a call where there was none; and
         // this process does not show up in NSWorkspace, because it never
         // becomes an application — it is just a loop with a recogniser inside.
-        let vivo = FileManager.default
+        let alive = FileManager.default
             .homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/Hipocampo/ouvido.vivo")
-        func marca() { try? Date().description.write(to: vivo, atomically: true, encoding: .utf8) }
-        marca()
-        Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in marca() }
+            .appendingPathComponent("Library/Application Support/Hippocampus/listener.alive")
+        func mark() { try? Date().description.write(to: alive, atomically: true, encoding: .utf8) }
+        mark()
+        Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in mark() }
 
         // The recognition session degrades over time; restart it hourly.
-        Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { _ in escuta() }
+        Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { _ in listen() }
     }
 }
 
