@@ -11,15 +11,15 @@ export function Rhythm() {
     { days: 30, name: t.rhythm.days30 },
     { days: 90, name: t.rhythm.days90 },
   ]
-  const [janela, setJanela] = useState(30)
-  const [data, setDados] = useState<Period | null>(null)
+  const [span, setSpan] = useState(30)
+  const [data, setData] = useState<Period | null>(null)
 
   useEffect(() => {
-    let vivo = true
+    let alive = true
     const to = diaDeHoje()
-    api.period(addDays(to, -(janela - 1)), to).then((d) => vivo && setDados(d))
-    return () => { vivo = false }
-  }, [janela])
+    api.period(addDays(to, -(span - 1)), to).then((d) => alive && setData(d))
+    return () => { alive = false }
+  }, [span])
 
   if (!data) return <p className="empty">{t.today.loading}</p>
 
@@ -34,12 +34,12 @@ export function Rhythm() {
       <div className="top">
         <div>
           <h2><b>{t.rhythm.title}</b></h2>
-          <p>{plural(measured.length, t.counts.day)} {t.rhythm.between} {data.of} {t.rhythm.and} {data.to}</p>
+          <p>{plural(measured.length, t.counts.day)} {t.rhythm.between} {data.from} {t.rhythm.and} {data.to}</p>
         </div>
         <div className="nav">
-          {WINDOWS.map((opcao) => (
-            <button key={opcao.days} onClick={() => setJanela(opcao.days)}
-              className={janela === opcao.days ? 'ativo' : ''}>{opcao.name}</button>
+          {WINDOWS.map((option) => (
+            <button key={option.days} onClick={() => setSpan(option.days)}
+              className={span === option.days ? 'active' : ''}>{option.name}</button>
           ))}
         </div>
       </div>

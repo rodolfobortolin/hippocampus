@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type Day, type Status } from '../lib/api.ts'
-import { duration, hours, clock, longDate, addDays, today as diaDeHoje, colour, number, topSlices, plural } from '../lib/format.ts'
+import { duration, hours, clock, longDate, addDays, today as todayString, colour, number, topSlices, plural } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
 import { Donut, Ribbon, Gauge, Bars, FocusShape } from './charts.tsx'
 import { IconAlert } from './Icons.tsx'
@@ -22,23 +22,23 @@ const bridge = (globalThis as any).hippocampus as {
 
 export function Today({ status }: { status: Status | null }) {
   const { t, category } = useLanguage()
-  const [day, setDia] = useState(diaDeHoje())
-  const [data, setDados] = useState<Day | null>(null)
-  const [error, setErro] = useState('')
+  const [day, setDay] = useState(todayString())
+  const [data, setData] = useState<Day | null>(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    let vivo = true
-    const load = () => api.day(day).then((d) => vivo && setDados(d)).catch((e) => vivo && setErro(e.message))
+    let alive = true
+    const load = () => api.day(day).then((d) => alive && setData(d)).catch((e) => alive && setError(e.message))
     load()
     // Enquanto é today, a canvas follow o que está sendo medido now.
-    const timer = day === diaDeHoje() ? setInterval(load, 20_000) : null
-    return () => { vivo = false; if (timer) clearInterval(timer) }
+    const timer = day === todayString() ? setInterval(load, 20_000) : null
+    return () => { alive = false; if (timer) clearInterval(timer) }
   }, [day])
 
   if (error) return <p className="empty">{t.status.noCore} {error}</p>
   if (!data) return <p className="empty">{t.today.loading}</p>
 
-  const isToday = day === diaDeHoje()
+  const isToday = day === todayString()
   const active = hours(data.activeSeconds)
   const noData = data.activeSeconds < 60
   const topCategory = data.categories[0]
@@ -58,11 +58,11 @@ export function Today({ status }: { status: Status | null }) {
           </p>
         </div>
         <div className="nav">
-          <button onClick={() => setDia(addDays(day, -1))}>{t.today.previousDay}</button>
-          <button onClick={() => setDia(diaDeHoje())} disabled={isToday} className={isToday ? 'ativo' : ''}>
+          <button onClick={() => setDay(addDays(day, -1))}>{t.today.previousDay}</button>
+          <button onClick={() => setDay(todayString())} disabled={isToday} className={isToday ? 'active' : ''}>
             {t.today.todayButton}
           </button>
-          <button onClick={() => setDia(addDays(day, 1))} disabled={isToday}>{t.today.nextDay}</button>
+          <button onClick={() => setDay(addDays(day, 1))} disabled={isToday}>{t.today.nextDay}</button>
         </div>
       </div>
 

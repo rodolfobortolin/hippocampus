@@ -24,7 +24,7 @@ function arc(cx: number, cy: number, outer: number, inner: number, de: number, t
     `L${c.x} ${c.y}A${inner} ${inner} 0 ${large} 1 ${d.x} ${d.y}Z`
 }
 
-/** Donut das categorias. O buraco do meio load o total. */
+/** The category donut. The hole in the middle carries the total. */
 export function Donut({ slices, total }: { slices: Slice[]; total: number }) {
   const { t, category } = useLanguage()
   const [hovered, setSobre] = useState<number | null>(null)
@@ -141,7 +141,7 @@ export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; d
         })}
       </svg>
 
-      <div className="fita-hours">
+      <div className="ribbon-hours">
         {marks.map((hour) => (
           <span key={hour} style={{ left: `${((hour - dayStart) / 24) * 100}%` }}>
             {String(hour % 24).padStart(2, '0')}{t.common.h}
@@ -192,7 +192,7 @@ export function Gauge({ value, seconds }: { value: number; seconds?: number }) {
  * o desenho — num monitor largo a mesma source chegava ao dobro do size do
  * rest of the interface, and shrinking the font inside the SVG only defers the
  * problem, because
- * o fator de scale muda com a width da janela.
+ * the scale factor changes with the width of the window.
  */
 export function Heatmap({ grid }: { grid: number[][] }) {
   const t = useLanguage().t
@@ -216,7 +216,7 @@ export function Heatmap({ grid }: { grid: number[][] }) {
       </div>
 
       <div className="heatmap">
-        <div className="mapa-days">
+        <div className="heatmap-days">
           {WEEKDAYS.map((name) => <span key={name}>{name}</span>)}
         </div>
 
@@ -243,7 +243,7 @@ export function Heatmap({ grid }: { grid: number[][] }) {
             )}
           </svg>
 
-          <div className="mapa-hours">
+          <div className="heatmap-hours">
             {[0, 6, 12, 18, 23].map((hour) => (
               <span key={hour}
                 style={{ left: `${((hour + 0.5) / 24) * 100}%` }}>{hour}{t.common.h}</span>
@@ -308,7 +308,7 @@ export function Trend({ days }: { days: { day: string; active: number }[] }) {
   )
 }
 
-/** Lista com barra proporcional — apps, projetos, janelas. */
+/** A list with a proportional bar — apps, projects, windows. */
 export function Bars({ items, total, tone }: { items: Slice[]; total: number; tone?: string }) {
   const { t, category } = useLanguage()
   if (!items.length) return <p className="empty">{t.common.nothingHere}</p>

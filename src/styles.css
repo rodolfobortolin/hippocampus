@@ -354,9 +354,9 @@ body[data-mode='floating']::after { display: none; }
   max-height: 120px; overflow-y: auto;
 }
 /* The window floats over anything — light code, a photo, a dark terminal. A
-   shadow alone will not do: the caption needs a background of its own to stay
-   readable
-   em todos eles, e o desfoque evita que ele pese na screen. */
+   shadow alone will not do: an answer needs a background of its own to stay
+   readable on all of them, and the blur keeps it from weighing on the screen.
+   This only applies once there is something to read. */
 .floating-caption {
   background: rgba(10, 11, 14, 0.82);
   backdrop-filter: blur(14px);
@@ -370,6 +370,23 @@ body[data-mode='floating']::after { display: none; }
   display: block; font-size: 11px; font-weight: 500; color: #b3bccb; margin-bottom: 5px;
 }
 .floating-caption.long p { text-align: left; }
+
+/* At rest: no panel, no border, no fill. The words carry their own light, the
+   way everything else in this app does. */
+.floating-hint {
+  margin-top: -2px;
+  max-width: 220px;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #e8edf6;
+  -webkit-app-region: no-drag;
+  text-shadow:
+    0 0 3px rgba(0, 0, 0, 0.95),
+    0 0 10px rgba(0, 0, 0, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
 .floating-caption::-webkit-scrollbar { width: 0; }
 
 /* ---------- a opening ---------- */

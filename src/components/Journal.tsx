@@ -5,11 +5,11 @@ import { Markdown } from '../lib/markdown.tsx'
 import { useLanguage } from '../lib/language.tsx'
 import { IconOpen } from './Icons.tsx'
 
-type Linha = { day: string; active: number; saved?: StoredDay }
+type Row = { day: string; active: number; saved?: StoredDay }
 
 export function Journal({ status }: { status: Status | null }) {
   const t = useLanguage().t
-  const [linhas, setLinhas] = useState<Linha[]>([])
+  const [rows, setRows] = useState<Row[]>([])
   const [openedAt, setAberto] = useState<string | null>(null)
   const [gerando, setGerando] = useState<string | null>(null)
   const [error, setErro] = useState('')
@@ -18,10 +18,10 @@ export function Journal({ status }: { status: Status | null }) {
     const to = diaDeHoje()
     const [period, salvos] = await Promise.all([api.period(addDays(to, -89), to), api.days()])
     const porDia = new Map(salvos.map((s) => [s.day, s]))
-    const days = new Map<string, Linha>()
+    const days = new Map<string, Row>()
     for (const day of period.days) days.set(day.day, { day: day.day, active: day.active, saved: porDia.get(day.day) })
     for (const saved of salvos) if (!days.has(saved.day)) days.set(saved.day, { day: saved.day, active: saved.active_seconds, saved })
-    setLinhas([...days.values()].sort((a, b) => b.day.localeCompare(a.day)))
+    setRows([...days.values()].sort((a, b) => b.day.localeCompare(a.day)))
   }
 
   useEffect(() => { load().catch((e) => setErro(e.message)) }, [])
@@ -59,14 +59,14 @@ export function Journal({ status }: { status: Status | null }) {
 
       {error && <div className="warning"><div><p>{error}</p></div></div>}
 
-      {!linhas.length ? (
+      {!rows.length ? (
         <div className="panel" style={{ padding: '40px 20px', textAlign: 'center' }}>
           <p style={{ color: 'var(--text-mid)' }}>{t.journal.noDays}</p>
           <p className="note">{t.journal.fillsTomorrow}</p>
         </div>
       ) : (
         <div className="grid" style={{ gap: 10 }}>
-          {linhas.map((linha) => {
+          {rows.map((linha) => {
             const isOpen = openedAt === linha.day
             return (
               <div key={linha.day} className="day-card">

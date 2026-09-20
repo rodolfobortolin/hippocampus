@@ -35,7 +35,7 @@ function labelOf(row: { app: string | null; title: string | null; host: string |
 }
 
 /**
- * Os minutes em que um agente estava trabalhando naquele day.
+ * The minutes in which an agent was working that day.
  *
  * This separates two things the clock confuses: time at a standstill because
  * you left, and time at a standstill because you delegated. Whoever works with
@@ -47,7 +47,7 @@ function agentMinutes(day: string): Set<number> {
     all<any>('select minute from agent_minutes where day = ?', day).map((r) => r.minute as number))
 }
 
-/** Quantos seconds de um intervalo caem em minutes com agente ativo. */
+/** How many seconds of a range fall into minutes with an agent active. */
 function delegatedSeconds(start: number, end: number, ativos: Set<number>): number {
   let total = 0
   for (let minute = Math.floor(start / 60); minute <= Math.floor(end / 60); minute++) {
@@ -164,7 +164,7 @@ export function dayReport(day: string) {
     // the drawing, but the count stays visible so the day never looks tidier
     // than it was.
     timeline: timeline.filter((b) => b.end - b.start >= 20),
-    timelineOcultos: timeline.filter((b) => b.end - b.start < 20).length,
+    timelineHidden: timeline.filter((b) => b.end - b.start < 20).length,
     shortcuts: all<any>(
       `select detail as name, count(*) as n from events
         where day = ? and kind = 'shortcut' and detail <> '' group by detail order by n desc limit 10`, day),
@@ -176,23 +176,23 @@ export function dayReport(day: string) {
       `select host as name, count(*) n from visits where day = ? and host <> '' group by host order by n desc limit 10`, day),
     visits: one<any>(`select count(*) n from visits where day = ?`, day)?.n ?? 0,
     // Keys, clicks and scroll as the system counts them — no permission and no
-    // guardar o que foi digitado. É o que separa escrever de ler.
-    entry: one<any>(
-      `select coalesce(sum(keys),0) teclas, coalesce(sum(clicks),0) cliques,
-              coalesce(sum(scroll),0) rolagem from blocks where day = ?`, day),
-    entradaPorApp: all<any>(
-      `select app, sum(keys) teclas, sum(clicks) cliques, sum(scroll) rolagem
+    // storing what was typed. It is what separates writing from reading.
+    input: one<any>(
+      `select coalesce(sum(keys),0) keys, coalesce(sum(clicks),0) clicks,
+              coalesce(sum(scroll),0) scroll from blocks where day = ?`, day),
+    inputPerApp: all<any>(
+      `select app, sum(keys) keys, sum(clicks) clicks, sum(scroll) scroll
          from blocks where day = ? and idle = 0
-        group by app having teclas + cliques + rolagem > 20
-        order by teclas + cliques desc limit 8`, day),
+        group by app having keys + clicks + scroll > 20
+        order by keys + clicks desc limit 8`, day),
     // Sound playing with the microphone idle is media; with the microphone
     // active it is a call. Our own listener's microphone was already discounted
     // at collection time.
-    trilha: one<any>(
+    soundtrack: one<any>(
       `select coalesce(sum(case when sound = 1 and mic = 0 then seconds else 0 end), 0) seconds,
-              coalesce(sum(case when mic = 1 then seconds else 0 end), 0) emChamada
+              coalesce(sum(case when mic = 1 then seconds else 0 end), 0) inCall
          from blocks where day = ? and idle = 0`, day),
-    midias: all<any>(
+    media: all<any>(
       `select media as name, sum(seconds) seconds from blocks
         where day = ? and idle = 0 and media is not null and sound = 1
         group by media order by seconds desc`, day),
@@ -228,7 +228,7 @@ export function rangeReport(from: string, to: string) {
   }))
 }
 
-/** Mapa hora × day da semana, em seconds ativos. */
+/** An hour × weekday map, in active seconds. */
 export function heatmap(from: string, to: string) {
   const rows = all<any>(
     `select started_at, seconds from blocks where day between ? and ? and idle = 0`, from, to)
@@ -318,7 +318,7 @@ export type Session = { start: number; end: number; minutes: number }
 /**
  * A focus session: the stretch where concentrated work held together.
  *
- * O day vira minutes; um minute conta como focus when o block que o cobre cai
+ * The day becomes minutes; a minute counts as focus when the block covering it falls
  * numa categoria de trabalho concentrado. Uma janela deslizante de 15 minutes
  * needs 75% of those minutes to count, and a break shorter than 2 minutes does
  * not end the session. The thresholds are a convention — what matters is that
@@ -400,7 +400,7 @@ export function focusShape(sessions: Session[]) {
 }
 
 /**
- * O que aconteceu nesta mesma data, before.
+ * What happened on this same date, before.
  *
  * This is the feature that keeps people in a journal more than any other —
  * coming back and recognising your own past. Here it is free: the data is

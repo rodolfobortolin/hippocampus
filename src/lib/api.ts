@@ -67,13 +67,21 @@ export type Settings = {
   dayStartHour: number
   keepTyping: boolean
   voice: string
-  languages: Record<string, { name: string; bandeira: string; intl: string }>
-  /** Só o state das keys volta pela API — o value nunca. */
+  /** The keyboard shortcut that calls the core. Empty means none. */
+  shortcut: string
+  /** `push` records and takes turns; `live` opens a real-time session. */
+  voiceMode: 'push' | 'live'
+  liveVoice: string
+  liveVoices: string[]
+  /** False when there is no OpenAI key, which is what the live voice needs. */
+  liveAvailable: boolean
+  languages: Record<string, { name: string; flag: string; intl: string }>
+  /** Only the state of the keys comes back through the API — never the value. */
   keys: { jev: 'keychain' | 'environment' | 'empty'; openai: 'keychain' | 'environment' | 'empty' }
 }
 
 export type Period = {
-  of: string; to: string
+  from: string; to: string
   days: { day: string; active: number; idle: number; focusRatio: number | null; hasNarrative: boolean }[]
   rhythm: number[][]
   summary: {

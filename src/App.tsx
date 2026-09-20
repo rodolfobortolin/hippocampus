@@ -10,13 +10,13 @@ import {
   Badge, IconToday, IconRhythm, IconJournal, IconChat, IconSettings,
 } from './components/Icons.tsx'
 
-type Aba = 'hoje' | 'ritmo' | 'diario' | 'conversa' | 'ajustes'
+type Tab = 'today' | 'rhythm' | 'journal' | 'chat' | 'settings'
 
 export function App() {
   const t = useLanguage().t
-  const [aba, setAba] = useState<Aba>('hoje')
+  const [tab, setTab] = useState<Tab>('today')
   const [status, setStatus] = useState<Status | null>(null)
-  const [semNucleo, setSemNucleo] = useState(false)
+  const [noCore, setSemNucleo] = useState(false)
 
   useEffect(() => {
     const search = () => api.status().then((s) => { setStatus(s); setSemNucleo(false) }).catch(() => setSemNucleo(true))
@@ -25,12 +25,12 @@ export function App() {
     return () => clearInterval(timer)
   }, [])
 
-  const tabs: { id: Aba; name: string; Icone: () => React.ReactElement }[] = [
-    { id: 'hoje', name: t.tabs.today, Icone: IconToday },
-    { id: 'ritmo', name: t.tabs.rhythm, Icone: IconRhythm },
-    { id: 'diario', name: t.tabs.journal, Icone: IconJournal },
-    { id: 'conversa', name: t.tabs.chat, Icone: IconChat },
-    { id: 'ajustes', name: t.tabs.settings, Icone: IconSettings },
+  const tabs: { id: Tab; name: string; Icon: () => React.ReactElement }[] = [
+    { id: 'today', name: t.tabs.today, Icon: IconToday },
+    { id: 'rhythm', name: t.tabs.rhythm, Icon: IconRhythm },
+    { id: 'journal', name: t.tabs.journal, Icon: IconJournal },
+    { id: 'chat', name: t.tabs.chat, Icon: IconChat },
+    { id: 'settings', name: t.tabs.settings, Icon: IconSettings },
   ]
 
   const sample = status?.collector.lastSample
@@ -55,9 +55,9 @@ export function App() {
         </div>
 
         <nav>
-          {tabs.map(({ id, name, Icone }) => (
-            <button key={id} className="tab" aria-current={aba === id} onClick={() => setAba(id)}>
-              <Icone />
+          {tabs.map(({ id, name, Icon }) => (
+            <button key={id} className="tab" aria-current={tab === id} onClick={() => setTab(id)}>
+              <Icon />
               {name}
             </button>
           ))}
@@ -65,8 +65,8 @@ export function App() {
 
         <div className="rail-foot">
           <div className="signal">
-            <i className={`ponto ${measuring ? (idle ? 'morno' : 'vivo') : ''}`} />
-            {semNucleo ? t.status.coreDown
+            <i className={`dot ${measuring ? (idle ? 'warm' : 'alive') : ''}`} />
+            {noCore ? t.status.coreDown
               : measuring ? (idle ? t.status.idle : t.status.measuring)
               : t.status.stopped}
           </div>
@@ -83,13 +83,13 @@ export function App() {
           {status && (
             <>
               <div className="signal" title={t.status.classification}>
-                <i className={`ponto ${status.jev ? 'vivo' : ''}`} />jev
+                <i className={`dot ${status.jev ? 'alive' : ''}`} />jev
               </div>
               <div className="signal" title={t.status.narrative}>
-                <i className={`ponto ${status.claude ? 'vivo' : ''}`} />claude code
+                <i className={`dot ${status.claude ? 'alive' : ''}`} />claude code
               </div>
               <div className="signal" title={t.today.windows}>
-                <i className={`ponto ${status.collector.trusted ? 'vivo' : 'morno'}`} />{t.status.accessibility}
+                <i className={`dot ${status.collector.trusted ? 'alive' : 'warm'}`} />{t.status.accessibility}
               </div>
               {Object.entries(status.collector.sources ?? {})
                 .filter(([, state]) => state !== 'ok' && state !== 'nunca')
@@ -110,15 +110,15 @@ export function App() {
       </aside>
 
       <main className="screen">
-        {semNucleo && aba !== 'ajustes' ? (
+        {noCore && tab !== 'settings' ? (
           <div className="panel" style={{ marginTop: 60, padding: '44px 24px', textAlign: 'center' }}>
             <p style={{ color: 'var(--text-mid)' }}>{t.status.noCore}</p>
             <p className="note">{t.status.startItWith} <code>npm run dev:core</code>.</p>
           </div>
-        ) : aba === 'hoje' ? <Today status={status} />
-          : aba === 'ritmo' ? <Rhythm />
-          : aba === 'diario' ? <Journal status={status} />
-          : aba === 'ajustes' ? <Settings />
+        ) : tab === 'today' ? <Today status={status} />
+          : tab === 'rhythm' ? <Rhythm />
+          : tab === 'journal' ? <Journal status={status} />
+          : tab === 'settings' ? <Settings />
           : <Chat status={status} />}
       </main>
     </div>

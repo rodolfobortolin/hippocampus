@@ -34,7 +34,7 @@ export function Core({
   useEffect(() => { scene.current?.setNivel(level) }, [level])
 
   return (
-    <div className={`nucleo ${size}`}>
+    <div className={`core ${size}`}>
       <canvas ref={canvas} />
     </div>
   )
