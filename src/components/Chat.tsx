@@ -4,15 +4,16 @@ import { Markdown } from '../lib/markdown.tsx'
 import { useAudioLevel } from '../hooks/useAudioLevel.ts'
 import { useListening } from '../hooks/useListening.ts'
 import { useSocket } from '../hooks/useSocket.ts'
+import { useLive } from '../hooks/useLive.ts'
 import { useSpeech } from '../hooks/useSpeech.ts'
 import { Core, type CoreState } from './Core.tsx'
 import { IconSend, IconMicrophone, IconSound, IconMuted, IconStop } from './Icons.tsx'
 import { useLanguage } from '../lib/language.tsx'
 
-type Message = { of: 'eu' | 'ele'; text: string }
+type Message = { of: 'me' | 'it'; text: string }
 
 export function Chat({ status }: { status: Status | null }) {
-  const { t, language } = useLanguage()
+  const { t, language, settings } = useLanguage()
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState('')
   const [thinking, setThinking] = useState(false)
@@ -22,24 +23,35 @@ export function Chat({ status }: { status: Status | null }) {
   // Se a question veio falada, a answer volta falada — esperar text depois
   // after asking out loud is strange. Typed, it stays quiet.
   const askedByVoice = useRef(false)
-  const [speaking, setFalando] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const [alwaysAloud, setAlwaysAloud] = useState(
     () => localStorage.getItem('hippocampus.voice') === 'always')
   const speakAnswer = useRef<(text: string) => void>(() => {})
   const thread = useRef<HTMLDivElement>(null)
   const answerRef = useRef('')
-  const { level: answerLevel, listenToAudio, pulseAlone, finish } = useAudioLevel()
+  const toCore = useRef<(message: unknown) => boolean>(() => false)
+  const { level: answerLevel, listenToAudio, pulseAlone, finish, setExternalLevel } = useAudioLevel()
+
+  // The live voice: it hears while you speak and you can cut it off mid-sentence.
+  // Off by default — it bills for the time the session stays open, and that is
+  // the person's call to make on the Settings screen.
+  const live = useLive({
+    offer: (sdp) => { toCore.current({ type: 'live-offer', sdp }) },
+    stop: () => { toCore.current({ type: 'live-stop' }) },
+    onLevel: setExternalLevel,
+  })
+  const liveOn = live.phase !== 'off'
   // Listening records and transcribes; its level is the one from your microphone.
   const listening = useListening((utterance) => { askedByVoice.current = true; send(utterance) }, t.common)
   const isListening = listening.state === 'listening'
   const level = isListening ? listening.level : answerLevel
 
   const { connected, send: sendToCore } = useSocket(api.socket, (data) => {
-      if (data.tipo === 'thinking') { setThinking(true); setTool(''); setModel(''); setState('thinking') }
+      if (data.type === 'thinking') { setThinking(true); setTool(''); setModel(''); setState('thinking') }
       // Which model jev chose for this request. Visible on purpose: automatic
       // routing nobody sees is routing nobody trusts.
-      if (data.tipo === 'modelo') setModel(String(data.model).replace(/^claude-|-\d{8}$/g, ''))
-      if (data.tipo === 'tool') {
+      if (data.type === 'model') setModel(String(data.model).replace(/^claude-|-\d{8}$/g, ''))
+      if (data.type === 'tool') {
         // The core only turns to water when it is genuinely reading the
         // database; the SDK's internal tool lookup is of no interest to anyone
         // watching.
@@ -47,30 +59,30 @@ export function Chat({ status }: { status: Status | null }) {
         setState(data.name ? 'tool' : 'thinking')
       }
       // A piece of text arriving: write it at once, into its last message.
-      if (data.tipo === 'delta') {
+      if (data.type === 'delta') {
         answerRef.current += data.text
         setState('thinking')
-        setMessages((atuais) => {
-          const last = atuais[atuais.length - 1]
-          if (last?.of === 'ele') {
-            return [...atuais.slice(0, -1), { ...last, text: last.text + data.text }]
+        setMessages((current) => {
+          const last = current[current.length - 1]
+          if (last?.of === 'it') {
+            return [...current.slice(0, -1), { ...last, text: last.text + data.text }]
           }
-          return [...atuais, { of: 'ele', text: data.text }]
+          return [...current, { of: 'it', text: data.text }]
         })
       }
-      if (data.tipo === 'texto') {
+      if (data.type === 'text') {
         setState('thinking')
         answerRef.current = `${answerRef.current}\n${data.text}`.trim()
-        setMessages((atuais) => {
-          const last = atuais[atuais.length - 1]
+        setMessages((current) => {
+          const last = current[current.length - 1]
           // Splices the pieces of one turn into a single message.
-          if (last?.of === 'ele') {
-            return [...atuais.slice(0, -1), { ...last, text: `${last.text}\n\n${data.text}`.trim() }]
+          if (last?.of === 'it') {
+            return [...current.slice(0, -1), { ...last, text: `${last.text}\n\n${data.text}`.trim() }]
           }
-          return [...atuais, { of: 'ele', text: data.text }]
+          return [...current, { of: 'it', text: data.text }]
         })
       }
-      if (data.tipo === 'fim') {
+      if (data.type === 'end') {
         setThinking(false)
         setTool('')
         const text = data.text || answerRef.current
@@ -79,14 +91,22 @@ export function Chat({ status }: { status: Status | null }) {
         askedByVoice.current = false
       }
       // The wake word toggles: speaking, it goes quiet; quiet, it starts listening.
-      if (data.tipo === 'acordar') {
+      if (data.type === 'wake') {
         if (speaking) voice.stop()
         else if (listening.state === 'idle' && !thinking) listening.toggle()
       }
-      if (data.tipo === 'error') {
+      // The live session's own traffic: the answer to the offer, what it heard,
+      // what it said, and the moment it closes on the other side.
+      if (data.type === 'live-answer') void live.accept(String(data.sdp))
+      if (data.type === 'live' && !data.on) live.dropped()
+      if (data.type === 'listening') setState('listening')
+      if (data.type === 'heard' && data.text) {
+        setMessages((current) => [...current, { of: 'me', text: String(data.text) }])
+      }
+      if (data.type === 'error') {
         setThinking(false)
         setState('error')
-        setMessages((atuais) => [...atuais, { of: 'ele', text: data.error }])
+        setMessages((current) => [...current, { of: 'it', text: data.error }])
         setTimeout(() => setState('idle'), 2600)
       }
   })
@@ -95,25 +115,28 @@ export function Chat({ status }: { status: Status | null }) {
     thread.current?.scrollTo({ top: thread.current.scrollHeight, behavior: 'smooth' })
   }, [messages, thinking])
 
+  useEffect(() => { toCore.current = sendToCore }, [sendToCore])
+
   useEffect(() => {
+    if (liveOn) return
     if (listening.state === 'listening') setState('listening')
     else if (listening.state === 'transcribing') setState('thinking')
     else if (!thinking) setState('idle')
-  }, [listening.state, thinking])
+  }, [listening.state, thinking, liveOn])
 
   const send = (question: string) => {
     const clear = question.trim()
     if (!clear || thinking) return
-    if (!sendToCore({ tipo: 'pergunta', text: clear })) {
+    if (!sendToCore({ type: 'question', text: clear })) {
       // Never swallow the question quietly: the text stays in the field.
       setState('error')
-      setMessages((atuais) => [...atuais, { of: 'ele', text: t.chat.coreIsDown }])
+      setMessages((current) => [...current, { of: 'it', text: t.chat.coreIsDown }])
       setTimeout(() => setState('idle'), 2600)
       return
     }
     // Perguntar de novo cala o que estava sendo spoken.
     voice.stop()
-    setMessages((atuais) => [...atuais, { of: 'eu', text: clear }])
+    setMessages((current) => [...current, { of: 'me', text: clear }])
     answerRef.current = ''
     setText('')
   }
@@ -122,8 +145,8 @@ export function Chat({ status }: { status: Status | null }) {
     hasOwnVoice: Boolean(status?.voice),
     language,
     restOnScreen: t.common.restOnScreen,
-    onStart: () => { setState('speaking'); setFalando(true) },
-    onEnd: () => { setState('idle'); setFalando(false); finish() },
+    onStart: () => { setState('speaking'); setSpeaking(true) },
+    onEnd: () => { setState('idle'); setSpeaking(false); finish() },
     onAudio: listenToAudio,
     onPulse: pulseAlone,
   })
@@ -149,11 +172,11 @@ export function Chat({ status }: { status: Status | null }) {
           </div>
         )}
 
-        {messages.map((fala_, index) => (
-          <div key={index} className={`speech ${fala_.of === 'eu' ? 'minha' : 'dele'} aparece`}>
-            {fala_.of === 'eu' ? fala_.text : <Markdown text={fala_.text} />}
-            {fala_.of === 'ele' && (
-              <button className="icon" onClick={() => speech(fala_.text)} title={t.chat.listen}
+        {messages.map((line, index) => (
+          <div key={index} className={`message ${line.of === 'me' ? 'mine' : 'theirs'} appear`}>
+            {line.of === 'me' ? line.text : <Markdown text={line.text} />}
+            {line.of === 'it' && (
+              <button className="icon" onClick={() => speech(line.text)} title={t.chat.listen}
                 style={{ marginTop: 6 }}>
                 <IconSound />
               </button>
@@ -195,9 +218,9 @@ export function Chat({ status }: { status: Status | null }) {
         {/* While speaking, this button silences. Idle, it turns on and off the mode
             de responder sempre speaking. */}
         <button
-          className={`icone ${speaking ? 'speaking' : alwaysAloud ? 'ativo' : ''}`}
+          className={`icon ${speaking ? 'speaking' : alwaysAloud ? 'active' : ''}`}
           onClick={() => {
-            if (speaking) { voice.stop(); setFalando(false); return }
+            if (speaking) { voice.stop(); setSpeaking(false); return }
             const next = !alwaysAloud
             setAlwaysAloud(next)
             localStorage.setItem('hippocampus.voice', next ? 'always' : 'on-request')
@@ -207,13 +230,27 @@ export function Chat({ status }: { status: Status | null }) {
             : t.chat.aloudWhenYouSpeak}>
           {speaking ? <IconStop /> : alwaysAloud ? <IconSound /> : <IconMuted />}
         </button>
-        <button
-          className={`icone ${listening ? 'ativo' : ''}`}
-          onClick={listening.toggle}
-          disabled={listening.state === 'transcribing'}
-          title={listening ? t.chat.stopListening : t.chat.speak}>
-          <IconMicrophone />
-        </button>
+        {settings?.voiceMode === 'live' ? (
+          // Live: one press opens the session and it keeps listening; the next
+          // press closes it. Nothing is recorded, here or anywhere.
+          <button
+            className={`icon ${liveOn ? 'active' : ''}`}
+            onClick={() => (liveOn ? live.stop() : void live.start())}
+            disabled={live.phase === 'connecting' || !connected}
+            title={liveOn ? t.chat.liveStop
+              : live.phase === 'connecting' ? t.chat.liveConnecting
+              : t.chat.liveStart}>
+            <IconMicrophone />
+          </button>
+        ) : (
+          <button
+            className={`icon ${isListening ? 'active' : ''}`}
+            onClick={listening.toggle}
+            disabled={listening.state === 'transcribing'}
+            title={isListening ? t.chat.stopListening : t.chat.speak}>
+            <IconMicrophone />
+          </button>
+        )}
         <button className="icon" onClick={() => send(text)}
           disabled={!text.trim() || thinking || !connected} title={connected ? t.chat.send : t.chat.coreIsDown}>
           <IconSend />

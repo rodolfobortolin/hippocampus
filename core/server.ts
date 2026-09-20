@@ -13,6 +13,7 @@ import { claudeAvailable } from './claude.ts'
 import { vaultReady } from './vault.ts'
 import { readSettings, saveSettings, writeKey, keyState, type KeyName } from './settings.ts'
 import { LANGUAGES } from './languages.ts'
+import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
 import type { Collector } from './collector.ts'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -73,6 +74,8 @@ export function serve(collector?: Collector): http.Server {
         return json(response, {
           ...readSettings(),
           languages: LANGUAGES,
+          liveVoices: LIVE_VOICES,
+          liveAvailable: liveAvailable(),
           keys: { jev: keyState('jev'), openai: keyState('openai') },
         })
       }
@@ -92,6 +95,8 @@ export function serve(collector?: Collector): http.Server {
         return json(response, {
           ...settings,
           languages: LANGUAGES,
+          liveVoices: LIVE_VOICES,
+          liveAvailable: liveAvailable(),
           keys: { jev: keyState('jev'), openai: keyState('openai') },
         })
       }
@@ -170,6 +175,10 @@ export function serve(collector?: Collector): http.Server {
           body: form,
         })
         if (!openai.ok) {
+          // A refused key is not a server error and it is not the person's
+          // fault for pressing the button. It has one cause and one cure, and
+          // dumping OpenAI's JSON at them says neither.
+          if (openai.status === 401) return json(response, { error: 'key-refused' }, 502)
           return json(response, { error: (await openai.text()).slice(0, 300) }, 502)
         }
         const data = (await openai.json()) as { text?: string }
@@ -187,7 +196,10 @@ export function serve(collector?: Collector): http.Server {
           headers: { authorization: `Bearer ${config.openaiKey}`, 'content-type': 'application/json' },
           body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: voice ?? config.voice, input: String(text).slice(0, 4000) }),
         })
-        if (!speech.ok) return json(response, { error: await speech.text() }, 502)
+        if (!speech.ok) {
+          if (speech.status === 401) return json(response, { error: 'key-refused' }, 502)
+          return json(response, { error: (await speech.text()).slice(0, 300) }, 502)
+        }
         const audio = Buffer.from(await speech.arrayBuffer())
         response.writeHead(200, { 'content-type': 'audio/mpeg', 'content-length': audio.length })
         return response.end(audio)
@@ -231,25 +243,94 @@ export function serve(collector?: Collector): http.Server {
     }
 
     let session: string | undefined
-    socket.on('message', async (raw) => {
-      let payload: any
-      try { payload = JSON.parse(String(raw)) } catch { return }
-      if (payload.type !== 'question' || !payload.text) return
+    let live: LiveVoice | undefined
+    const send = (event: unknown) => socket.readyState === socket.OPEN && socket.send(JSON.stringify(event))
 
-      const send = (event: unknown) => socket.readyState === socket.OPEN && socket.send(JSON.stringify(event))
+    /**
+     * One question, answered by Claude Code with the local database as its tools.
+     *
+     * `speaks` is what separates the two ways of talking: typed, the answer
+     * streams to the screen and the screen decides whether to read it out;
+     * spoken through the live voice, the finished answer goes back to the voice,
+     * which says it in its own words — and the pieces still go to the screen so
+     * there is a transcript to read.
+     */
+    const answer = async (text: string, speaks: LiveVoice | undefined) => {
       send({ type: 'thinking' })
       try {
-        for await (const event of chat(String(payload.text), session)) {
+        for await (const event of chat(text, session)) {
           if (event.type === 'model') send({ type: 'model', model: event.model, level: event.level })
           else if (event.type === 'delta') send({ type: 'delta', text: event.text })
-          else if (event.type === 'end') send({ type: 'end', text: event.text })
+          else if (event.type === 'end') {
+            send({ type: 'end', text: event.text })
+            speaks?.answer(event.text)
+          }
           else if (event.type === 'text') send({ type: 'text', text: event.text })
-          else if (event.type === 'tool') send({ type: 'tool', name: event.name })
+          else if (event.type === 'tool') {
+            send({ type: 'tool', name: event.name })
+            // The voice keeps someone company while the lookup runs, without
+            // reading the tool's name out loud.
+            if (event.name) speaks?.progress(`looking up ${event.name}`)
+          }
           else send({ type: 'error', error: event.error })
         }
       } catch (error) {
         send({ type: 'error', error: (error as Error).message })
       }
+    }
+
+    const stopLive = () => {
+      const seconds = live?.seconds ?? 0
+      live?.close()
+      live = undefined
+      send({ type: 'live', on: false, seconds })
+    }
+
+    const startLive = async (sdp: string) => {
+      if (!liveAvailable()) {
+        return send({ type: 'error', error: 'The live voice needs the OpenAI key.' })
+      }
+      live?.close()
+      const session_ = new LiveVoice({
+        onRequest: (text) => {
+          if (!text) return
+          send({ type: 'heard', text })
+          void answer(text, session_)
+        },
+        onSpoken: (text) => send({ type: 'spoken', text }),
+        onHeard: () => send({ type: 'listening' }),
+        onClosed: () => {
+          live = undefined
+          send({ type: 'live', on: false, seconds: session_.seconds })
+        },
+        onError: (message) => send({ type: 'error', error: `Live voice: ${message}` }),
+      })
+      live = session_
+      try {
+        const opened = await session_.start(sdp, liveInstructions(), readSettings().liveVoice)
+        send({ type: 'live-answer', sdp: opened.sdp })
+        send({ type: 'live', on: true, seconds: 0 })
+      } catch (error) {
+        live = undefined
+        const message = (error as Error).message
+        console.error('[live]', message)
+        send({ type: 'error', error: `Live voice: ${message}` })
+        send({ type: 'live', on: false, seconds: 0 })
+      }
+    }
+
+    socket.on('message', async (raw) => {
+      let payload: any
+      try { payload = JSON.parse(String(raw)) } catch { return }
+      if (payload.type === 'live-offer' && payload.sdp) return void startLive(String(payload.sdp))
+      if (payload.type === 'live-stop') return stopLive()
+      if (payload.type !== 'question' || !payload.text) return
+      await answer(String(payload.text), live)
+    })
+
+    socket.on('close', () => {
+      live?.close()
+      live = undefined
     })
   })
 

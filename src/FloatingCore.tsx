@@ -4,6 +4,7 @@ import { Core, type CoreState } from './components/Core.tsx'
 import { useListening } from './hooks/useListening.ts'
 import { useAudioLevel } from './hooks/useAudioLevel.ts'
 import { useSocket } from './hooks/useSocket.ts'
+import { useLive } from './hooks/useLive.ts'
 import { useSpeech } from './hooks/useSpeech.ts'
 import { useLanguage } from './lib/language.tsx'
 
@@ -19,52 +20,76 @@ const bridge = (globalThis as any).hippocampus as {
  *
  * It is the app when you do not want the app — it sits over whatever you are
  * doing, listens with a click and answers out loud. The text shows only
- * suficiente para conferir; quem quiser ler tudo abre o painel.
+ * enough to glance at; anyone who wants the whole thing opens the panel.
  *
  * Dragging the sphere moves the window and the position is stored. The drag is
  * done by hand rather than with `-webkit-app-region`, because that property
  * swallows the click — and the click is how you talk to it.
  */
 export function FloatingCore() {
-  const { t, language } = useLanguage()
+  const { t, language, settings } = useLanguage()
   const [state, setState] = useState<CoreState>('idle')
-  const [answer, setResposta] = useState('')
-  const [question, setPergunta] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [question, setQuestion] = useState('')
   const [status, setStatus] = useState<Status | null>(null)
   const { level: answerLevel, listenToAudio, pulseAlone, finish } = useAudioLevel()
 
   const answerRef = useRef('')
   const speakAnswer = useRef<(text: string) => void>(() => {})
   const dragged = useRef(false)
+  const toCore = useRef<(message: unknown) => boolean>(() => false)
+  const { level: liveLevel, setExternalLevel } = useAudioLevel()
+
+  const live = useLive({
+    offer: (sdp) => { toCore.current({ type: 'live-offer', sdp }) },
+    stop: () => { toCore.current({ type: 'live-stop' }) },
+    onLevel: setExternalLevel,
+  })
+  const liveOn = live.phase !== 'off'
+  const liveWanted = settings?.voiceMode === 'live'
 
   const { connected, send } = useSocket(api.socket, (data) => {
-    if (data.tipo === 'thinking') { setState('thinking'); setResposta('') }
-    if (data.tipo === 'tool') setState(data.name ? 'tool' : 'thinking')
-    if (data.tipo === 'delta') {
+    if (data.type === 'thinking') { setState('thinking'); setAnswer('') }
+    if (data.type === 'tool') setState(data.name ? 'tool' : 'thinking')
+    if (data.type === 'delta') {
       answerRef.current += data.text
-      setResposta(answerRef.current)
+      setAnswer(answerRef.current)
     }
-    if (data.tipo === 'texto') {
+    if (data.type === 'text') {
       answerRef.current = `${answerRef.current}\n${data.text}`.trim()
-      setResposta(answerRef.current)
+      setAnswer(answerRef.current)
     }
-    if (data.tipo === 'fim') {
+    if (data.type === 'end') {
       const text = data.text || answerRef.current
-      setResposta(text)
+      setAnswer(text)
       speakAnswer.current(text)
     }
-    if (data.tipo === 'acordar') wake()
-    if (data.tipo === 'error') { setState('error'); setResposta(data.error) }
+    if (data.type === 'wake') wake()
+    if (data.type === 'live-answer') void live.accept(String(data.sdp))
+    if (data.type === 'live' && !data.on) live.dropped()
+    if (data.type === 'listening') setState('listening')
+    if (data.type === 'heard' && data.text) { setQuestion(String(data.text)); setAnswer('') }
+    if (data.type === 'error') { setState('error'); setAnswer(data.error) }
   })
 
   const listening = useListening((utterance) => {
-    setPergunta(utterance)
+    setQuestion(utterance)
     answerRef.current = ''
-    send({ tipo: 'pergunta', text: utterance })
+    send({ type: 'question', text: utterance })
   }, t.common)
 
-  /** Speaking, it goes quiet. Quiet, it starts listening. The click's own gesture. */
+  /**
+   * Speaking, it goes quiet. Quiet, it starts listening. The click's own gesture.
+   *
+   * In live mode there is nothing to interrupt and nothing to record: the press
+   * opens the session or closes it, and in between it is simply listening.
+   */
   const wake = () => {
+    if (liveWanted) {
+      if (liveOn) live.stop()
+      else if (live.phase !== 'connecting') void live.start()
+      return
+    }
     if (state === 'speaking') voice.stop()
     else if (listening.state === 'idle') listening.toggle()
   }
@@ -74,12 +99,12 @@ export function FloatingCore() {
   useEffect(() => { api.status().then(setStatus).catch(() => {}) }, [])
 
   // The wake word and the shortcut arrive through Electron: it brings the window
-  // para a frente e avisa aqui, porque a janela pode ter acabado de nascer e
-  // ter perdido o aviso que passou pelo socket.
+  // forward and says so here, because the window may have just been born and
+  // missed the notice that went through the socket.
   useEffect(() => bridge?.onWake?.(() => wakeRef.current()), [])
 
   // There is no screen to read here: the voice is the main output, and clicking
-  // enquanto ela speech manda calar.
+  // while it speaks is how you tell it to stop.
   const voice = useSpeech({
     hasOwnVoice: Boolean(status?.voice),
     language,
@@ -91,16 +116,24 @@ export function FloatingCore() {
   })
   speakAnswer.current = voice.speak
 
+  useEffect(() => { toCore.current = send }, [send])
+
   useEffect(() => {
+    if (liveWanted) return
     if (listening.state === 'listening') setState('listening')
     else if (listening.state === 'transcribing') setState('thinking')
-  }, [listening.state])
+  }, [listening.state, liveWanted])
 
-  const startDrag = (evento: React.PointerEvent<HTMLButtonElement>) => {
+  useEffect(() => {
+    if (!liveWanted) return
+    setState(live.phase === 'on' ? 'listening' : live.phase === 'connecting' ? 'thinking' : 'idle')
+  }, [live.phase, liveWanted])
+
+  const startDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!bridge?.moveCore) return
     dragged.current = false
-    let lastX = evento.screenX
-    let lastY = evento.screenY
+    let lastX = event.screenX
+    let lastY = event.screenY
     let travelled = 0
 
     const move = (e: PointerEvent) => {
@@ -124,8 +157,14 @@ export function FloatingCore() {
     window.addEventListener('pointerup', release)
   }
   const isListening = listening.state === 'listening'
-  const caption = listening.error || answer || question ||
-    (connected ? t.chat.clickToSpeak : t.chat.reconnecting)
+  // At rest there is no caption at all. The panel behind it is a dark
+  // rectangle, and a dark rectangle under the sphere is the one thing this
+  // window is not supposed to put on someone's screen — the sphere floats over
+  // whatever is there, or it is just an app in a box.
+  const said = listening.error || answer || question
+  const hint = !connected ? t.chat.reconnecting
+    : liveWanted ? (liveOn ? t.chat.liveOn : t.chat.liveStart)
+    : t.chat.clickToSpeak
 
   return (
     <div className="floating">
@@ -135,19 +174,32 @@ export function FloatingCore() {
         onClick={() => {
           // The click that closes a drag is not a request to talk.
           if (dragged.current) { dragged.current = false; return }
+          if (liveWanted) return wake()
           if (state === 'speaking') voice.stop()
           else listening.toggle()
         }}
-        title={state === 'speaking' ? t.chat.stopTalking
+        title={liveWanted
+          ? (liveOn ? t.chat.liveStop : live.phase === 'connecting' ? t.chat.liveConnecting : t.chat.liveStart)
+          : state === 'speaking' ? t.chat.stopTalking
           : isListening ? t.chat.stopListening
           : t.chat.speak}>
-        <Core state={state} level={isListening ? listening.level : answerLevel} size="floating" />
+        <Core
+          state={state}
+          level={liveWanted ? liveLevel : isListening ? listening.level : answerLevel}
+          size="floating"
+        />
       </button>
 
-      <div className={`floating-caption ${answer ? 'longa' : ''}`}>
-        {question && answer && <b>{question}</b>}
-        <p>{caption}</p>
-      </div>
+      {said ? (
+        <div className={`floating-caption ${answer ? 'long' : ''}`}>
+          {question && answer && <b>{question}</b>}
+          <p>{said}</p>
+        </div>
+      ) : (
+        // The hint carries no panel: it is lit text over the desktop, readable
+        // on light and dark alike because the glow comes from the letters.
+        <p className="floating-hint">{hint}</p>
+      )}
     </div>
   )
 }
