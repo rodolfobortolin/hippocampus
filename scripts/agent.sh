@@ -45,6 +45,10 @@ instalar() {
 PLISTEOF
 
   launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
+  # bootout mata o processo principal, mas um filho vivo é reparentado no
+  # launchd em vez de morrer junto. Dois coletores no mesmo banco é problema.
+  pkill -f "$RAIZ/core/index.ts" 2>/dev/null || true
+  sleep 1
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
   echo "coletor instalado — sobe junto com a sessão"
   echo "registro: $LOGS/collector.log"
@@ -52,6 +56,7 @@ PLISTEOF
 
 remover() {
   launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
+  pkill -f "$RAIZ/core/index.ts" 2>/dev/null || true
   rm -f "$PLIST"
   echo "coletor removido (os dados já guardados ficam onde estão)"
 }
