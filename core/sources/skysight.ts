@@ -5,6 +5,7 @@ import { config, paths, dayOf } from '../config.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
 import { shortcutLabel, hasModifier } from '../keys.ts'
+import { guardaDigitacao, ehSigiloso } from '../privacidade.ts'
 
 // O Computer History do Codex grava eventos ricos num cache que ele mesmo apaga
 // em poucas horas. Aqui a gente colhe antes de sumir e guarda para sempre.
@@ -84,8 +85,11 @@ export async function harvestSkysight(): Promise<{ segments: number; events: num
           break
         }
         case 'window.changed': {
-          insertEvent.run(sourceId, ts, day, 'window', app, redact(event.window?.title ?? ''),
-            JSON.stringify({ url: event.window?.url ?? null, bundle: event.app?.bundleIdentifier ?? null }))
+          const sigiloso = ehSigiloso(app, event.window?.title, event.window?.url)
+          insertEvent.run(sourceId, ts, day, 'window', app,
+            sigiloso ? '' : redact(event.window?.title ?? ''),
+            JSON.stringify({ url: sigiloso ? null : event.window?.url ?? null,
+                             bundle: event.app?.bundleIdentifier ?? null }))
           events++
           break
         }
@@ -98,7 +102,7 @@ export async function harvestSkysight(): Promise<{ segments: number; events: num
           break
         }
         case 'keyboard.text_input': {
-          if (!config.keepTyping) break
+          if (!guardaDigitacao(app, event.window?.title)) break
           const target = event.keyboard?.target ?? {}
           const field = `${app ?? '?'}|${target.description ?? target.role ?? '?'}`
           const value = String(target.value ?? '')

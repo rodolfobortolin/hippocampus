@@ -14,8 +14,16 @@ export function dossier(day: string): string {
   const report = dayReport(day)
   const lines: string[] = [
     `Dia ${day}. Ativo ${hours(report.activeSeconds)}, ocioso ${hours(report.idleSeconds)}.`,
-    `Começou ${clock(report.firstAt)}, parou ${clock(report.lastAt)}. ${report.switches} trocas de aplicativo.`,
-    `Foco medido: ${Math.round(report.focusRatio * 100)}%.`,
+    `Começou ${clock(report.firstAt)}, parou ${clock(report.lastAt)}.`,
+    `${report.switches} trocas de aplicativo, das quais ${report.switchesProjeto} mudaram de projeto ` +
+    `(só essas custam resíduo de atenção).`,
+    `Trabalho concentrado: ${hours(report.focusSeconds)} de ${hours(report.activeSeconds)} ativos ` +
+    `(${Math.round(report.focusRatio * 100)}%), em categorias de código, IA, escrita, design e pesquisa.`,
+    report.forma.sessoes
+      ? `Isso veio em ${report.forma.sessoes} sessões sustentadas: a maior de ${report.forma.maior}min, ` +
+        `mediana de ${report.forma.mediana}min. Por tamanho: ` +
+        report.forma.faixas.filter((f) => f.minutes).map((f) => `${f.name}min → ${f.minutes}min`).join(', ') + '.'
+      : 'Nenhuma sessão de foco se sustentou por 15 minutos seguidos.',
     '',
     'Tempo por aplicativo:',
     ...report.apps.map((a) => `- ${a.name}: ${hours(a.seconds)}`),
@@ -116,7 +124,8 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
   if (narrative) {
     const body = [
       `**${hours(report.activeSeconds)} ativo** · ${clock(report.firstAt)}–${clock(report.lastAt)} · ` +
-      `foco ${Math.round(report.focusRatio * 100)}% · ${report.switches} trocas de app`,
+      `${hours(report.focusSeconds)} concentrado em ${report.forma.sessoes} sessões ` +
+      `(maior ${report.forma.maior}min) · ${report.switches} trocas, ${report.switchesProjeto} de projeto`,
       '',
       narrative,
       '',

@@ -131,9 +131,13 @@ export function Fita({ blocos, dia, inicioDia = 4 }: { blocos: BlocoFita[]; dia:
   )
 }
 
-/** Medidor de foco: arco de 0 a 100%. */
-export function Medidor({ valor }: { valor: number }) {
+/**
+ * Medidor de foco. O número grande é a hora absoluta, e não a proporção:
+ * proporção sozinha premia o dia curto — 1h de código puro daria 100%.
+ */
+export function Medidor({ valor, segundos }: { valor: number; segundos?: number }) {
   const porcento = Math.round(valor * 100)
+  const horas = segundos != null ? duracao(segundos) : null
   const raio = 52
   const comprimento = Math.PI * raio
   return (
@@ -144,8 +148,17 @@ export function Medidor({ valor }: { valor: number }) {
         stroke="var(--ouro)" strokeWidth="9" strokeLinecap="round"
         strokeDasharray={`${(porcento / 100) * comprimento} ${comprimento}`}
         style={{ filter: 'drop-shadow(0 0 7px rgba(255,209,102,.5))', transition: 'stroke-dasharray .7s cubic-bezier(.22,1,.36,1)' }} />
-      <text x="65" y="60" textAnchor="middle" fill="var(--ouro)" fontSize="30" fontWeight="300"
-        style={{ fontVariantNumeric: 'tabular-nums' }}>{porcento}<tspan fontSize="15">%</tspan></text>
+      {horas ? (
+        <>
+          <text x="65" y="56" textAnchor="middle" fill="var(--ouro)" fontSize="27" fontWeight="300"
+            style={{ fontVariantNumeric: 'tabular-nums' }}>{horas}</text>
+          <text x="65" y="70" textAnchor="middle" fill="var(--texto-fraco)" fontSize="11"
+            style={{ fontVariantNumeric: 'tabular-nums' }}>{porcento}% do ativo</text>
+        </>
+      ) : (
+        <text x="65" y="60" textAnchor="middle" fill="var(--ouro)" fontSize="30" fontWeight="300"
+          style={{ fontVariantNumeric: 'tabular-nums' }}>{porcento}<tspan fontSize="15">%</tspan></text>
+      )}
     </svg>
   )
 }
@@ -273,6 +286,79 @@ export function Barras({ itens, total, tom }: { itens: Fatia[]; total: number; t
           </span>
         </div>
       ))}
+    </div>
+  )
+}
+
+/**
+ * A forma do foco: quantos minutos vieram de sessões de cada tamanho.
+ * A barra conta MINUTOS, não sessões — contar sessões faz os pedaços curtos
+ * dominarem a vista, e o que interessa é onde o tempo foi de fato.
+ */
+export function FormaDoFoco({ faixas, mediana, maior }: {
+  faixas: { name: string; minutes: number; n: number }[]
+  mediana: number
+  maior: number
+}) {
+  const [sobre, setSobre] = useState<number | null>(null)
+  const total = faixas.reduce((soma, f) => soma + f.minutes, 0)
+  if (!total) {
+    return <p className="vazio">Nenhuma sessão de foco sustentada neste dia.</p>
+  }
+
+  const maiorFaixa = Math.max(...faixas.map((f) => f.minutes), 1)
+  const largura = 520
+  const altura = 132
+  const passo = largura / faixas.length
+
+  return (
+    <div>
+      <div style={{ height: 18, marginBottom: 8, fontSize: 12, color: 'var(--texto-medio)' }}>
+        {sobre != null ? (
+          <span className="aparece">
+            {faixas[sobre].n === 1 ? '1 sessão' : `${faixas[sobre].n} sessões`} de {faixas[sobre].name} min ·{' '}
+            <b style={{ fontWeight: 500 }}>{duracao(faixas[sobre].minutes * 60)}</b> no total
+          </span>
+        ) : (
+          <span style={{ color: 'var(--texto-fraco)' }}>
+            mediana de {mediana}min · a maior foi {duracao(maior * 60)}
+          </span>
+        )}
+      </div>
+
+      <svg viewBox={`0 0 ${largura} ${altura}`} style={{ width: '100%', height: altura }}>
+        {faixas.map((faixa, indice) => {
+          const h = (faixa.minutes / maiorFaixa) * (altura - 34)
+          const x = indice * passo + passo * 0.16
+          const w = passo * 0.68
+          // O glow marca hierarquia, não enfeite: só a sessão longa acende.
+          const longa = indice >= 3
+          return (
+            <g key={faixa.name}
+              onMouseEnter={() => setSobre(indice)} onMouseLeave={() => setSobre(null)}>
+              <rect x={x} y={0} width={w} height={altura - 20} fill="transparent" />
+              <rect
+                x={x} y={altura - 20 - h} width={w} height={Math.max(h, faixa.minutes ? 2 : 0)} rx={3}
+                fill={longa ? 'var(--ouro)' : 'var(--brasa)'}
+                opacity={sobre == null || sobre === indice ? 0.9 : 0.4}
+                style={{
+                  filter: longa && faixa.minutes ? 'drop-shadow(0 0 8px rgba(255,209,102,.5))' : undefined,
+                  transition: 'opacity .16s',
+                }}
+              />
+              {faixa.minutes > 0 && (
+                <text x={x + w / 2} y={altura - 26 - h} textAnchor="middle"
+                  fill="var(--texto-medio)" fontSize="11" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {faixa.minutes}
+                </text>
+              )}
+              <text x={x + w / 2} y={altura - 4} textAnchor="middle" fill="var(--texto-fraco)" fontSize="11">
+                {faixa.name}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type Dia, type Status } from '../lib/api.ts'
 import { duracao, horas, relogio, dataLonga, somaDias, hoje as diaDeHoje, cor, NOMES, principais, plural } from '../lib/format.ts'
-import { Rosca, Fita, Medidor, Barras } from './graficos.tsx'
+import { Rosca, Fita, Medidor, Barras, FormaDoFoco } from './graficos.tsx'
 import { IconeAlerta } from './Icons.tsx'
 
 function Cartao({ rotulo, children, nota }: { rotulo: string; children: React.ReactNode; nota?: string }) {
@@ -98,13 +98,13 @@ export function Hoje({ status }: { status: Status | null }) {
             </Cartao>
 
             <div className="painel">
-              <div className="rotulo">foco</div>
-              <Medidor valor={dados.focusRatio} />
-              <div className="nota">quanto do tempo foi trabalho concentrado</div>
+              <div className="rotulo">trabalho concentrado</div>
+              <Medidor valor={dados.focusRatio} segundos={dados.focusSeconds} />
+              <div className="nota">tempo em código, IA, escrita, design e pesquisa</div>
             </div>
 
             <Cartao rotulo="trocas de aplicativo"
-              nota={dados.activeSeconds ? `uma a cada ${duracao(dados.activeSeconds / Math.max(1, dados.switches))}` : undefined}>
+              nota={`${dados.switchesProjeto} mudaram de projeto — só essas custam caro`}>
               <div className="numero">{dados.switches}</div>
             </Cartao>
 
@@ -119,7 +119,13 @@ export function Hoje({ status }: { status: Status | null }) {
           </div>
 
           <div className="painel">
-            <h3>a fita do dia <em>{plural(dados.timeline.length, 'trecho', 'trechos')}</em></h3>
+            <h3>
+              a fita do dia
+              <em>
+                {plural(dados.timeline.length, 'trecho', 'trechos')}
+                {dados.timelineOcultos > 0 && ` · ${dados.timelineOcultos} curtos demais para desenhar`}
+              </em>
+            </h3>
             <Fita blocos={dados.timeline} dia={dia} />
             <div className="legenda">
               {dados.categories.slice(0, 8).map((c) => (
@@ -132,8 +138,14 @@ export function Hoje({ status }: { status: Status | null }) {
 
           <div className="grade g32">
             <div className="painel">
-              <h3>onde o tempo foi</h3>
-              <Barras itens={principais(dados.apps)} total={dados.activeSeconds} tom="var(--brasa)" />
+              <h3>
+                a forma do foco
+                <em>{plural(dados.forma.sessoes, 'sessão sustentada', 'sessões sustentadas')}</em>
+              </h3>
+              <FormaDoFoco faixas={dados.forma.faixas} mediana={dados.forma.mediana} maior={dados.forma.maior} />
+              <div className="nota">
+                minutos por tamanho de sessão — trecho de 15min com 75% de foco, sem quebra maior que 2min
+              </div>
             </div>
             <div className="painel">
               <h3>por categoria</h3>
@@ -141,13 +153,20 @@ export function Hoje({ status }: { status: Status | null }) {
             </div>
           </div>
 
-          <div className="grade g2">
+          <div className="grade g32">
+            <div className="painel">
+              <h3>onde o tempo foi</h3>
+              <Barras itens={principais(dados.apps)} total={dados.activeSeconds} tom="var(--brasa)" />
+            </div>
             <div className="painel">
               <h3>projetos tocados <em>{plural(dados.projects.length, 'projeto', 'projetos')}</em></h3>
               {dados.projects.length
                 ? <Barras itens={dados.projects} total={dados.activeSeconds} tom="var(--agua)" />
                 : <p className="vazio">O jev ainda não atribuiu projeto a nenhuma janela deste dia.</p>}
             </div>
+          </div>
+
+          <div className="grade g2">
             <div className="painel">
               <h3>janelas onde você mais ficou</h3>
               <div className="linhas">

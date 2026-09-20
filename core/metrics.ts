@@ -12,6 +12,22 @@ export type TimelineBlock = {
 // pelo mesmo normalizador que gravou o rótulo.
 import { labelKey, cachedLabel } from './jev.ts'
 
+/**
+ * Categorias onde trabalho concentrado acontece.
+ *
+ * O foco é definido aqui, em código, e não pela probabilidade `deep_work` do
+ * jev. Medindo de verdade, aquela probabilidade fica espremida entre 0,34 e
+ * 0,67 — até "código" tira 0,65 — porque o título de uma janela não basta para
+ * julgar concentração, e o modelo responde com a incerteza que realmente tem.
+ * Usar a média dela como "% de foco" seria apresentar média de probabilidade
+ * como fração de tempo, que é coisa diferente. A categoria, essa o jev acerta
+ * com confiança alta, e a regra abaixo é legível e discutível.
+ */
+const CATEGORIAS_DE_FOCO = new Set(['codigo', 'ia', 'escrita', 'design', 'pesquisa'])
+
+export const ehFoco = (categoria: string | null | undefined) =>
+  CATEGORIAS_DE_FOCO.has(categoria ?? '')
+
 function labelOf(row: { app: string | null; title: string | null; host: string | null }) {
   return cachedLabel(labelKey(row))
 }
@@ -29,7 +45,7 @@ export function dayReport(day: string) {
   const categories = new Map<string, number>()
   const projects = new Map<string, number>()
   const windows = new Map<string, { app: string; seconds: number }>()
-  let focusWeighted = 0
+  let focusSeconds = 0
 
   for (const block of active) {
     const label = labelOf(block)
@@ -37,7 +53,7 @@ export function dayReport(day: string) {
     const category = label?.category ?? 'sem rótulo'
     categories.set(category, (categories.get(category) ?? 0) + block.seconds)
     if (label?.project) projects.set(label.project, (projects.get(label.project) ?? 0) + block.seconds)
-    focusWeighted += block.seconds * (label?.deep_work ?? 0.5)
+    if (ehFoco(label?.category)) focusSeconds += block.seconds
     if (block.title) {
       const key = `${block.app}|${block.title}`
       const seen = windows.get(key) ?? { app: block.app, seconds: 0 }
@@ -47,10 +63,21 @@ export function dayReport(day: string) {
   }
 
   // Trocas de app: quantas vezes o foco mudou de aplicativo ao longo do dia.
+  // O primeiro bloco não é uma troca — começar a trabalhar não é trocar.
+  // Além do total, separa a troca barata (mesmo projeto) da cara (muda o projeto),
+  // que é a única que corresponde ao resíduo de atenção.
   let switches = 0
-  let previous = ''
+  let switchesProjeto = 0
+  let previous: string | null = null
+  let previousProject: string | null | undefined
   for (const block of active) {
-    if (block.app !== previous) { switches++; previous = block.app }
+    const project = labelOf(block)?.project ?? null
+    if (previous !== null && block.app !== previous) {
+      switches++
+      if (previousProject !== undefined && project !== previousProject) switchesProjeto++
+    }
+    previous = block.app
+    previousProject = project
   }
 
   // A fita do dia: blocos curtos viram ruído, então some vizinhos do mesmo app.
@@ -73,13 +100,18 @@ export function dayReport(day: string) {
 
   const bounds = one<any>(
     `select min(started_at) first_at, max(ended_at) last_at from blocks where day = ? and idle = 0`, day)
+  const sessoes = focusSessions(day)
 
   return {
     day,
+    sessoes,
+    forma: focusShape(sessoes),
     activeSeconds,
     idleSeconds,
-    focusRatio: activeSeconds ? focusWeighted / activeSeconds : 0,
+    focusSeconds,
+    focusRatio: activeSeconds ? focusSeconds / activeSeconds : 0,
     switches,
+    switchesProjeto,
     firstAt: bounds?.first_at ?? null,
     lastAt: bounds?.last_at ?? null,
     apps: sortSlices(apps).slice(0, 14),
@@ -88,7 +120,10 @@ export function dayReport(day: string) {
     windows: [...windows].map(([key, value]) => ({
       title: key.split('|').slice(1).join('|'), app: value.app, seconds: value.seconds,
     })).sort((a, b) => b.seconds - a.seconds).slice(0, 12),
+    // Abaixo de 20s o trecho não chega a um pixel na fita; some do desenho,
+    // mas a contagem fica visível para o dia não parecer mais limpo do que foi.
     timeline: timeline.filter((b) => b.end - b.start >= 20),
+    timelineOcultos: timeline.filter((b) => b.end - b.start < 20).length,
     shortcuts: all<any>(
       `select detail as name, count(*) as n from events
         where day = ? and kind = 'shortcut' and detail <> '' group by detail order by n desc limit 10`, day),
@@ -172,7 +207,7 @@ export function periodSummary(from: string, to: string) {
   const categories = new Map<string, number>()
   const projects = new Map<string, number>()
   let total = 0
-  let focusWeighted = 0
+  let focusSeconds = 0
 
   for (const block of blocks) {
     const label = labelOf(block)
@@ -181,7 +216,7 @@ export function periodSummary(from: string, to: string) {
     const category = label?.category ?? 'sem rótulo'
     categories.set(category, (categories.get(category) ?? 0) + block.seconds)
     if (label?.project) projects.set(label.project, (projects.get(label.project) ?? 0) + block.seconds)
-    focusWeighted += block.seconds * (label?.deep_work ?? 0.5)
+    if (ehFoco(label?.category)) focusSeconds += block.seconds
   }
 
   const slices = (map: Map<string, number>, limit: number) =>
@@ -189,7 +224,8 @@ export function periodSummary(from: string, to: string) {
 
   return {
     total,
-    focusRatio: total ? focusWeighted / total : 0,
+    focusSeconds,
+    focusRatio: total ? focusSeconds / total : 0,
     apps: slices(apps, 12),
     categories: slices(categories, 10),
     projects: slices(projects, 10),
@@ -203,5 +239,91 @@ export function periodSummary(from: string, to: string) {
       `select coalesce(sum(chars),0) chars, count(*) samples from typing where day between ? and ?`, from, to),
     commits: one<any>(`select count(*) n from commits where day between ? and ?`, from, to)?.n ?? 0,
     aiTurns: one<any>(`select count(*) n from ai_turns where day between ? and ?`, from, to)?.n ?? 0,
+  }
+}
+
+export type Sessao = { start: number; end: number; minutes: number }
+
+/**
+ * Sessão de foco: trecho em que o trabalho concentrado se sustentou.
+ *
+ * O dia vira minutos; um minuto conta como foco quando o bloco que o cobre cai
+ * numa categoria de trabalho concentrado. Uma janela deslizante de 15 minutos
+ * precisa de 75% desses minutos para valer, e uma quebra menor que 2 minutos não
+ * encerra a sessão. Os limiares são convenção — o que importa é que fiquem
+ * congelados, porque o número só serve para comparar você com você.
+ */
+export function focusSessions(day: string): Sessao[] {
+  const blocks = all<any>(
+    `select started_at, ended_at, app, title, host from blocks
+      where day = ? and idle = 0 order by started_at`, day)
+  if (!blocks.length) return []
+
+  const primeiro = Math.floor(blocks[0].started_at / 60)
+  const ultimo = Math.ceil(blocks[blocks.length - 1].ended_at / 60)
+  const total = ultimo - primeiro
+  if (total <= 0) return []
+
+  const foco = new Uint8Array(total)
+  for (const block of blocks) {
+    if (!ehFoco(labelOf(block)?.category)) continue
+    const de = Math.max(0, Math.floor(block.started_at / 60) - primeiro)
+    const ate = Math.min(total, Math.ceil(block.ended_at / 60) - primeiro)
+    for (let m = de; m < ate; m++) foco[m] = 1
+  }
+
+  const JANELA = 15
+  const EXIGIDO = 0.75
+  const densa = new Uint8Array(total)
+  let soma = 0
+  for (let m = 0; m < total; m++) {
+    soma += foco[m]
+    if (m >= JANELA) soma -= foco[m - JANELA]
+    if (m >= JANELA - 1 && soma / JANELA >= EXIGIDO) {
+      for (let j = m - JANELA + 1; j <= m; j++) densa[j] = 1
+    }
+  }
+
+  const sessoes: Sessao[] = []
+  let inicio = -1
+  for (let m = 0; m <= total; m++) {
+    const dentro = m < total && densa[m] === 1
+    if (dentro && inicio < 0) inicio = m
+    if (!dentro && inicio >= 0) {
+      const anterior = sessoes[sessoes.length - 1]
+      const comecoReal = (primeiro + inicio) * 60
+      const fimReal = (primeiro + m) * 60
+      // Quebra curta demais não separa duas sessões: é respirar, não parar.
+      if (anterior && comecoReal - anterior.end < 120) {
+        anterior.end = fimReal
+        anterior.minutes = Math.round((anterior.end - anterior.start) / 60)
+      } else {
+        sessoes.push({ start: comecoReal, end: fimReal, minutes: m - inicio })
+      }
+      inicio = -1
+    }
+  }
+  return sessoes
+}
+
+const FAIXAS: [string, number, number][] = [
+  ['<15', 0, 15], ['15–25', 15, 25], ['25–50', 25, 50],
+  ['50–90', 50, 90], ['90+', 90, Infinity],
+]
+
+/** A forma do foco do dia: quantos minutos vieram de sessões de cada tamanho. */
+export function focusShape(sessoes: Sessao[]) {
+  const faixas = FAIXAS.map(([nome, de, ate]) => {
+    const dentro = sessoes.filter((s) => s.minutes >= de && s.minutes < ate)
+    return { name: nome, minutes: dentro.reduce((soma, s) => soma + s.minutes, 0), n: dentro.length }
+  })
+  const duracoes = sessoes.map((s) => s.minutes).sort((a, b) => a - b)
+  return {
+    faixas,
+    total: duracoes.reduce((soma, m) => soma + m, 0),
+    maior: duracoes[duracoes.length - 1] ?? 0,
+    // Mediana, não média: a cauda de sessões longas puxaria a média para cima.
+    mediana: duracoes.length ? duracoes[Math.floor(duracoes.length / 2)] : 0,
+    sessoes: duracoes.length,
   }
 }

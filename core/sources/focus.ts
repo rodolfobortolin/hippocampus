@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import fs from 'node:fs'
 import { config, paths, dayOf } from '../config.ts'
 import { db } from '../db.ts'
+import { ehSigiloso } from '../privacidade.ts'
 
 type Sample = {
   ts: string
@@ -96,7 +97,10 @@ export class FocusCollector {
     const ts = Math.floor(new Date(sample.ts).getTime() / 1000)
     const idle = sample.locked || sample.idle >= config.idleThreshold
     const app = idle ? (sample.locked ? 'Tela bloqueada' : 'Ocioso') : sample.app ?? 'Desconhecido'
-    const title = idle ? null : sample.title ?? null
+    // O tempo num gerenciador de senha ou no banco continua contando; o que
+    // estava escrito na barra de título, não.
+    const sigiloso = !idle && ehSigiloso(sample.app, sample.title, sample.url)
+    const title = idle || sigiloso ? null : sample.title ?? null
     const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}`
 
     // Buraco grande (sono, coletor parado) fecha o bloco aberto.
@@ -109,7 +113,7 @@ export class FocusCollector {
       return
     }
 
-    const url = idle ? null : sample.url ?? null
+    const url = idle || sigiloso ? null : sample.url ?? null
     const result = insert.run(
       ts, ts, 0, dayOf(ts), app, idle ? null : sample.bundle ?? null,
       title, url, hostOf(url ?? undefined), idle ? 1 : 0,

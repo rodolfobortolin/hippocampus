@@ -11,7 +11,15 @@ export type Dia = {
   activeSeconds: number
   idleSeconds: number
   focusRatio: number
+  focusSeconds: number
   switches: number
+  switchesProjeto: number
+  timelineOcultos: number
+  sessoes: { start: number; end: number; minutes: number }[]
+  forma: {
+    faixas: { name: string; minutes: number; n: number }[]
+    total: number; maior: number; mediana: number; sessoes: number
+  }
   firstAt: number | null
   lastAt: number | null
   apps: Fatia[]
@@ -47,7 +55,7 @@ export type Periodo = {
   dias: { day: string; active: number; idle: number; focusRatio: number | null; hasNarrative: boolean }[]
   ritmo: number[][]
   resumo: {
-    total: number; focusRatio: number
+    total: number; focusRatio: number; focusSeconds: number
     apps: Fatia[]; categories: Fatia[]; projects: Fatia[]
     shortcuts: { name: string; n: number }[]
     hosts: { name: string; n: number }[]
