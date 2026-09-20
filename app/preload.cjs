@@ -7,8 +7,17 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('hippocampus', {
-  /** Abre o seletor de pastas do sistema. Devolve null se a pessoa desistir. */
+  /** Opens the system folder picker. Null when the person backs out. */
   chooseFolder: () => ipcRenderer.invoke('choose-folder'),
+
+  /** Opens the Accessibility pane of System Settings. */
+  openAccessibility: () => ipcRenderer.invoke('open-accessibility'),
+
+  /**
+   * Sets the shortcut that calls the core. Answers `{ ok }` — false when
+   * another app already holds that combination.
+   */
+  setShortcut: (accelerator) => ipcRenderer.invoke('shortcut:set', accelerator),
 
   /** Moves the floating window by screen pixels — this is the sphere's drag. */
   moveCore: (dx, dy) => ipcRenderer.send('core:move', { dx, dy }),
@@ -18,9 +27,9 @@ contextBridge.exposeInMainWorld('hippocampus', {
 
   /** The state of the agents that measure the day, and how to switch them. */
   agents: {
-    status: () => ipcRenderer.invoke('agents:estado'),
-    register: () => ipcRenderer.invoke('agents:registrar'),
-    desregister: () => ipcRenderer.invoke('agents:desregistrar'),
+    status: () => ipcRenderer.invoke('agents:status'),
+    register: () => ipcRenderer.invoke('agents:register'),
+    unregister: () => ipcRenderer.invoke('agents:unregister'),
   },
 
   /** Called when the wake word or the shortcut brought the core over. */

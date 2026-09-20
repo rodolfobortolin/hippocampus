@@ -21,11 +21,11 @@ const PRELOAD = path.join(__dirname, 'preload.cjs')
 const REGISTRAR = path.join(process.resourcesPath ?? '', '..', 'MacOS', 'hippocampus-agents')
 
 /**
- * Chama o registrador e devolve o que ele imprimiu.
+ * Calls the registrar and hands back what it printed.
  *
- * Ele fala JSON no `estado` e texto nos outros comandos. Falha vira `null` em
- * rather than an exception: the app has to open even with the agents in a
- * mess, or the one screen that can fix them becomes unreachable.
+ * It speaks JSON for `status` and plain text for the other commands. A failure
+ * becomes `null` rather than an exception: the app has to open even with the
+ * agents in a mess, or the one screen that can fix them becomes unreachable.
  */
 function agents(command) {
   return new Promise((resolve) => {
@@ -33,7 +33,7 @@ function agents(command) {
     execFile(REGISTRAR, [command], { timeout: 15_000 }, (error, output) => {
       if (error && !output) return resolve(null)
       try {
-        resolve(command === 'estado' ? JSON.parse(output) : { output: String(output).trim() })
+        resolve(command === 'status' ? JSON.parse(output) : { output: String(output).trim() })
       } catch {
         resolve({ output: String(output).trim() })
       }
@@ -66,6 +66,49 @@ function storePosition() {
   } catch {
     // Losing the position is annoying, not fatal.
   }
+}
+
+/** Reads the stored settings from the core. `null` when it is not up yet. */
+function storedSettings() {
+  return new Promise((resolve) => {
+    const request = http.get(`http://127.0.0.1:${PORT}/api/settings`, { timeout: 1500 }, (response) => {
+      let body = ''
+      response.on('data', (piece) => { body += piece })
+      response.on('end', () => {
+        try { resolve(JSON.parse(body)) } catch { resolve(null) }
+      })
+    })
+    request.on('error', () => resolve(null))
+    request.on('timeout', () => { request.destroy(); resolve(null) })
+  })
+}
+
+/**
+ * The shortcut that calls the core, as chosen on the Settings screen.
+ *
+ * Registering is all-or-nothing and macOS gives no reason when it refuses, so
+ * the answer goes back to the screen that asked: a combination another app
+ * already holds has to say so there, not fail in silence and leave the person
+ * pressing keys that do nothing.
+ */
+let callShortcut = ''
+function useShortcut(accelerator) {
+  const wanted = String(accelerator ?? '').trim()
+  if (callShortcut && callShortcut !== wanted) {
+    globalShortcut.unregister(callShortcut)
+    callShortcut = ''
+  }
+  if (!wanted) return { ok: true, shortcut: '' }
+  if (globalShortcut.isRegistered(wanted)) return { ok: true, shortcut: wanted }
+  let ok = false
+  try {
+    ok = globalShortcut.register(wanted, callCore)
+  } catch {
+    // An accelerator Electron cannot parse throws instead of returning false.
+    ok = false
+  }
+  if (ok) callShortcut = wanted
+  return { ok, shortcut: ok ? wanted : '' }
 }
 
 function coreAnswers() {
@@ -136,12 +179,12 @@ function openWindow() {
  * The floating core: a frameless window, always on top, with just the sphere.
  *
  * It is the app when you do not want the app — it sits in a corner over
- * estiver fazendo, watcher com um clique e responde falando. Fechar o painel
- * ends nothing; this window and the collector carry on by themselves.
+ * whatever you are doing, listens with a click and answers out loud. Closing
+ * the panel ends nothing; this window and the collector carry on by themselves.
  */
-function openCore(roubaFoco = true) {
+function openCore(takeFocus = true) {
   if (coreWindow) {
-    if (roubaFoco) {
+    if (takeFocus) {
       coreWindow.show()
       coreWindow.focus()
     } else {
@@ -180,7 +223,7 @@ function openCore(roubaFoco = true) {
   coreWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   coreWindow.loadURL(`${ADDRESS}#core`)
   coreWindow.once('ready-to-show', () =>
-    roubaFoco ? coreWindow.show() : coreWindow.showInactive())
+    takeFocus ? coreWindow.show() : coreWindow.showInactive())
   coreWindow.on('moved', storePosition)
   coreWindow.on('closed', () => { coreWindow = null })
 }
@@ -246,7 +289,7 @@ function buildTray() {
       label: 'Close yesterday',
       click: () => {
         const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
-        http.request(`http://127.0.0.1:${PORT}/api/rollup?dia=${yesterday}`, { method: 'POST' }).end()
+        http.request(`http://127.0.0.1:${PORT}/api/rollup?day=${yesterday}`, { method: 'POST' }).end()
       },
     },
     { label: 'Open the data folder', click: () => shell.openPath(
@@ -277,26 +320,36 @@ app.whenReady().then(async () => {
   ipcMain.handle('choose-folder', async () => {
     const choice = await dialog.showOpenDialog({
       properties: ['openDirectory', 'createDirectory'],
-      message: 'Escolha a pasta do seu vault do Obsidian',
+      message: 'Choose your Obsidian vault folder',
     })
     return choice.canceled ? null : choice.filePaths[0] ?? null
   })
 
   // Dragging the sphere moves the window. `-webkit-app-region: drag` will not
   // do here: it swallows the click, and the click is how you talk to the core.
-  ipcMain.on('core:move', (_evento, { dx, dy }) => {
+  ipcMain.on('core:move', (_event, { dx, dy }) => {
     if (!coreWindow) return
     const [x, y] = coreWindow.getPosition()
     coreWindow.setPosition(Math.round(x + dx), Math.round(y + dy))
   })
   ipcMain.on('core:settle', storePosition)
 
+  // The Accessibility pane of System Settings. Without that permission the
+  // helper sees which app is in front but not the window title.
+  ipcMain.handle('open-accessibility', () =>
+    shell.openExternal(
+      'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'))
+
   // Measuring the day is what the app is for, but turning on an agent that
   // starts at login is the user's decision — and macOS asks them to approve it.
   // So it lives on the Settings screen, not in a silent first-run registration.
-  ipcMain.handle('agents:status', () => agents('estado'))
-  ipcMain.handle('agents:register', () => agents('registrar'))
-  ipcMain.handle('agents:unregister', () => agents('desregistrar'))
+  // The Settings screen hands the shortcut over the moment it changes, so the
+  // new combination works without restarting the app.
+  ipcMain.handle('shortcut:set', (_event, accelerator) => useShortcut(accelerator))
+
+  ipcMain.handle('agents:status', () => agents('status'))
+  ipcMain.handle('agents:register', () => agents('register'))
+  ipcMain.handle('agents:unregister', () => agents('unregister'))
 
   await ensureCore()
   buildTray()
@@ -305,13 +358,13 @@ app.whenReady().then(async () => {
   // Calling the core from anywhere, without hunting for the app. A shortcut
   // already taken by another app fails silently, and the symptom would be "the
   // shortcut does not work" with no clue at all — hence the warning.
-  for (const [combination, action] of [
-    ['CommandOrControl+Shift+H', toggleCore],
-    ['CommandOrControl+Shift+Space', callCore],
-  ]) {
-    if (!globalShortcut.register(combination, action)) {
-      console.warn(`[shortcut] ${combination} is already taken by another app`)
-    }
+  if (!globalShortcut.register('CommandOrControl+Shift+H', toggleCore)) {
+    console.warn('[shortcut] CommandOrControl+Shift+H is already taken by another app')
+  }
+  const settings = await storedSettings()
+  const chosen = settings?.shortcut ?? 'CommandOrControl+Shift+Space'
+  if (!useShortcut(chosen).ok) {
+    console.warn(`[shortcut] ${chosen} is already taken by another app`)
   }
 })
 
