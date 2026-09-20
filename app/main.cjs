@@ -1,18 +1,47 @@
 // A casca do Hipocampo: uma janela, um ícone na barra e o núcleo vivo por trás.
-const { app, BrowserWindow, Tray, Menu, shell, nativeImage, session, globalShortcut, screen } = require('electron')
+const {
+  app, BrowserWindow, Tray, Menu, shell, nativeImage, session, globalShortcut, screen,
+  ipcMain, dialog,
+} = require('electron')
 const { spawn } = require('node:child_process')
 const path = require('node:path')
+const fs = require('node:fs')
 const http = require('node:http')
+const WebSocket = require('ws')
 
 const RAIZ = path.join(__dirname, '..')
 const DEV = process.env.HIPOCAMPO_DEV === '1'
 const PORTA = Number(process.env.HIPOCAMPO_PORT || 7878)
 const ENDERECO = DEV ? 'http://localhost:5179' : `http://127.0.0.1:${PORTA}`
 
+const PRELOAD = path.join(__dirname, 'preload.cjs')
+// Onde o núcleo flutuante ficou da última vez. Fica fora do banco de propósito:
+// o Electron sobe antes do núcleo, e a janela não pode esperar por ele.
+const MEMORIA_JANELA = path.join(app.getPath('userData'), 'nucleo.json')
+
 let janela = null
 let janelaNucleo = null
 let bandeja = null
 let nucleo = null
+let escuta = null
+
+function lembraPosicao() {
+  try {
+    return JSON.parse(fs.readFileSync(MEMORIA_JANELA, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+function guardaPosicao() {
+  if (!janelaNucleo) return
+  const [x, y] = janelaNucleo.getPosition()
+  try {
+    fs.writeFileSync(MEMORIA_JANELA, JSON.stringify({ x, y }))
+  } catch {
+    // Perder a posição é chato, não é fatal.
+  }
+}
 
 function nucleoResponde() {
   return new Promise((resolve) => {
@@ -64,7 +93,7 @@ function abreJanela() {
     trafficLightPosition: { x: 16, y: 18 },
     vibrancy: 'under-window',
     visualEffectState: 'active',
-    webPreferences: { contextIsolation: true, nodeIntegration: false },
+    webPreferences: { contextIsolation: true, nodeIntegration: false, preload: PRELOAD },
   })
 
   janela.loadURL(ENDERECO)
@@ -95,12 +124,18 @@ function abreNucleo() {
   const area = screen.getPrimaryDisplay().workArea
   const largura = 260
   const altura = 330
+  // Volta onde estava. Se o monitor em que ele morava não existe mais, o
+  // Electron encaixaria a janela fora da vista — daí a conferência.
+  const lembrada = lembraPosicao()
+  const visivel = lembrada && screen.getAllDisplays().some(({ workArea: a }) =>
+    lembrada.x + largura > a.x && lembrada.x < a.x + a.width &&
+    lembrada.y + altura > a.y && lembrada.y < a.y + a.height)
 
   janelaNucleo = new BrowserWindow({
     width: largura,
     height: altura,
-    x: area.x + area.width - largura - 24,
-    y: area.y + area.height - altura - 24,
+    x: visivel ? lembrada.x : area.x + area.width - largura - 24,
+    y: visivel ? lembrada.y : area.y + area.height - altura - 24,
     frame: false,
     transparent: true,
     hasShadow: false,
@@ -108,7 +143,7 @@ function abreNucleo() {
     skipTaskbar: true,
     alwaysOnTop: true,
     show: false,
-    webPreferences: { contextIsolation: true, nodeIntegration: false },
+    webPreferences: { contextIsolation: true, nodeIntegration: false, preload: PRELOAD },
   })
 
   // Acima de tela cheia também: ele não some quando você entra num app inteiro.
@@ -116,7 +151,43 @@ function abreNucleo() {
   janelaNucleo.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   janelaNucleo.loadURL(`${ENDERECO}#nucleo`)
   janelaNucleo.once('ready-to-show', () => janelaNucleo.show())
+  janelaNucleo.on('moved', guardaPosicao)
   janelaNucleo.on('closed', () => { janelaNucleo = null })
+}
+
+/**
+ * Traz o núcleo para a frente e manda escutar.
+ *
+ * É isto que a palavra de ativação e o atalho fazem: a esfera aparece onde
+ * você a deixou, já ouvindo, sem tirar o foco do que você estava fazendo —
+ * por isso `showInactive`, e não `show`.
+ */
+function chamaNucleo() {
+  const novo = !janelaNucleo
+  abreNucleo()
+  if (!novo) janelaNucleo.showInactive()
+  const acorda = () => janelaNucleo?.webContents.send('nucleo:acordar')
+  if (novo) janelaNucleo.webContents.once('did-finish-load', acorda)
+  else acorda()
+}
+
+/** Ouve o núcleo para saber quando a palavra de ativação foi dita. */
+function escutaONucleo() {
+  if (escuta) return
+  escuta = new WebSocket(`ws://127.0.0.1:${PORTA}/ws`, { origin: `http://127.0.0.1:${PORTA}` })
+  escuta.on('message', (cru) => {
+    try {
+      if (JSON.parse(String(cru)).tipo === 'acordar') chamaNucleo()
+    } catch {
+      // Mensagem que não é JSON não é nossa.
+    }
+  })
+  const reconecta = () => {
+    escuta = null
+    setTimeout(escutaONucleo, 4000)
+  }
+  escuta.on('close', reconecta)
+  escuta.on('error', reconecta)
 }
 
 function alternaNucleo() {
@@ -136,6 +207,7 @@ function montaBandeja() {
   bandeja.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir o Hipocampo', click: abreJanela },
     { label: 'Núcleo flutuante', accelerator: 'Cmd+Shift+H', click: alternaNucleo },
+    { label: 'Falar com o Hipocampo', accelerator: 'Cmd+Shift+Space', click: chamaNucleo },
     { type: 'separator' },
     {
       label: 'Fechar o dia de ontem',
@@ -167,11 +239,33 @@ app.whenReady().then(async () => {
   if (process.platform === 'darwin') {
     app.dock?.setIcon(nativeImage.createFromPath(path.join(RAIZ, 'build', 'icon.icns')))
   }
+  // O seletor de pastas do vault. Fica no processo principal porque só ele
+  // tem acesso ao sistema de arquivos e aos diálogos do macOS.
+  ipcMain.handle('escolher-pasta', async () => {
+    const escolha = await dialog.showOpenDialog({
+      properties: ['openDirectory', 'createDirectory'],
+      message: 'Escolha a pasta do seu vault do Obsidian',
+    })
+    return escolha.canceled ? null : escolha.filePaths[0] ?? null
+  })
+
+  // Arrastar a esfera move a janela. Não dá para usar `-webkit-app-region:
+  // drag` aqui: ela engole o clique, e o clique é como se fala com o núcleo.
+  ipcMain.on('nucleo:mover', (_evento, { dx, dy }) => {
+    if (!janelaNucleo) return
+    const [x, y] = janelaNucleo.getPosition()
+    janelaNucleo.setPosition(Math.round(x + dx), Math.round(y + dy))
+  })
+  ipcMain.on('nucleo:fixar', guardaPosicao)
+
   await garanteNucleo()
   montaBandeja()
   abreJanela()
+  escutaONucleo()
   // Chamar o núcleo de qualquer lugar, sem procurar o app.
   globalShortcut.register('CommandOrControl+Shift+H', alternaNucleo)
+  // E falar com ele sem nem isso: o atalho traz a esfera já ouvindo.
+  globalShortcut.register('CommandOrControl+Shift+Space', chamaNucleo)
 })
 
 app.on('activate', abreJanela)
@@ -179,5 +273,6 @@ app.on('activate', abreJanela)
 app.on('window-all-closed', () => {})
 app.on('before-quit', () => {
   globalShortcut.unregisterAll()
+  escuta?.close()
   if (nucleo) nucleo.kill()
 })

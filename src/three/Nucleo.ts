@@ -65,6 +65,7 @@ export class Nucleo {
   private readonly aneis: THREE.Mesh[] = []
   private readonly poeira: THREE.Points
   private readonly relogio = new THREE.Clock()
+  private readonly compacto: boolean
 
   private estado: EstadoNucleo = 'parado'
   private nivel = 0
@@ -88,8 +89,18 @@ export class Nucleo {
    * o quadro deixa o brilho ser cortado na borda — o resultado é um borrão
    * quadrado. Aqui ele fica só com a esfera, menor dentro do quadro, para o
    * halo terminar antes do fim do canvas.
+   *
+   * `poeira` sai fora na janela flutuante: ali o núcleo paira sobre o que a
+   * pessoa está fazendo, e a poeira, que dentro do painel dá profundidade,
+   * vira sujeira espalhada por cima do trabalho dela.
    */
-  constructor(private readonly tela: HTMLCanvasElement, private readonly compacto = false) {
+  constructor(
+    private readonly tela: HTMLCanvasElement,
+    opcoes: { compacto?: boolean; poeira?: boolean } | boolean = {},
+  ) {
+    const { compacto = false, poeira = true } =
+      typeof opcoes === 'boolean' ? { compacto: opcoes, poeira: !opcoes } : opcoes
+    this.compacto = compacto
     this.renderer = new THREE.WebGLRenderer({
       canvas: tela, antialias: true, alpha: true, premultipliedAlpha: false,
     })
@@ -178,7 +189,7 @@ export class Nucleo {
     }
 
     // Poeira em volta: sem ela o núcleo parece recortado e colado no fundo.
-    const total = compacto ? 0 : 420
+    const total = compacto || !poeira ? 0 : 420
     const posicoes = new Float32Array(total * 3)
     for (let i = 0; i < total; i++) {
       const raio = 2.2 + Math.random() * 1.2
