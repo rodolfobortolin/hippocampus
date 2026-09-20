@@ -7,7 +7,7 @@ db.exec(`
 pragma journal_mode = wal;
 pragma synchronous = normal;
 
--- Um bloco é um intervalo contínuo no mesmo app/janela. É a unidade de tempo.
+-- A block is a continuous stretch in the same app and window. The unit of time.
 create table if not exists blocks (
   id integer primary key,
   started_at integer not null,
@@ -24,7 +24,7 @@ create table if not exists blocks (
 create index if not exists blocks_day on blocks(day);
 create index if not exists blocks_started on blocks(started_at);
 
--- Classificação do jev, memorizada por janela para não repetir chamada.
+-- jev's classification, memoised per window so the same window never costs two calls.
 create table if not exists labels (
   key text primary key,
   app text,
@@ -37,7 +37,7 @@ create table if not exists labels (
   created_at integer
 );
 
--- Eventos discretos: atalhos, trocas de janela, cliques (vindos do Skysight).
+-- Discrete events: shortcuts, window switches, clicks (from Skysight).
 create table if not exists events (
   id integer primary key,
   source_id text unique,
@@ -50,7 +50,7 @@ create table if not exists events (
 );
 create index if not exists events_day on events(day, kind);
 
--- O que foi digitado, já redigido. Serve para o estilo de escrita.
+-- What was typed, already redacted. This is what carries writing style.
 create table if not exists typing (
   id integer primary key,
   source_id text unique,
@@ -88,7 +88,7 @@ create table if not exists commits (
 );
 create index if not exists commits_day on commits(day);
 
--- Uma linha por sessão do Claude Code: o que você pediu e o que ele usou.
+-- One row per Claude Code turn: what you asked and which tools it used.
 create table if not exists ai_turns (
   id integer primary key,
   source_id text unique,
@@ -110,7 +110,7 @@ create table if not exists shell_cmds (
 );
 create index if not exists shell_day on shell_cmds(day);
 
--- O dia fechado: números, narrativa e o recap.
+-- The closed day: the numbers, the narrative and the recap.
 create table if not exists days (
   day text primary key,
   active_seconds integer,
@@ -126,8 +126,8 @@ create table if not exists days (
   built_at integer
 );
 
--- Minutos em que um agente estava trabalhando, com ou sem você na frente.
--- É o que separa "saiu para almoçar" de "delegou e foi fazer outra coisa".
+-- Minutes an agent spent working, with or without you in front of the machine.
+-- This is what separates "went to lunch" from "delegated and did something else".
 -- A chave inclui o agente: Claude e Codex podem trabalhar no mesmo minuto.
 create table if not exists agent_minutes (
   minute integer not null,
@@ -142,41 +142,66 @@ create index if not exists agent_minutes_day on agent_minutes(day);
 create table if not exists meta (key text primary key, value text);
 `)
 
-// A primeira versão da tabela tinha só o minuto como chave, o que impedia dois
-// agentes no mesmo minuto. Migra preservando o que já foi medido.
-const chaveAntiga = (db.prepare('pragma table_info(agent_minutes)').all() as any[])
+// The table's first version had only the minute as its key, which kept two
+// agents from sharing a minute. Migrates without losing what was measured.
+const oldKey = (db.prepare('pragma table_info(agent_minutes)').all() as any[])
   .some((c) => c.name === 'minute' && c.pk === 1)
-const temColunaAgente = (db.prepare('pragma table_info(agent_minutes)').all() as any[])
+const hasAgentColumn = (db.prepare('pragma table_info(agent_minutes)').all() as any[])
   .some((c) => c.name === 'agent')
-if (chaveAntiga && !temColunaAgente) {
+if (oldKey && !hasAgentColumn) {
   db.exec(`
-    alter table agent_minutes rename to agent_minutes_antiga;
+    alter table agent_minutes rename to agent_minutes_old;
     create table agent_minutes (
       minute integer not null, agent text not null default 'claude',
       day text not null, project text, events integer not null default 0,
       primary key (minute, agent)
     );
     insert into agent_minutes (minute, agent, day, project, events)
-      select minute, 'claude', day, project, events from agent_minutes_antiga;
-    drop table agent_minutes_antiga;
+      select minute, 'claude', day, project, events from agent_minutes_old;
+    drop table agent_minutes_old;
   `)
 }
 
-// Colunas acrescentadas depois da primeira versão. `alter table` não aceita
-// "if not exists", então a checagem é pelo próprio esquema.
-const colunasExistentes = new Set(
-  (db.prepare('pragma table_info(blocks)').all() as any[]).map((c) => c.name))
-for (const [coluna, tipo] of [
+const blockColumns = () => new Set(
+  (db.prepare('pragma table_info(blocks)').all() as any[]).map((c) => c.name as string))
+
+// Columns that were named in Portuguese before the project went English. A
+// rename in SQLite is cheap and keeps every row: dropping and recreating them
+// would throw away months of screen, sound and now-playing history.
+for (const [before, after] of [
+  ['tela', 'screen'], ['som', 'sound'], ['midia', 'media'], ['tocando', 'playing'],
+] as const) {
+  const columns = blockColumns()
+  if (columns.has(before) && !columns.has(after)) {
+    db.exec(`alter table blocks rename column ${before} to ${after}`)
+  }
+}
+
+// Columns added after the first version. `alter table` takes no "if not
+// exists", so the schema itself is what gets checked.
+const existing = blockColumns()
+for (const [column, type] of [
   ['keys', 'integer not null default 0'],
   ['clicks', 'integer not null default 0'],
   ['scroll', 'integer not null default 0'],
   ['mic', 'integer not null default 0'],
-  ['tela', 'text'],
-  ['som', 'integer not null default 0'],
-  ['midia', 'text'],
-  ['tocando', 'text'],
+  ['screen', 'text'],
+  ['sound', 'integer not null default 0'],
+  ['media', 'text'],
+  ['playing', 'text'],
 ] as const) {
-  if (!colunasExistentes.has(coluna)) db.exec(`alter table blocks add column ${coluna} ${tipo}`)
+  if (!existing.has(column)) db.exec(`alter table blocks add column ${column} ${type}`)
+}
+
+// The category keys travelled with the rename. They are identifiers stored in
+// rows, so the rows already carrying the old ones have to move too — otherwise
+// every window classified before today would read as uncategorised.
+for (const [before, after] of [
+  ['codigo', 'code'], ['ia', 'ai'], ['pesquisa', 'research'],
+  ['comunicacao', 'communication'], ['escrita', 'writing'],
+  ['distracao', 'distraction'], ['sem rótulo', 'unlabelled'],
+] as const) {
+  db.prepare('update labels set category = ? where category = ?').run(after, before)
 }
 
 export function getMeta(key: string, fallback = ''): string {

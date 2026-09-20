@@ -9,21 +9,21 @@ type Sample = {
   idle: number
   locked: boolean
   trusted: boolean
-  /** Contadores acumulados desde o boot; o que vale é o delta entre amostras. */
+  /** Counters accumulated since boot; what counts is the delta between samples. */
   keys?: number
   clicks?: number
   scroll?: number
   mic?: boolean
-  /** Alguma saída de áudio tocando. */
-  som?: boolean
-  /** A escuta da palavra de ativação está ligada (e portanto segura o microfone). */
-  escuta?: boolean
-  /** App de mídia aberto — pista fraca: aberto não é tocando. */
-  midiaAberta?: string
-  /** O que está tocando, quando dá para perguntar ao player ou achar a aba. */
-  tocando?: string
-  /** Nome da tela onde a janela em foco está. */
-  tela?: string
+  /** Some audio output is playing. */
+  sound?: boolean
+  /** The wake-word listener is on (and therefore holding the microphone). */
+  listening?: boolean
+  /** A media app is open — a weak hint: open is not playing. */
+  mediaOpen?: string
+  /** What is playing, when the player can be asked or the tab can be found. */
+  playing?: string
+  /** The name of the screen the focused window is on. */
+  screen?: string
   app?: string
   bundle?: string
   title?: string
@@ -31,30 +31,30 @@ type Sample = {
 }
 
 type Open = { id: number; key: string; startedAt: number; endedAt: number }
-type Contadores = { keys: number; clicks: number; scroll: number }
+type Counters = { keys: number; clicks: number; scroll: number }
 
-// A lista de colunas e a de valores têm que andar juntas. Quando `tela`, `som`,
-// `midia` e `tocando` nasceram, só os valores foram acrescentados — e o
-// node:sqlite da época engolia os parâmetros sobrando calado, então 887 blocos
-// foram gravados com os quatro campos vazios sem ninguém perceber. Versão nova
-// recusa com "column index out of range", que é o comportamento certo.
+// The column list and the value list have to move together. When `screen`,
+// `sound`, `media` and `playing` were born, only the values were added — and
+// the node:sqlite of the day swallowed the extra parameters silently, so 887
+// blocks were written with the four fields empty and nobody noticed. A newer
+// version refuses with "column index out of range", which is the right call.
 const insert = db.prepare(
   `insert into blocks (started_at, ended_at, seconds, day, app, bundle, title, url, host, idle,
-                       keys, clicks, scroll, mic, tela, som, midia, tocando)
+                       keys, clicks, scroll, mic, screen, sound, media, playing)
    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 )
 
-// Dentro de um mesmo bloco a faixa muda, a chamada começa e o som para. Por
-// isso o que é estado acumulado usa `max` e o que é o valor do momento usa
-// `coalesce(?, coluna)`: chegou valor novo, vale ele; chegou nulo, fica o que
-// havia. O `coalesce` em volta de `mic` e `som` é necessário porque `max` com
-// NULL devolve NULL — era assim que `som` ficava eternamente vazio mesmo com o
-// helper informando que havia som tocando.
+// Inside one block the track changes, the call starts and the sound stops. So
+// accumulated state uses `max` and the value of the moment uses
+// `coalesce(?, column)`: a new value wins, a null leaves what was there. The
+// `coalesce` around `mic` and `sound` is needed because `max` with NULL
+// returns NULL — that is how `sound` stayed forever empty even while the
+// helper reported that something was playing.
 const extend = db.prepare(
   `update blocks set ended_at = ?, seconds = ?,
           keys = keys + ?, clicks = clicks + ?, scroll = scroll + ?,
-          mic = max(coalesce(mic, 0), ?), som = max(coalesce(som, 0), ?),
-          midia = coalesce(?, midia), tocando = coalesce(?, tocando)
+          mic = max(coalesce(mic, 0), ?), sound = max(coalesce(sound, 0), ?),
+          media = coalesce(?, media), playing = coalesce(?, playing)
      where id = ?`,
 )
 
@@ -68,17 +68,17 @@ function hostOf(url?: string): string | null {
 }
 
 /**
- * Lê o helper nativo e transforma amostras em blocos contínuos.
- * O bloco é gravado assim que começa e estendido a cada amostra, então
- * uma queda do coletor perde no máximo uma amostra.
+ * Reads the native helper and turns samples into continuous blocks.
+ * A block is written the moment it starts and extended on every sample, so a
+ * collector crash costs at most one sample.
  */
 export class FocusCollector {
   private child: ChildProcess | null = null
-  /** Verdadeiro quando as amostras chegam de fora, empurradas pelo helper. */
-  empurrado = false
+  /** True when samples arrive from outside, pushed by the helper. */
+  pushed = false
   private open: Open | null = null
   private buffer = ''
-  private anterior: Contadores | null = null
+  private previous: Counters | null = null
   private onTrust?: (trusted: boolean) => void
   lastSample: Sample | null = null
   trusted = false
@@ -88,37 +88,37 @@ export class FocusCollector {
   }
 
   /**
-   * Recebe uma amostra vinda do helper lançado pelo launchd.
+   * Takes a sample pushed by the helper that launchd started.
    *
-   * É o caminho preferido: assim o helper responde por si mesmo no TCC, e a
-   * permissão de Acessibilidade fica com ele em vez de com o node.
+   * This is the preferred path: the helper answers for itself in the TCC, so
+   * the Accessibility grant belongs to it rather than to node.
    */
   push(sample: unknown): void {
-    this.empurrado = true
+    this.pushed = true
     try {
       this.ingest(sample as Sample)
     } catch (error) {
-      // Com a mensagem sozinha, um erro de SQL vira uma linha que não diz qual
-      // consulta falhou — foi assim que um insert com parâmetro sobrando ficou
-      // meses invisível. A pilha diz.
-      console.error('[foco] amostra inválida:', (error as Error).stack ?? error)
+      // With the message alone, a SQL error becomes a line that does not say
+      // which query failed — that is how an insert with one parameter too many
+      // stayed invisible for months. The stack says.
+      console.error('[focus] amostra inválida:', (error as Error).stack ?? error)
     }
   }
 
   async start(): Promise<void> {
-    // Assíncrono porque o helper pode morar em `~/Documents`, que o macOS
-    // protege: `existsSync` ali não dá erro, congela o coletor inteiro.
+    // Async because the helper can live in `~/Documents`, which macOS
+    // protects: `existsSync` there does not error, it freezes the collector.
     if (!(await exists(paths.native))) {
-      console.error('[foco] helper nativo ausente — rode `npm run build:native`')
+      console.error('[focus] helper nativo ausente — rode `npm run build:native`')
       return
     }
     this.child = spawn(paths.native, ['--interval', String(config.sampleInterval)], {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     this.child.stdout?.on('data', (chunk) => this.consume(String(chunk)))
-    this.child.stderr?.on('data', (chunk) => console.error('[foco]', String(chunk).trim()))
+    this.child.stderr?.on('data', (chunk) => console.error('[focus]', String(chunk).trim()))
     this.child.on('exit', (code) => {
-      console.error(`[foco] helper saiu (${code}); tentando de novo em 5s`)
+      console.error(`[focus] helper saiu (${code}); tentando de novo em 5s`)
       this.child = null
       this.open = null
       setTimeout(() => void this.start(), 5000)
@@ -157,27 +157,27 @@ export class FocusCollector {
     // Os contadores são acumulados desde o boot: o que interessa é o quanto
     // andou desde a amostra anterior. Reinício da máquina zera e o delta sai
     // negativo — nesse caso a amostra não conta em vez de virar número absurdo.
-    const agora: Contadores = {
+    const agora: Counters = {
       keys: sample.keys ?? 0, clicks: sample.clicks ?? 0, scroll: sample.scroll ?? 0,
     }
-    const bruto = this.anterior
+    const bruto = this.previous
       ? {
-          keys: agora.keys - this.anterior.keys,
-          clicks: agora.clicks - this.anterior.clicks,
-          scroll: agora.scroll - this.anterior.scroll,
+          keys: agora.keys - this.previous.keys,
+          clicks: agora.clicks - this.previous.clicks,
+          scroll: agora.scroll - this.previous.scroll,
         }
       : { keys: 0, clicks: 0, scroll: 0 }
     const delta = Object.values(bruto).some((v) => v < 0) ? { keys: 0, clicks: 0, scroll: 0 } : bruto
-    this.anterior = agora
+    this.previous = agora
     // A escuta própria não conta como chamada.
-    const mic = sample.mic && !sample.escuta ? 1 : 0
+    const mic = sample.mic && !sample.listening ? 1 : 0
     const idle = sample.locked || sample.idle >= config.idleThreshold
     const app = idle ? (sample.locked ? 'Tela bloqueada' : 'Ocioso') : sample.app ?? 'Desconhecido'
     // O tempo num gerenciador de senha ou no banco continua contando; o que
     // estava escrito na barra de título, não.
     const sigiloso = !idle && isSecret(sample.app, sample.title, sample.url)
     const title = idle || sigiloso ? null : sample.title ?? null
-    const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}|${sample.tela ?? ''}|${sample.tocando ?? ''}`
+    const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}|${sample.screen ?? ''}|${sample.playing ?? ''}`
 
     // Buraco grande (sono, coletor parado) fecha o bloco aberto.
     const gap = this.open ? ts - this.open.endedAt : 0
@@ -186,8 +186,8 @@ export class FocusCollector {
     if (this.open) {
       this.open.endedAt = ts
       extend.run(ts, ts - this.open.startedAt, delta.keys, delta.clicks, delta.scroll,
-        mic, sample.som ? 1 : 0,
-        sample.escuta ? null : sample.midiaAberta ?? null, sample.tocando ?? null,
+        mic, sample.sound ? 1 : 0,
+        sample.listening ? null : sample.mediaOpen ?? null, sample.playing ?? null,
         this.open.id)
       return
     }
@@ -196,11 +196,11 @@ export class FocusCollector {
     const result = insert.run(
       ts, ts, 0, dayOf(ts), app, idle ? null : sample.bundle ?? null,
       title, url, hostOf(url ?? undefined), idle ? 1 : 0,
-      delta.keys, delta.clicks, delta.scroll, mic, idle ? null : sample.tela ?? null,
-      sample.som ? 1 : 0,
+      delta.keys, delta.clicks, delta.scroll, mic, idle ? null : sample.screen ?? null,
+      sample.sound ? 1 : 0,
       // Com a escuta ligada o microfone está sempre aberto por nossa causa;
       // marcar chamada nesse estado seria inventar reunião todo dia.
-      sample.escuta ? null : sample.midiaAberta ?? null, sample.tocando ?? null,
+      sample.listening ? null : sample.mediaOpen ?? null, sample.playing ?? null,
     )
     this.open = { id: Number(result.lastInsertRowid), key, startedAt: ts, endedAt: ts }
   }

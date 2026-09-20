@@ -23,8 +23,8 @@ const insertTyping = db.prepare(
 )
 
 // existsSync numa pasta protegida pelo macOS congela o processo inteiro
-// enquanto o diálogo de permissão espera resposta. Aqui a checagem é
-// assíncrona e o resultado fica guardado para quem precisa da resposta na hora.
+// while the permission dialog waits for an answer. Here the check is async and
+// the result is cached for whoever needs the answer right away.
 let disponivel: boolean | null = null
 
 export function skysightAvailable(): boolean {
@@ -42,12 +42,12 @@ export async function checkSkysight(): Promise<boolean> {
 }
 
 
-/** Lê os segmentos ainda não colhidos e devolve quantos eventos entraram. */
+/** Reads the segments not yet harvested and returns how many events got in. */
 export async function harvestSkysight(): Promise<{ segments: number; events: number }> {
   if (!(await checkSkysight())) return { segments: 0, events: 0 }
   const done = new Set(JSON.parse(getMeta('skysight.done', '[]')) as string[])
   const names = (await fs.readdir(segmentsDir)).filter((n) => /^\d{4}-/.test(n)).sort()
-  // O último segmento ainda está sendo escrito; deixa para a próxima rodada.
+  // The last segment is still being written; leave it for the next round.
   const pending = names.slice(0, -1).filter((n) => !done.has(n))
 
   let events = 0
@@ -64,7 +64,7 @@ export async function harvestSkysight(): Promise<{ segments: number; events: num
       let event: any
       try { event = JSON.parse(line) } catch { continue }
 
-      delete event.ax // a árvore de acessibilidade é 90% do volume e não serve depois
+      delete event.ax // the accessibility tree is 90% of the volume and useless later
       archive.push(JSON.stringify(event))
 
       const ts = Math.floor(new Date(event.timestamp).getTime() / 1000)
@@ -76,8 +76,8 @@ export async function harvestSkysight(): Promise<{ segments: number; events: num
       switch (event.kind) {
         case 'keyboard.shortcut': {
           const label = shortcutLabel(event.keyboard)
-          if (!label) break // pressionar só ⇧ ou ⌘ não é atalho
-          // Sem modificador é só uma tecla (delete, seta); atalho de verdade tem ⌘/⌥/⌃/⇧.
+          if (!label) break // pressing only ⇧ or ⌘ is not a shortcut
+          // With no modifier it is just a key (delete, arrow); a real shortcut has ⌘/⌥/⌃/⇧.
           const kind = hasModifier(event.keyboard) ? 'shortcut' : 'key'
           insertEvent.run(sourceId, ts, day, kind, app, label,
             JSON.stringify({ window: event.window?.title ?? null }))
@@ -140,7 +140,7 @@ export async function harvestSkysight(): Promise<{ segments: number; events: num
     done.add(name)
   }
 
-  // Mantém a lista enxuta: só os nomes que ainda podem aparecer no cache.
+  // Keeps the list lean: only names that can still show up in the cache.
   const keep = [...done].sort().slice(-500)
   setMeta('skysight.done', JSON.stringify(keep))
   return { segments: pending.length, events }

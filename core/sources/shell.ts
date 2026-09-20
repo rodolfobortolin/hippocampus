@@ -4,14 +4,14 @@ import { config, dayOf } from '../config.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
 
-// Com EXTENDED_HISTORY ligado o zsh grava `: <epoch>:<duração>;<comando>`.
-// Sem isso sobra a linha nua — aí a marca d'água é a contagem de linhas e a
-// hora é a da coleta, que erra por minutos, não por horas.
+// With EXTENDED_HISTORY on, zsh writes `: <epoch>:<duration>;<command>`.
+// Without it only the bare line is left — then the watermark is the line count
+// and the time is the harvest's, which is off by minutes, not by hours.
 const historyFile = path.join(config.home, '.zsh_history')
 
 const insert = db.prepare('insert or ignore into shell_cmds (ts, day, cmd) values (?, ?, ?)')
 
-/** O histórico, ou nulo se ele não existir ou não puder ser lido. */
+/** The history, or null when it does not exist or cannot be read. */
 async function historico(): Promise<string | null> {
   try {
     return await fs.readFile(historyFile, 'latin1')
@@ -51,7 +51,7 @@ export async function harvestShell(): Promise<{ commands: number; timestamped: b
   }
 
   const seen = Number(getMeta('shell.lines', '0'))
-  // O histórico pode ter sido truncado; nesse caso recomeça do fim.
+  // The history may have been truncated; in that case start over from the end.
   const from = lines.length < seen ? Math.max(0, lines.length - 1) : seen
   const now = Math.floor(Date.now() / 1000)
   for (const line of lines.slice(from)) {

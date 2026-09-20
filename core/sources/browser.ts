@@ -5,12 +5,12 @@ import { DatabaseSync } from 'node:sqlite'
 import { config, dayOf } from '../config.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 
-// Três famílias de navegador, três formatos de tempo diferentes — e o banco
-// fica travado enquanto o app roda, por isso tudo passa por uma cópia.
-// A leitura é assíncrona de propósito: a pasta é protegida pelo macOS e a
-// primeira tentativa pode ficar esperando um diálogo de permissão.
+// Three browser families, three different time formats — and the database is
+// locked while the app runs, which is why everything goes through a copy.
+// The read is async on purpose: the folder is protected by macOS and the first
+// attempt can end up waiting on a permission dialog.
 
-/** Chromium conta microssegundos desde 1601; a divisão vai no SQL para não estourar o inteiro seguro do JS. */
+/** Chromium counts microseconds since 1601; the division happens in SQL so it never overflows JS's safe integer. */
 const CHROMIUM = {
   sql: `select v.visit_time / 1000000 as t, u.url as url, u.title as title
           from visits v join urls u on u.id = v.url
@@ -44,7 +44,7 @@ const fixas: Fonte[] = [
   { name: 'Safari', file: 'Library/Safari/History.db', esquema: SAFARI },
 ]
 
-/** O Firefox guarda o histórico dentro de um perfil de nome variável. */
+/** Firefox keeps its history inside a profile whose name varies. */
 async function perfisFirefox(): Promise<Fonte[]> {
   const raiz = path.join(config.home, 'Library/Application Support/Firefox/Profiles')
   try {
@@ -63,8 +63,8 @@ const insert = db.prepare(
   `insert or ignore into visits (ts, day, browser, url, host, title) values (?, ?, ?, ?, ?, ?)`,
 )
 
-// Navegador instalado mas sem histórico legível falha em toda rodada. O aviso
-// vale uma vez; repetir a cada dez minutos só afoga o registro.
+// A browser that is installed but has no readable history fails every round.
+// The warning is worth saying once; every ten minutes only drowns the log.
 const jaAvisado = new Set<string>()
 function avisaUmaVez(fonte: string, mensagem: string): void {
   const chave = `${fonte}:${mensagem}`
@@ -117,7 +117,7 @@ export async function harvestBrowsers(): Promise<{ visits: number }> {
       avisaUmaVez(source.name, (error as Error).message)
     } finally {
       for (const suffix of ['', '-wal', '-shm']) {
-        await fs.unlink(copy + suffix).catch(() => { /* já não existe */ })
+        await fs.unlink(copy + suffix).catch(() => { /* already gone */ })
       }
     }
   }

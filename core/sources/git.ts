@@ -18,14 +18,15 @@ function git(repo: string, args: string[]): string {
 }
 
 /**
- * Varre os repositórios e guarda os commits dos últimos `days` dias.
+ * Walks the repositories and stores the commits of the last `days` days.
  *
- * Tudo que toca o disco aqui é assíncrono de propósito. A pasta de código mora
- * em `~/Documents`, que o macOS protege: sem a permissão, um `readdirSync` não
- * devolve erro — ele para. E parado no event loop, para o coletor inteiro, com
- * o servidor já dizendo "de pé" e nenhuma rota respondendo. O `withTimeout` que
- * embrulha esta função não salva disso, porque o timeout dele também precisa
- * do event loop para disparar; assíncrono é o que devolve o controle a ele.
+ * Everything that touches disk here is async on purpose. The code folder lives
+ * in `~/Documents`, which macOS protects: without the permission, a
+ * `readdirSync` does not return an error — it stops, and stops the whole
+ * collector with it, the server already saying it is up and no route
+ * answering. The `withTimeout` wrapped around this function cannot save it,
+ * because that timeout also needs the event loop to fire; async is what hands
+ * control back to it.
  */
 export async function harvestGit(days = 3): Promise<{ commits: number }> {
   let nomes: string[]
@@ -44,12 +45,12 @@ export async function harvestGit(days = 3): Promise<{ commits: number }> {
       continue
     }
 
-    // %x1f separa campos e %x1e ABRE cada commit — não fecha.
+    // %x1f separates fields and %x1e OPENS each commit — it does not close it.
     //
-    // Com o separador no fim, o --shortstat sai na linha seguinte ao cabeçalho
-    // e cai dentro do pedaço do commit seguinte; o parser lia a estatística
-    // errada e gravava tudo como +0/-0. Abrindo o registro, cabeçalho e
-    // estatística ficam no mesmo pedaço.
+    // With the separator at the end, --shortstat lands on the line after the
+    // header and falls inside the next commit's chunk; the parser read the
+    // wrong statistic and wrote everything as +0/-0. Opening the record keeps
+    // header and statistic in the same chunk.
     const log = git(repo, [
       'log', '--all', '--no-merges', `--since=${days}.days.ago`,
       '--pretty=format:%x1e%H%x1f%at%x1f%s', '--shortstat',

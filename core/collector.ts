@@ -47,7 +47,7 @@ export class Collector {
     // amostra, o coletor lança o helper ele mesmo — funciona, mas aí quem
     // responde pelo TCC é o node, e o título de janela não vem.
     setTimeout(() => {
-      if (this.focus.empurrado) {
+      if (this.focus.pushed) {
         console.log('[foco] recebendo do helper do launchd')
         return
       }
@@ -133,7 +133,7 @@ export class Collector {
     return {
       running: this.running,
       trusted: this.focus.trusted,
-      empurrado: this.focus.empurrado,
+      empurrado: this.focus.pushed,
       lastSample: this.focus.lastSample,
       skysight: skysightAvailable(),
       lastRun: Object.fromEntries(this.lastRun),
