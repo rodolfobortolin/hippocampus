@@ -12,7 +12,14 @@ type Estado = 'parado' | 'ouvindo' | 'transcrevendo'
  * áudio é gravado, a fala é detectada pelo volume, e o trecho vai para a
  * transcrição quando você para de falar.
  */
-export function useEscuta(aoOuvir: (texto: string) => void, semFala = 'Não entendi.') {
+/** Quanto tempo o microfone espera por alguém, antes de desistir sozinho. */
+const PACIENCIA = 7000
+
+export function useEscuta(
+  aoOuvir: (texto: string) => void,
+  textos: { naoEntendi: string; microfoneNegado: string } =
+    { naoEntendi: 'Não entendi.', microfoneNegado: 'O microfone foi negado.' },
+) {
   const [estado, setEstado] = useState<Estado>('parado')
   const [nivel, setNivel] = useState(0)
   const [erro, setErro] = useState('')
@@ -25,8 +32,8 @@ export function useEscuta(aoOuvir: (texto: string) => void, semFala = 'Não ente
   const falou = useRef(false)
   const receber = useRef(aoOuvir)
   receber.current = aoOuvir
-  const naoEntendi = useRef(semFala)
-  naoEntendi.current = semFala
+  const diz = useRef(textos)
+  diz.current = textos
 
   const desmonta = useCallback(() => {
     cancelAnimationFrame(quadro.current)
@@ -74,7 +81,7 @@ export function useEscuta(aoOuvir: (texto: string) => void, semFala = 'Não ente
           const texto = await api.transcrever(audio)
           setEstado('parado')
           if (texto) receber.current(texto)
-          else setErro(naoEntendi.current)
+          else setErro(diz.current.naoEntendi)
         } catch (falha) {
           setEstado('parado')
           setErro((falha as Error).message)
@@ -82,6 +89,11 @@ export function useEscuta(aoOuvir: (texto: string) => void, semFala = 'Não ente
       }
 
       let silencioDesde = 0
+      // Aberto pela palavra de ativação, o microfone pode ter sido aberto por
+      // engano — a palavra sai de um vídeo, de uma conversa ao lado. Sem isto
+      // ele ficava aberto para sempre esperando alguém que nunca falou, com o
+      // ponto laranja aceso e a detecção de chamada quebrada junto.
+      const aberto = performance.now()
       const acompanha = () => {
         analisador.getByteTimeDomainData(dados)
         let soma = 0
@@ -90,6 +102,7 @@ export function useEscuta(aoOuvir: (texto: string) => void, semFala = 'Não ente
         setNivel(volume)
 
         const agora = performance.now()
+        if (!falou.current && agora - aberto > PACIENCIA) { parar(); return }
         if (volume > 0.08) {
           falou.current = true
           silencioDesde = 0
@@ -109,7 +122,7 @@ export function useEscuta(aoOuvir: (texto: string) => void, semFala = 'Não ente
       setEstado('parado')
       setErro(
         (falha as Error).name === 'NotAllowedError'
-          ? 'O microfone foi negado. Autorize em Ajustes → Privacidade → Microfone.'
+          ? diz.current.microfoneNegado
           : (falha as Error).message,
       )
     }

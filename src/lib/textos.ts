@@ -93,7 +93,7 @@ export type Textos = {
     ativo: string; noTotal: string; nadaAqui: string; semTempo: string; agente: string
     as: string; doAtivo: string; sessao: string; sessoes: string
     mediaDe: string; porDia: string; outros: (n: number) => string
-    restoNaTela: string; naoEntendi: string
+    restoNaTela: string; naoEntendi: string; microfoneNegado: string
   }
 }
 
@@ -217,6 +217,7 @@ const pt: Textos = {
     sessao: 'sessão', sessoes: 'sessões', mediaDe: 'média de', porDia: 'por dia medido',
     outros: (n) => `outros ${n}`,
     restoNaTela: '… o resto está escrito na tela.', naoEntendi: 'Não entendi o que você falou.',
+    microfoneNegado: 'O microfone foi negado. Autorize em Ajustes → Privacidade e Segurança → Microfone.',
   },
 }
 
@@ -340,6 +341,7 @@ const en: Textos = {
     sessao: 'session', sessoes: 'sessions', mediaDe: 'average of', porDia: 'per measured day',
     outros: (n) => `${n} others`,
     restoNaTela: '… the rest is written on screen.', naoEntendi: 'I did not catch that.',
+    microfoneNegado: 'The microphone was denied. Allow it in Settings → Privacy & Security → Microphone.',
   },
 }
 
@@ -463,6 +465,7 @@ const es: Textos = {
     sessao: 'sesión', sessoes: 'sesiones', mediaDe: 'media de', porDia: 'por día medido',
     outros: (n) => `otros ${n}`,
     restoNaTela: '… el resto está escrito en la pantalla.', naoEntendi: 'No entendí lo que dijiste.',
+    microfoneNegado: 'El micrófono fue denegado. Permítelo en Ajustes → Privacidad y seguridad → Micrófono.',
   },
 }
 
@@ -586,6 +589,7 @@ const fr: Textos = {
     sessao: 'session', sessoes: 'sessions', mediaDe: 'moyenne de', porDia: 'par jour mesuré',
     outros: (n) => `${n} autres`,
     restoNaTela: '… le reste est écrit à l’écran.', naoEntendi: 'Je n’ai pas compris.',
+    microfoneNegado: 'Le micro a été refusé. Autorise-le dans Réglages → Confidentialité et sécurité → Microphone.',
   },
 }
 
@@ -709,6 +713,7 @@ const de: Textos = {
     sessao: 'Sitzung', sessoes: 'Sitzungen', mediaDe: 'Durchschnitt von', porDia: 'pro gemessenem Tag',
     outros: (n) => `${n} weitere`,
     restoNaTela: '… der Rest steht auf dem Bildschirm.', naoEntendi: 'Das habe ich nicht verstanden.',
+    microfoneNegado: 'Das Mikrofon wurde verweigert. Erlaube es in Einstellungen → Datenschutz & Sicherheit → Mikrofon.',
   },
 }
 

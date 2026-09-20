@@ -30,7 +30,7 @@ export function Conversa({ status }: { status: Status | null }) {
   const respostaRef = useRef('')
   const { nivel: nivelResposta, ouveAudio, pulsaSozinho, encerra } = useNivelAudio()
   // A escuta grava e transcreve; o nível dela é o do seu microfone.
-  const escuta = useEscuta((frase) => { perguntouFalando.current = true; envia(frase) }, t.comum.naoEntendi)
+  const escuta = useEscuta((frase) => { perguntouFalando.current = true; envia(frase) }, t.comum)
   const ouvindo = escuta.estado === 'ouvindo'
   const nivel = ouvindo ? escuta.nivel : nivelResposta
 

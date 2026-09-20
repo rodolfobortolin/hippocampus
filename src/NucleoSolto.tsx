@@ -61,7 +61,7 @@ export function NucleoSolto() {
     setPergunta(frase)
     respostaRef.current = ''
     envia({ tipo: 'pergunta', texto: frase })
-  }, t.comum.naoEntendi)
+  }, t.comum)
 
   /** Falando, cala. Calado, começa a ouvir. É o mesmo gesto do clique. */
   const acorda = () => {
