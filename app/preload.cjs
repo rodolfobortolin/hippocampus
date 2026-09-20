@@ -16,6 +16,13 @@ contextBridge.exposeInMainWorld('hipocampo', {
   /** Avisa que o arrasto terminou, para a posição ser guardada. */
   fixaNucleo: () => ipcRenderer.send('nucleo:fixar'),
 
+  /** O estado dos agentes que medem o dia, e como ligá-los ou desligá-los. */
+  agentes: {
+    estado: () => ipcRenderer.invoke('agentes:estado'),
+    registrar: () => ipcRenderer.invoke('agentes:registrar'),
+    desregistrar: () => ipcRenderer.invoke('agentes:desregistrar'),
+  },
+
   /** Chamado quando a palavra de ativação ou o atalho trouxe o núcleo. */
   aoAcordar: (callback) => {
     const ouvinte = () => callback()

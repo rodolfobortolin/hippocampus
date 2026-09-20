@@ -1,7 +1,11 @@
 #!/bin/sh
-# Instala (ou remove) o coletor como agente do launchd: sobe no login e
-# volta sozinho se cair. É ele que garante que o dia inteiro seja medido,
-# mesmo com o app fechado.
+# Instala (ou remove) o coletor como agente do launchd, escrevendo plists à mão
+# em ~/Library/LaunchAgents.
+#
+# Este é o caminho de desenvolvimento. O app empacotado não usa isto: lá os três
+# agentes são login items registrados pelo SMAppService, com os plists dentro do
+# próprio bundle, e aparecem em Ajustes → Geral → Itens de Início. Os dois usam
+# as mesmas etiquetas, então não convivem — desligue um antes de ligar o outro.
 set -e
 
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"

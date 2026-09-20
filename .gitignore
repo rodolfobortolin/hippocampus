@@ -10,7 +10,12 @@ dist/
 native/*.app/
 native/hipocampo-focus
 native/hipocampo-ouvido
-build/
+# Só o que sai do compilador. O resto de build/ é fonte: os entitlements, os
+# plists dos agentes e o hook que assina o registrador.
+build/*.icns
+build/*.iconset/
+build/icone-*.png
 
 # Bundle assinado: sai do `npm run dist`, e a assinatura é de quem compila.
 release/
+native/bin/

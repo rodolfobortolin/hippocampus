@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- O V8 compila em tempo de execução; sem os três primeiros o Electron não
+       sobe sob Hardened Runtime. -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+
+  <!-- O núcleo sobe com ELECTRON_RUN_AS_NODE=1. Variável que mexe no dyld é
+       bloqueada sob Hardened Runtime, e sem isto o processo simplesmente não
+       nasce — sem erro, sem log, só um coletor que nunca responde. -->
+  <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+  <true/>
+
+  <!-- A API local em 127.0.0.1, o jev e a voz da OpenAI. -->
+  <key>com.apple.security.network.client</key>
+  <true/>
+  <key>com.apple.security.network.server</key>
+  <true/>
+
+  <!-- A escuta da palavra de ativação e a pergunta falada. -->
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
+
+  <!-- Perguntar ao Spotify, ao Música e ao navegador o que está tocando. -->
+  <key>com.apple.security.automation.apple-events</key>
+  <true/>
+</dict>
+</plist>

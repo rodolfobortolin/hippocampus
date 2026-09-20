@@ -81,6 +81,8 @@ export type Textos = {
     dia: string; diaNota: string; horas: string
     digitacao: string; digitacaoNota: string
     salvar: string; salvo: string; salvando: string; testar: string; funcionando: string; falhou: string
+    agentes: string; agentesNota: string; agentesLigados: string; agentesDesligados: string
+    agentesAprovar: string; agentesOnde: string
   }
   /** Pares [singular, plural] para o que a tela conta. */
   contagem: {
@@ -203,6 +205,11 @@ const pt: Textos = {
     dia: 'o dia começa às', diaNota: 'madrugada conta para o dia anterior', horas: 'h',
     digitacao: 'guardar o que você digita', digitacaoNota: 'já passa por redação de segredos; desligue se preferir só os números',
     salvar: 'salvar', salvo: 'salvo', salvando: 'salvando…', testar: 'testar', funcionando: 'funcionando', falhou: 'falhou',
+    agentes: 'medir sozinho, desde o login',
+    agentesNota: 'o coletor, o leitor de janela e a escuta sobem com o Mac e voltam se caírem',
+    agentesLigados: 'ligados', agentesDesligados: 'desligados',
+    agentesAprovar: 'registrados — falta você aprovar',
+    agentesOnde: 'Ajustes → Geral → Itens de Início',
   },
   contagem: {
     trecho: ['trecho', 'trechos'], sessao: ['sessão sustentada', 'sessões sustentadas'],
@@ -327,6 +334,11 @@ const en: Textos = {
     dia: 'the day starts at', diaNota: 'the small hours count as the day before', horas: ':00',
     digitacao: 'keep what you type', digitacaoNota: 'secrets are already redacted; turn it off if you prefer only the numbers',
     salvar: 'save', salvo: 'saved', salvando: 'saving…', testar: 'test', funcionando: 'working', falhou: 'failed',
+    agentes: 'measure on its own, from login',
+    agentesNota: 'the collector, the window reader and the listener start with the Mac and come back if they fall',
+    agentesLigados: 'on', agentesDesligados: 'off',
+    agentesAprovar: 'registered — waiting for you to approve',
+    agentesOnde: 'Settings → General → Login Items',
   },
   contagem: {
     trecho: ['stretch', 'stretches'], sessao: ['sustained session', 'sustained sessions'],
@@ -451,6 +463,11 @@ const es: Textos = {
     dia: 'el día empieza a las', diaNota: 'la madrugada cuenta para el día anterior', horas: 'h',
     digitacao: 'guardar lo que escribes', digitacaoNota: 'los secretos ya se redactan; desactívalo si prefieres solo los números',
     salvar: 'guardar', salvo: 'guardado', salvando: 'guardando…', testar: 'probar', funcionando: 'funciona', falhou: 'falló',
+    agentes: 'medir solo, desde el inicio de sesión',
+    agentesNota: 'el recolector, el lector de ventanas y la escucha arrancan con el Mac y vuelven si se caen',
+    agentesLigados: 'encendidos', agentesDesligados: 'apagados',
+    agentesAprovar: 'registrados — falta que los apruebes',
+    agentesOnde: 'Ajustes → General → Ítems de inicio',
   },
   contagem: {
     trecho: ['tramo', 'tramos'], sessao: ['sesión sostenida', 'sesiones sostenidas'],
@@ -575,6 +592,11 @@ const fr: Textos = {
     dia: 'la journée commence à', diaNota: 'le petit matin compte pour la veille', horas: 'h',
     digitacao: 'garder ce que tu tapes', digitacaoNota: 'les secrets sont déjà masqués ; désactive si tu préfères seulement les chiffres',
     salvar: 'enregistrer', salvo: 'enregistré', salvando: 'enregistrement…', testar: 'tester', funcionando: 'fonctionne', falhou: 'a échoué',
+    agentes: 'mesurer tout seul, dès l’ouverture de session',
+    agentesNota: 'le collecteur, le lecteur de fenêtre et l’écoute démarrent avec le Mac et reviennent s’ils tombent',
+    agentesLigados: 'activés', agentesDesligados: 'désactivés',
+    agentesAprovar: 'enregistrés — il ne manque que ton accord',
+    agentesOnde: 'Réglages → Général → Ouverture',
   },
   contagem: {
     trecho: ['segment', 'segments'], sessao: ['session tenue', 'sessions tenues'],
@@ -699,6 +721,11 @@ const de: Textos = {
     dia: 'der Tag beginnt um', diaNota: 'die frühen Stunden zählen zum Vortag', horas: 'Uhr',
     digitacao: 'behalten, was du tippst', digitacaoNota: 'Geheimnisse werden schon geschwärzt; schalte es aus, wenn dir die Zahlen reichen',
     salvar: 'speichern', salvo: 'gespeichert', salvando: 'speichert…', testar: 'testen', funcionando: 'funktioniert', falhou: 'fehlgeschlagen',
+    agentes: 'von der Anmeldung an selbst messen',
+    agentesNota: 'Sammler, Fensterleser und Mithören starten mit dem Mac und kommen zurück, wenn sie ausfallen',
+    agentesLigados: 'an', agentesDesligados: 'aus',
+    agentesAprovar: 'registriert — wartet auf deine Zustimmung',
+    agentesOnde: 'Einstellungen → Allgemein → Anmeldeobjekte',
   },
   contagem: {
     trecho: ['Abschnitt', 'Abschnitte'], sessao: ['durchgehaltene Sitzung', 'durchgehaltene Sitzungen'],

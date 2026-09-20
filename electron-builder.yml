@@ -6,6 +6,8 @@ directories:
   output: release
   buildResources: build
 
+afterSign: build/assina-registrador.cjs
+
 # O núcleo não é código empacotado: é o próprio TypeScript, rodado pelo Node do
 # Electron com --experimental-strip-types. Dentro de um asar ele não abre — o
 # Node lê o arquivo do disco, e asar não é disco. Por isso o bundle fica sem
@@ -30,10 +32,27 @@ extraResources:
       - '**/*.app/**'
   - from: scripts
     to: scripts
+    filter:
+      - nucleo.sh
+      - foco.sh
+      - escuta.sh
+      - permissao.sh
+
+# Fora de Resources porque o macOS exige estes dois lugares exatos: os plists
+# dos agentes em Contents/Library/LaunchAgents, e o registrador em Contents/MacOS,
+# que é de onde `Bundle.main` resolve para o app.
+extraFiles:
+  - from: build/agentes
+    to: Library/LaunchAgents
+  - from: native/bin/hipocampo-agentes
+    to: MacOS/hipocampo-agentes
 
 mac:
   category: public.app-category.productivity
   icon: build/icon.icns
+  # O registrador é assinado pelo afterPack, com a identidade do app, e não
+  # aqui: o electron-builder usaria o nome do arquivo como identificador, e o
+  # SMAppService recusa registrar um agente pedido por quem não é o app.
   # Não é sandbox de propósito. O Hipocampo lê o histórico dos navegadores, fala
   # com o launchd e usa a API de Acessibilidade — as três coisas que a sandbox
   # existe para impedir. App fora da Mac App Store não precisa dela.

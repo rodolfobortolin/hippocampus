@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useIdioma } from '../lib/idioma.tsx'
 import { IDIOMAS, type Idioma } from '../lib/textos.ts'
 import { IconeChave, IconePasta } from './Icons.tsx'
@@ -13,7 +13,16 @@ function caminhoCurto(caminho: string): string {
 }
 
 /** O Electron expõe o seletor de pasta; no navegador ele simplesmente não existe. */
-const ponte = (globalThis as any).hipocampo as { escolherPasta?: () => Promise<string | null> } | undefined
+type EstadoDosAgentes = Record<string, { estado: string; ligado: boolean }>
+
+const ponte = (globalThis as any).hipocampo as {
+  escolherPasta?: () => Promise<string | null>
+  agentes?: {
+    estado: () => Promise<EstadoDosAgentes | null>
+    registrar: () => Promise<unknown>
+    desregistrar: () => Promise<unknown>
+  }
+} | undefined
 
 function Campo({ rotulo, nota, children }: { rotulo: string; nota?: string; children: React.ReactNode }) {
   return (
@@ -34,6 +43,7 @@ export function Ajustes() {
   const [jev, setJev] = useState('')
   const [openai, setOpenai] = useState('')
   const [estado, setEstado] = useState<'' | 'salvando' | 'salvo'>('')
+  const [agentes, setAgentes] = useState<EstadoDosAgentes | null>(null)
 
   // Os campos de texto só se sincronizam quando os ajustes chegam ou mudam
   // por fora; enquanto a pessoa digita, quem manda é o que está na tela.
@@ -43,7 +53,18 @@ export function Ajustes() {
     setPastaDiario(ajustes.pastaDiario)
   }, [ajustes])
 
+  const leAgentes = useCallback(() => {
+    ponte?.agentes?.estado().then(setAgentes).catch(() => setAgentes(null))
+  }, [])
+  useEffect(leAgentes, [leAgentes])
+
   if (!ajustes) return <p className="vazio">{t.hoje.carregando}</p>
+
+  // O registrador devolve código, não frase — casar com texto traduzido para
+  // saber o que aconteceu quebraria assim que alguém trocasse de idioma.
+  const estados = Object.values(agentes ?? {})
+  const ligados = estados.length > 0 && estados.every((a) => a.ligado)
+  const esperandoAprovacao = estados.some((a) => a.estado === 'requer-aprovacao')
 
   const guarda = async (mudanca: Parameters<typeof salva>[0]) => {
     setEstado('salvando')
@@ -125,6 +146,28 @@ export function Ajustes() {
               onBlur={() => pastaDiario !== ajustes.pastaDiario && guarda({ pastaDiario })} />
           </Campo>
         </div>
+
+        {agentes && (
+          <div className="painel">
+            <h3>{t.ajustes.agentes}<em>{t.ajustes.agentesNota}</em></h3>
+            <Campo
+              rotulo={
+                ligados ? t.ajustes.agentesLigados
+                  : esperandoAprovacao ? t.ajustes.agentesAprovar
+                  : t.ajustes.agentesDesligados
+              }
+              nota={ligados ? undefined : t.ajustes.agentesOnde}>
+              <button
+                className={`chave ${ligados ? 'ativo' : ''}`}
+                onClick={async () => {
+                  await (ligados ? ponte?.agentes?.desregistrar() : ponte?.agentes?.registrar())
+                  leAgentes()
+                }}>
+                <i />
+              </button>
+            </Campo>
+          </div>
+        )}
 
         <div className="painel">
           <h3><IconeChave /> {t.ajustes.chaves}<em>{t.ajustes.chavesNota}</em></h3>

@@ -56,6 +56,13 @@ else
   codesign --sign - --force --deep "$OUVIDO"
 fi
 
+# O registrador dos agentes. Mora em Contents/MacOS do app principal, e não
+# aqui, porque é de lá que Bundle.main resolve para o app — que é o que o
+# SMAppService consulta para saber de quem são os agentes.
+mkdir -p native/bin
+swiftc -O -o native/bin/hipocampo-agentes native/agentes.swift -framework ServiceManagement
+echo "registrador de agentes pronto"
+
 echo "$APP pronto e assinado"
 echo "$OUVIDO pronto e assinado"
 codesign -dv "$APP" 2>&1 | grep -E "Identifier|Signature" || true

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.hipocampo.coletor</string>
+  <!-- Caminho relativo ao bundle: é o que faz o agente pertencer ao app em vez
+       de apontar para um lugar do disco que pode sumir. Cada lançador cuida do
+       próprio log, porque plist dentro de bundle é estático e o launchd não
+       expande $HOME. -->
+  <key>BundleProgram</key><string>Contents/Resources/scripts/nucleo.sh</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ProcessType</key><string>Background</string>
+</dict>
+</plist>

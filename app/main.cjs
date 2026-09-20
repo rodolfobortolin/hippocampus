@@ -8,6 +8,7 @@ const path = require('node:path')
 const fs = require('node:fs')
 const http = require('node:http')
 const WebSocket = require('ws')
+const { execFile } = require('node:child_process')
 
 const RAIZ = path.join(__dirname, '..')
 const DEV = process.env.HIPOCAMPO_DEV === '1'
@@ -15,6 +16,30 @@ const PORTA = Number(process.env.HIPOCAMPO_PORT || 7878)
 const ENDERECO = DEV ? 'http://localhost:5179' : `http://127.0.0.1:${PORTA}`
 
 const PRELOAD = path.join(__dirname, 'preload.cjs')
+// O registrador dos agentes só existe no app empacotado; rodando do código, os
+// agentes continuam vindo do `npm run install:agent`.
+const REGISTRADOR = path.join(process.resourcesPath ?? '', '..', 'MacOS', 'hipocampo-agentes')
+
+/**
+ * Chama o registrador e devolve o que ele imprimiu.
+ *
+ * Ele fala JSON no `estado` e texto nos outros comandos. Falha vira `null` em
+ * vez de exceção: o app tem que abrir mesmo com os agentes desarrumados, senão
+ * a única tela que permite arrumá-los fica inalcançável.
+ */
+function agentes(comando) {
+  return new Promise((resolve) => {
+    if (!fs.existsSync(REGISTRADOR)) return resolve(null)
+    execFile(REGISTRADOR, [comando], { timeout: 15_000 }, (erro, saida) => {
+      if (erro && !saida) return resolve(null)
+      try {
+        resolve(comando === 'estado' ? JSON.parse(saida) : { saida: String(saida).trim() })
+      } catch {
+        resolve({ saida: String(saida).trim() })
+      }
+    })
+  })
+}
 // Onde o núcleo flutuante ficou da última vez. Fica fora do banco de propósito:
 // o Electron sobe antes do núcleo, e a janela não pode esperar por ele.
 const MEMORIA_JANELA = path.join(app.getPath('userData'), 'nucleo.json')
@@ -265,6 +290,13 @@ app.whenReady().then(async () => {
     janelaNucleo.setPosition(Math.round(x + dx), Math.round(y + dy))
   })
   ipcMain.on('nucleo:fixar', guardaPosicao)
+
+  // Medir o dia é a função do app, mas ligar um agente que sobe no login é
+  // decisão de quem usa — e o macOS pede aprovação dela. Por isso vive na tela
+  // de Ajustes, e não num registro silencioso na primeira abertura.
+  ipcMain.handle('agentes:estado', () => agentes('estado'))
+  ipcMain.handle('agentes:registrar', () => agentes('registrar'))
+  ipcMain.handle('agentes:desregistrar', () => agentes('desregistrar'))
 
   await garanteNucleo()
   montaBandeja()

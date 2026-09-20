@@ -16,5 +16,7 @@ if launchctl print "gui/$(id -u)/com.hipocampo.foco" >/dev/null 2>&1; then
   echo "\"Hipocampo Focus\" — autorize por ele, não ligando o interruptor à mão:"
   echo "o diálogo grava o requisito de código certo, o interruptor não."
 else
-  echo "O agente do helper não está instalado. Rode: npm run install:agent"
+  echo "O agente do helper não está de pé."
+  echo "No app: Ajustes → medir sozinho, desde o login."
+  echo "Do código: npm run install:agent."
 fi
