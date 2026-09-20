@@ -2,7 +2,7 @@ import { config } from './config.ts'
 import { setMeta, getMeta } from './db.ts'
 import { dayOf } from './config.ts'
 import { FocusCollector } from './sources/focus.ts'
-import { harvestSkysight, skysightAvailable } from './sources/skysight.ts'
+import { harvestSkysight, skysightAvailable, checkSkysight } from './sources/skysight.ts'
 import { harvestBrowsers } from './sources/browser.ts'
 import { harvestClaudeSessions } from './sources/ai.ts'
 import { harvestGit } from './sources/git.ts'
@@ -43,7 +43,9 @@ export class Collector {
     this.focus.start()
     setMeta('collector.started', String(Math.floor(Date.now() / 1000)))
     console.log(`[coletor] de pé — amostra a cada ${config.sampleInterval}s`)
-    if (!skysightAvailable()) console.log('[coletor] Skysight ausente; seguindo sem os eventos finos')
+    void comLimite('skysight', 20_000, checkSkysight).then((tem) => {
+      if (tem === false) console.log('[coletor] Computer History ausente; seguindo sem os eventos finos')
+    })
 
     for (const task of tasks) {
       const tick = async () => {

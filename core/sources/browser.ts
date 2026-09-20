@@ -1,5 +1,4 @@
 import fs from 'node:fs/promises'
-import { existsSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -31,13 +30,13 @@ export async function harvestBrowsers(): Promise<{ visits: number }> {
   let total = 0
   for (const source of sources) {
     const original = path.join(config.home, source.file)
-    if (!existsSync(original)) continue
+    try { await fs.access(original) } catch { continue }
 
     const copy = path.join(os.tmpdir(), `hipocampo-${source.name}.db`)
     try {
       await fs.copyFile(original, copy)
       for (const suffix of ['-wal', '-shm']) {
-        if (existsSync(original + suffix)) await fs.copyFile(original + suffix, copy + suffix)
+        await fs.copyFile(original + suffix, copy + suffix).catch(() => { /* sem wal/shm */ })
       }
     } catch (error) {
       console.error(`[navegador] ${source.name}: ${(error as Error).message}`)

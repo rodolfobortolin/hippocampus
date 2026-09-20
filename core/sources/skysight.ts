@@ -1,5 +1,4 @@
 import fs from 'node:fs/promises'
-import { existsSync } from 'node:fs'
 import path from 'node:path'
 import zlib from 'node:zlib'
 import { config, paths, dayOf } from '../config.ts'
@@ -22,14 +21,29 @@ const insertTyping = db.prepare(
   `insert or ignore into typing (source_id, ts, day, app, chars, text) values (?, ?, ?, ?, ?, ?)`,
 )
 
+// existsSync numa pasta protegida pelo macOS congela o processo inteiro
+// enquanto o diálogo de permissão espera resposta. Aqui a checagem é
+// assíncrona e o resultado fica guardado para quem precisa da resposta na hora.
+let disponivel: boolean | null = null
+
 export function skysightAvailable(): boolean {
-  return existsSync(segmentsDir)
+  return disponivel === true
+}
+
+export async function checkSkysight(): Promise<boolean> {
+  try {
+    await fs.access(segmentsDir)
+    disponivel = true
+  } catch {
+    disponivel = false
+  }
+  return disponivel
 }
 
 
 /** Lê os segmentos ainda não colhidos e devolve quantos eventos entraram. */
 export async function harvestSkysight(): Promise<{ segments: number; events: number }> {
-  if (!skysightAvailable()) return { segments: 0, events: 0 }
+  if (!(await checkSkysight())) return { segments: 0, events: 0 }
   const done = new Set(JSON.parse(getMeta('skysight.done', '[]')) as string[])
   const names = (await fs.readdir(segmentsDir)).filter((n) => /^\d{4}-/.test(n)).sort()
   // O último segmento ainda está sendo escrito; deixa para a próxima rodada.
@@ -38,7 +52,7 @@ export async function harvestSkysight(): Promise<{ segments: number; events: num
   let events = 0
   for (const name of pending) {
     const file = path.join(segmentsDir, name, 'events.jsonl')
-    if (!existsSync(file)) { done.add(name); continue }
+    try { await fs.access(file) } catch { done.add(name); continue }
 
     const archive: string[] = []
     // valor acumulado do campo de texto, por app+campo — vira a amostra de escrita
