@@ -14,6 +14,8 @@ import { vaultReady } from './vault.ts'
 import { readSettings, saveSettings, writeKey, keyState, type KeyName } from './settings.ts'
 import { LANGUAGES } from './languages.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
+import { blockedBrowsers, retryDeniedBrowsers } from './sources/browser.ts'
+import { retryDeniedSkysight } from './sources/skysight.ts'
 import type { Collector } from './collector.ts'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -127,6 +129,19 @@ export function serve(collector?: Collector): http.Server {
         const day = query.get('day') ?? dayOf(Date.now() / 1000 - 86_400)
         const result = await rollup(day, { narrate: query.get('narrate') !== '0' })
         return json(response, result)
+      }
+
+      // What macOS refused, and the way back. A source that was denied stops
+      // being touched, because touching it is what raises the dialog — so
+      // trying again has to be something the person asks for.
+      if (route === '/api/blocked' && request.method === 'POST') {
+        retryDeniedBrowsers()
+        retryDeniedSkysight()
+        return json(response, { ok: true })
+      }
+
+      if (route === '/api/blocked') {
+        return json(response, { browsers: blockedBrowsers() })
       }
 
       if (route === '/api/wake' && request.method === 'POST') {

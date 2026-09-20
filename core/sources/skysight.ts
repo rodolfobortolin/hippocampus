@@ -31,11 +31,39 @@ export function skysightAvailable(): boolean {
   return available === true
 }
 
+/**
+ * A refusal is remembered; a folder that is simply not there is not.
+ *
+ * This reads inside another app's Group Container, which macOS guards with a
+ * dialog of its own. The harvest runs every two minutes, so a refusal that is
+ * not remembered becomes that dialog every two minutes — the whole day, from a
+ * window that does not say which app is asking or what for. Nobody consents
+ * their way out of that; they turn the app off.
+ *
+ * "Not installed" is a different answer: it costs no dialog, it can change
+ * tomorrow, and it stays worth checking.
+ */
+const DENIED = 'skysight.denied'
+
+/** Forgets the refusal, so it is tried again once permission is given. */
+export function retryDeniedSkysight(): void {
+  setMeta(DENIED, '')
+}
+
 export async function checkSkysight(): Promise<boolean> {
+  if (getMeta(DENIED, '') === 'yes') {
+    available = false
+    return false
+  }
   try {
     await fs.access(segmentsDir)
     available = true
-  } catch {
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (code === 'EPERM' || code === 'EACCES') {
+      setMeta(DENIED, 'yes')
+      console.error('[skysight] macOS refused the folder — not asking again until you allow it')
+    }
     available = false
   }
   return available

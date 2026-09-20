@@ -73,24 +73,77 @@ function warnOnce(source: string, message: string): void {
   console.error(`[browser] ${source}: ${message}`)
 }
 
+/**
+ * A browser whose history macOS will not let us read is left alone.
+ *
+ * Safari's history sits behind Full Disk Access. Without it, every touch of
+ * that file raises the system's own dialog — and the harvest runs every ten
+ * minutes, so the person is asked again, and again, forever, by a window that
+ * does not say which of their apps is asking or why.
+ *
+ * Asking once is fair. Asking every ten minutes is the app being a nuisance,
+ * and someone will turn the whole thing off to make it stop. So the refusal is
+ * remembered, on disk, and that browser is skipped until they grant it — the
+ * Settings screen is where it says so and where they can change their mind.
+ */
+const DENIED = 'browser.denied'
+function deniedSources(): Set<string> {
+  try { return new Set(JSON.parse(getMeta(DENIED, '[]')) as string[]) } catch { return new Set() }
+}
+function rememberDenied(name: string): void {
+  const denied = deniedSources()
+  denied.add(name)
+  setMeta(DENIED, JSON.stringify([...denied]))
+}
+
+/** Forgets the refusals, so a browser is tried again after permission is given. */
+export function retryDeniedBrowsers(): void {
+  setMeta(DENIED, '[]')
+  alreadyWarned.clear()
+}
+
+/** The browsers being skipped because macOS refused them. */
+export function blockedBrowsers(): string[] {
+  return [...deniedSources()]
+}
+
+const refused = (error: NodeJS.ErrnoException) =>
+  error.code === 'EPERM' || error.code === 'EACCES'
+
 function hostOf(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, '') } catch { return '' }
 }
 
 export async function harvestBrowsers(): Promise<{ visits: number }> {
   let total = 0
+  const denied = deniedSources()
   for (const source of [...fixed, ...(await firefoxProfiles())]) {
+    // Before touching the file at all: the touch is what raises the dialog.
+    if (denied.has(source.name)) continue
     const original = path.join(config.home, source.file)
-    try { await fs.access(original) } catch { continue }
+    try {
+      await fs.access(original)
+    } catch (error) {
+      if (refused(error as NodeJS.ErrnoException)) {
+        rememberDenied(source.name)
+        warnOnce(source.name, 'macOS refused it — needs Full Disk Access')
+      }
+      continue
+    }
 
     const copy = path.join(os.tmpdir(), `hippocampus-${source.name.replace(/\W/g, '')}.db`)
     try {
       await fs.copyFile(original, copy)
       for (const suffix of ['-wal', '-shm']) {
-        await fs.copyFile(original + suffix, copy + suffix).catch(() => { /* sem wal/shm */ })
+        await fs.copyFile(original + suffix, copy + suffix).catch(() => { /* no wal or shm */ })
       }
     } catch (error) {
-      warnOnce(source.name, (error as Error).message)
+      if (refused(error as NodeJS.ErrnoException)) {
+        rememberDenied(source.name)
+        warnOnce(source.name, 'macOS refused it — needs Full Disk Access')
+      } else {
+        warnOnce(source.name, (error as Error).message)
+      }
       continue
     }
 
