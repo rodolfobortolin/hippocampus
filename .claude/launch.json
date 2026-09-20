@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "hipocampo", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev:ui"], "port": 5179 }
+  ]
+}

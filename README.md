@@ -1,0 +1,132 @@
+# Hipocampo
+
+O seu Mac já sabe onde o seu tempo foi. O Hipocampo guarda isso — **tudo local, todo dia** — e devolve em gráfico, em diário e em conversa.
+
+```
+helper nativo (Swift)  ─┐
+navegadores, git, shell ├─►  coletor (launchd, sempre de pé)  ─►  SQLite local
+sessões do Claude Code ─┤                                             │
+Computer History       ─┘                                             ▼
+                                            jev classifica ─► Claude Code narra
+                                                                      │
+                                              app (Electron) ◄────────┘
+                                                      │
+                                          vault do Obsidian (10 Diário)
+```
+
+Nada sai desta máquina. As chaves são suas e ficam num `.env` que o git ignora.
+Sem chave nenhuma o app continua medindo, desenhando e guardando: só a
+classificação, a narrativa e a conversa ficam desligadas.
+
+## Começando
+
+```bash
+npm install
+npm run build:native      # compila o helper que lê o foco das janelas
+cp .env.example .env      # ajuste o nome, o vault e as chaves
+npm run install:agent     # coletor sobe no login e volta sozinho se cair
+npm run dev:app           # a janela
+```
+
+Requisitos: macOS, Node 22+, Xcode command line tools (para o helper),
+e o `claude` instalado e logado para a parte escrita.
+
+## As duas permissões
+
+O macOS protege justamente o que interessa aqui. Na primeira execução aparecem
+dois pedidos — e enquanto eles não forem respondidos, aquela fonte fica marcada
+como *aguardando permissão* na barra lateral, sem travar o resto.
+
+| Permissão | O que destrava | Sem ela |
+| --- | --- | --- |
+| **Acessibilidade** | título da janela e URL da aba | você vê *qual app*, não *em que* estava trabalhando |
+| **Acesso a dados de outros apps** | histórico do Chrome/Arc e o Computer History | perde sites visitados e os eventos finos de teclado |
+
+```bash
+sh scripts/permissao.sh   # abre o diálogo e o painel certo dos Ajustes
+```
+
+Depois de conceder, reinicie o coletor:
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.hipocampo.coletor
+```
+
+## O que ele coleta
+
+| Fonte | O que vira | Com que frequência |
+| --- | --- | --- |
+| Helper nativo em Swift | app em foco, título da janela, URL da aba, ociosidade | a cada 4s |
+| Computer History (Codex) | atalhos, trocas de janela, cliques, o que você digitou | a cada 2min |
+| Chrome · Arc · Brave · Edge | sites visitados | a cada 10min |
+| Sessões do Claude Code | o que você pediu e as ferramentas usadas | a cada 10min |
+| `~/.zsh_history` | comandos | a cada 15min |
+| Repositórios em `~/Documents/GitHub` | commits, linhas somadas e cortadas | a cada 30min |
+
+O tempo vira **bloco**: um trecho contínuo no mesmo app e na mesma janela. O bloco
+é gravado quando começa e estendido a cada amostra, então uma queda custa no
+máximo uma amostra. Acima de dois minutos parado vira bloco ocioso, que não
+conta como tempo ativo.
+
+O Computer History é um cache que a própria OpenAI apaga em poucas horas. O
+Hipocampo colhe antes de sumir e arquiva em `archive/` compactado — é por isso
+que ele consegue reconstruir dias anteriores ao dia em que foi instalado
+(`npx tsx core/backfill.ts`).
+
+## Os dois modelos, e por que dois
+
+**jev (TypeSafe)** classifica cada janela: categoria, projeto e a probabilidade
+de ser trabalho concentrado. São perguntas tipadas com resposta calibrada, a
+~110ms e uma fração de centavo — e o resultado fica guardado por janela, então a
+mesma janela nunca custa duas chamadas.
+
+**Claude Code** escreve. Usa o login do `claude` que já está na máquina: sem
+chave de API, sem conta nova, sem custo além da assinatura que você já paga. É
+ele que redige o resumo do dia, o recap e responde na aba Conversa — ali com
+ferramentas que consultam o banco local, então a resposta vem do número medido,
+não de palpite.
+
+## O dia fechado
+
+Quando a data vira (às 4h, para a madrugada contar no dia anterior), o coletor
+fecha o dia: classifica com o jev, calcula os números, pede o texto ao Claude
+Code e grava em `10 Diário/AAAA-MM-DD.md` do vault, dentro de marcadores
+próprios — o que o Jarvis escreveu na mesma nota fica intacto.
+
+Se a máquina estava dormindo na virada, o dia entra numa fila e é fechado no
+próximo boot. À mão:
+
+```bash
+npm run rollup -- 2026-09-19
+npm run rollup -- 2026-09-19 --sem-narrativa   # só os números
+```
+
+## Onde ficam os dados
+
+```
+~/Library/Application Support/Hipocampo/
+  hipocampo.db          tudo que foi medido
+  archive/              eventos do Computer History, compactados
+~/Library/Logs/Hipocampo/collector.log
+```
+
+Para sair sem deixar rastro: `npm run uninstall:agent` e apague essa pasta.
+Para não guardar o que você digita, `HIPOCAMPO_KEEP_TYPING=0` no `.env` —
+o que já está guardado passa pela redação de segredos antes de ser gravado.
+
+## Estrutura
+
+```
+native/focus.swift    helper que amostra foco, janela, URL e ociosidade
+core/
+  collector.ts        o laço: amostra, colhe, fecha o dia
+  db.ts               esquema SQLite
+  sources/            foco, Computer History, navegadores, Claude Code, git, shell
+  jev.ts              classificação por janela, memorizada
+  rollup.ts           fecha o dia e pede a narrativa
+  agent.ts            a conversa, com ferramentas sobre o banco
+  server.ts           API local em 127.0.0.1
+  limite.ts           nenhuma coleta pode travar o coletor
+app/main.cjs          a janela e o ícone da barra
+src/                  a interface (React + SVG à mão)
+```

@@ -1,0 +1,42 @@
+{
+  "name": "hipocampo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "O seu Mac vira memória: coleta local, gráficos e conversa sobre o seu dia.",
+  "main": "app/main.cjs",
+  "scripts": {
+    "build:native": "sh scripts/build-native.sh",
+    "dev": "concurrently -k -n core,ui -c magenta,white \"npm:dev:core\" \"npm:dev:ui\"",
+    "dev:core": "tsx watch core/index.ts",
+    "dev:ui": "vite",
+    "dev:app": "concurrently -k -n core,ui,app -c magenta,white,cyan \"npm:dev:core\" \"npm:dev:ui\" \"npm:dev:shell\"",
+    "dev:shell": "HIPOCAMPO_DEV=1 electron app/main.cjs",
+    "build": "tsc --noEmit && vite build",
+    "start": "tsx core/index.ts",
+    "collector": "tsx core/collector.ts",
+    "rollup": "tsx core/rollup.ts",
+    "install:agent": "sh scripts/agent.sh install",
+    "uninstall:agent": "sh scripts/agent.sh uninstall",
+    "logs": "tail -f ~/Library/Logs/Hipocampo/collector.log"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
+    "electron": "^33.4.11",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.270",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "ws": "^8.21.3",
+    "zod": "^4.6.5"
+  }
+}
