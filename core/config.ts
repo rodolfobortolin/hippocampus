@@ -18,6 +18,18 @@ if (fs.existsSync(envFile)) {
 
 const home = os.homedir()
 
+// Sob o launchd o PATH é mínimo (/usr/bin:/bin:/usr/sbin:/sbin) e o binário do
+// `claude` mora em ~/.local/bin — sem isto a narrativa do dia falharia calada.
+const binarios = [
+  path.join(home, '.local', 'bin'),
+  path.join(home, 'bin'),
+  '/opt/homebrew/bin',
+  '/usr/local/bin',
+]
+const noPath = new Set((process.env.PATH ?? '').split(':'))
+const faltando = binarios.filter((dir) => !noPath.has(dir) && fs.existsSync(dir))
+if (faltando.length) process.env.PATH = [...faltando, process.env.PATH ?? ''].join(':')
+
 export const config = {
   home,
   userName: env('HIPOCAMPO_USER', 'Rodolfo'),
