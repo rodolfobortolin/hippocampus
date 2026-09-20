@@ -4,6 +4,8 @@ import { Nucleo, type EstadoNucleo } from './components/Nucleo.tsx'
 import { useEscuta } from './hooks/useEscuta.ts'
 import { useNivelAudio } from './hooks/useNivelAudio.ts'
 import { useSocket } from './hooks/useSocket.ts'
+import { useFala } from './hooks/useFala.ts'
+import { VELOCIDADE_DA_FALA } from './lib/format.ts'
 
 /**
  * O núcleo solto: uma janela sem moldura com a esfera e nada mais.
@@ -45,29 +47,16 @@ export function NucleoSolto() {
 
   useEffect(() => { api.status().then(setStatus).catch(() => {}) }, [])
 
-  // Fala a resposta: aqui não há tela para ler, a voz é a saída principal.
-  falaResposta.current = async (texto: string) => {
-    const limpo = texto.replace(/[*#`]/g, '').trim()
-    if (!limpo) { setEstado('parado'); return }
-    setEstado('falando')
-    if (!status?.voz) {
-      const frase = new SpeechSynthesisUtterance(limpo)
-      frase.lang = 'pt-BR'
-      frase.onend = () => { setEstado('parado'); encerra() }
-      pulsaSozinho()
-      speechSynthesis.speak(frase)
-      return
-    }
-    try {
-      const audio = new Audio(URL.createObjectURL(await (await api.voz(limpo)).blob()))
-      audio.onended = () => { setEstado('parado'); encerra() }
-      ouveAudio(audio)
-      await audio.play()
-    } catch {
-      setEstado('parado')
-      encerra()
-    }
-  }
+  // Aqui não há tela para ler: a voz é a saída principal, e clicar na esfera
+  // enquanto ela fala manda calar.
+  const voz = useFala({
+    temVozPropria: Boolean(status?.voz),
+    aoComecar: () => setEstado('falando'),
+    aoTerminar: () => { setEstado('parado'); encerra() },
+    aoOuvirAudio: ouveAudio,
+    aoPulsar: pulsaSozinho,
+  })
+  falaResposta.current = voz.falar
 
   useEffect(() => {
     if (escuta.estado === 'ouvindo') setEstado('ouvindo')
@@ -80,8 +69,10 @@ export function NucleoSolto() {
 
   return (
     <div className="solto">
-      <button className="solto-orbe" onClick={escuta.alterna}
-        title={ouvindo ? 'parar' : 'falar com o Hipocampo'}>
+      <button
+        className="solto-orbe"
+        onClick={() => { if (estado === 'falando') voz.parar(); else escuta.alterna() }}
+        title={estado === 'falando' ? 'calar' : ouvindo ? 'parar de ouvir' : 'falar com o Hipocampo'}>
         <Nucleo estado={estado} nivel={ouvindo ? escuta.nivel : nivelResposta} tamanho="grande" />
       </button>
 

@@ -4,8 +4,10 @@ import { Markdown } from '../lib/markdown.tsx'
 import { useNivelAudio } from '../hooks/useNivelAudio.ts'
 import { useEscuta } from '../hooks/useEscuta.ts'
 import { useSocket } from '../hooks/useSocket.ts'
+import { useFala } from '../hooks/useFala.ts'
 import { Nucleo, type EstadoNucleo } from './Nucleo.tsx'
-import { IconeEnviar, IconeMicrofone, IconeSom } from './Icons.tsx'
+import { IconeEnviar, IconeMicrofone, IconeSom, IconeMudo, IconeParar } from './Icons.tsx'
+import { VELOCIDADE_DA_FALA } from '../lib/format.ts'
 
 type Fala = { de: 'eu' | 'ele'; texto: string }
 
@@ -23,10 +25,18 @@ export function Conversa({ status }: { status: Status | null }) {
   const [pensando, setPensando] = useState(false)
   const [ferramenta, setFerramenta] = useState('')
   const [estado, setEstado] = useState<EstadoNucleo>('parado')
+  // Se a pergunta veio falada, a resposta volta falada — esperar texto depois
+  // de perguntar com a voz é esquisito. Digitou, fica em silêncio.
+  const perguntouFalando = useRef(false)
+  const [falando, setFalando] = useState(false)
+  const [vozSempre, setVozSempre] = useState(
+    () => localStorage.getItem('hipocampo.voz') === 'sempre')
+  const falarResposta = useRef<(texto: string) => void>(() => {})
   const fio = useRef<HTMLDivElement>(null)
+  const respostaRef = useRef('')
   const { nivel: nivelResposta, ouveAudio, pulsaSozinho, encerra } = useNivelAudio()
   // A escuta grava e transcreve; o nível dela é o do seu microfone.
-  const escuta = useEscuta((frase) => envia(frase))
+  const escuta = useEscuta((frase) => { perguntouFalando.current = true; envia(frase) })
   const ouvindo = escuta.estado === 'ouvindo'
   const nivel = ouvindo ? escuta.nivel : nivelResposta
 
@@ -40,6 +50,7 @@ export function Conversa({ status }: { status: Status | null }) {
       }
       if (dados.tipo === 'texto') {
         setEstado('pensando')
+        respostaRef.current = `${respostaRef.current}\n${dados.texto}`.trim()
         setFalas((atuais) => {
           const ultima = atuais[atuais.length - 1]
           // Emenda os pedaços do mesmo turno numa fala só.
@@ -49,7 +60,14 @@ export function Conversa({ status }: { status: Status | null }) {
           return [...atuais, { de: 'ele', texto: dados.texto }]
         })
       }
-      if (dados.tipo === 'fim') { setPensando(false); setFerramenta(''); setEstado('parado') }
+      if (dados.tipo === 'fim') {
+        setPensando(false)
+        setFerramenta('')
+        const texto = dados.texto || respostaRef.current
+        if (texto && (perguntouFalando.current || vozSempre)) falarResposta.current(texto)
+        else setEstado('parado')
+        perguntouFalando.current = false
+      }
       if (dados.tipo === 'erro') {
         setPensando(false)
         setEstado('erro')
@@ -80,38 +98,22 @@ export function Conversa({ status }: { status: Status | null }) {
       setTimeout(() => setEstado('parado'), 2600)
       return
     }
+    // Perguntar de novo cala o que estava sendo dito.
+    voz.parar()
     setFalas((atuais) => [...atuais, { de: 'eu', texto: limpa }])
+    respostaRef.current = ''
     setTexto('')
   }
 
-  const fala = async (conteudo: string) => {
-    const limpo = conteudo.replace(/[*#`]/g, '')
-    setEstado('falando')
-
-    if (!status?.voz) {
-      // Sem chave da OpenAI, a voz do próprio macOS resolve — mas ela não dá
-      // acesso ao áudio, então o núcleo pulsa por conta própria.
-      const frase = new SpeechSynthesisUtterance(limpo)
-      frase.lang = 'pt-BR'
-      frase.onend = () => { setEstado('parado'); encerra() }
-      pulsaSozinho()
-      speechSynthesis.speak(frase)
-      return
-    }
-
-    try {
-      const resposta = await api.voz(limpo)
-      if (!resposta.ok) throw new Error('voz indisponível')
-      const audio = new Audio(URL.createObjectURL(await resposta.blob()))
-      audio.onended = () => { setEstado('parado'); encerra() }
-      ouveAudio(audio)
-      await audio.play()
-    } catch {
-      setEstado('parado')
-      encerra()
-    }
-  }
-
+  const voz = useFala({
+    temVozPropria: Boolean(status?.voz),
+    aoComecar: () => { setEstado('falando'); setFalando(true) },
+    aoTerminar: () => { setEstado('parado'); setFalando(false); encerra() },
+    aoOuvirAudio: ouveAudio,
+    aoPulsar: pulsaSozinho,
+  })
+  const fala = voz.falar
+  falarResposta.current = voz.falar
   const abertura = !falas.length
 
   return (
@@ -180,6 +182,21 @@ export function Conversa({ status }: { status: Status | null }) {
           rows={1}
           style={{ height: Math.min(160, 24 + texto.split('\n').length * 20) }}
         />
+        {/* Enquanto fala, este botão cala. Parado, ele liga e desliga o modo
+            de responder sempre falando. */}
+        <button
+          className={`icone ${falando ? 'falando' : vozSempre ? 'ativo' : ''}`}
+          onClick={() => {
+            if (falando) { voz.parar(); setFalando(false); return }
+            const proximo = !vozSempre
+            setVozSempre(proximo)
+            localStorage.setItem('hipocampo.voz', proximo ? 'sempre' : 'pedido')
+          }}
+          title={falando ? 'parar de falar'
+            : vozSempre ? 'responder sempre falando'
+            : 'responder falando só quando você falar'}>
+          {falando ? <IconeParar /> : vozSempre ? <IconeSom /> : <IconeMudo />}
+        </button>
         <button
           className={`icone ${ouvindo ? 'ativo' : ''}`}
           onClick={escuta.alterna}

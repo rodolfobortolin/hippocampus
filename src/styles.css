@@ -224,6 +224,8 @@ input, textarea { font: inherit; color: inherit; }
 .icone { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: var(--texto-medio); transition: background 0.16s, color 0.16s; flex: none; }
 .icone:hover { background: var(--painel-alto); color: var(--texto); }
 .icone.ativo { color: var(--brasa); background: rgba(255, 138, 61, 0.12); }
+/* Falando: o botão vira "calar", e pisca para não passar despercebido. */
+.icone.falando { color: var(--ouro); background: rgba(255, 209, 102, 0.14); animation: pulsa 1.4s ease-in-out infinite; }
 .icone svg { width: 16px; height: 16px; }
 
 .atalhos-conversa { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 4px; }

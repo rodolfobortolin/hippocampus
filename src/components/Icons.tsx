@@ -24,6 +24,12 @@ export const IconeMicrofone = () => (
 export const IconeSom = () => (
   <svg {...base}><path d="M5 9h3l4-3v12l-4-3H5z" /><path d="M16 9a4 4 0 0 1 0 6" /></svg>
 )
+export const IconeMudo = () => (
+  <svg {...base}><path d="M5 9h3l4-3v12l-4-3H5z" /><path d="M16 10.5l4 3M20 10.5l-4 3" /></svg>
+)
+export const IconeParar = () => (
+  <svg {...base}><rect x="6.5" y="6.5" width="11" height="11" rx="2.5" fill="currentColor" stroke="none" /></svg>
+)
 export const IconeAlerta = () => (
   <svg {...base}><path d="M12 4 2.5 20h19L12 4Z" /><path d="M12 10v4M12 17.5h.01" /></svg>
 )

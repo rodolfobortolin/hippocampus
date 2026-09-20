@@ -69,3 +69,7 @@ export function principais<T extends { name: string; seconds: number }>(
 }
 
 export const plural = (n: number, um: string, muitos: string) => `${n} ${n === 1 ? um : muitos}`
+
+/** Velocidade da fala das respostas. A voz sintética lê devagar para quem já
+ *  conhece o assunto; 1,5× é o ponto em que ainda dá para acompanhar. */
+export const VELOCIDADE_DA_FALA = Number(localStorage.getItem('hipocampo.velocidade') ?? 1.5)
