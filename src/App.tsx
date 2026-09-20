@@ -55,7 +55,16 @@ export function App() {
             {semNucleo ? 'núcleo desligado' : medindo ? (ocioso ? 'ocioso' : 'medindo') : 'parado'}
           </div>
           {amostra?.app && !ocioso && (
-            <div className="sinal" style={{ paddingLeft: 14 }}>{amostra.app}</div>
+            // Não é um serviço — é o que está em foco agora. Sem o rótulo, uma
+            // linha sem bolinha no meio das bolinhas de status lê como algo
+            // desligado, que foi exatamente o que aconteceu.
+            <div className="em-foco" title={amostra.title ?? amostra.app}>
+              <span>em foco</span>
+              <b>{amostra.app === 'Electron' ? 'Hipocampo' : amostra.app}</b>
+              {amostra.title && amostra.title !== amostra.app && (
+                <i>{amostra.title}</i>
+              )}
+            </div>
           )}
           {status && (
             <>

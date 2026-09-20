@@ -40,7 +40,7 @@ export type Dia = {
 export type Status = {
   coletor: {
     running: boolean; trusted: boolean; skysight: boolean
-    lastSample: { app?: string; idle: number; locked: boolean } | null
+    lastSample: { app?: string; title?: string; idle: number; locked: boolean } | null
     startedAt: number; lastRollup: string
     fontes: Record<string, string>
   }

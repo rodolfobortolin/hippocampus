@@ -110,6 +110,17 @@ input, textarea { font: inherit; color: inherit; }
 .rail-pe { margin-top: auto; padding: 10px; -webkit-app-region: no-drag; }
 
 .sinal { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--texto-fraco); padding: 3px 2px; }
+
+/* O que está em foco agora. Fica visualmente separado dos indicadores de
+   serviço: recuo, borda de apoio e rótulo, para não parecer um deles apagado. */
+.em-foco {
+  margin: 7px 0 9px; padding: 5px 0 5px 9px;
+  border-left: 1px solid var(--borda);
+  display: flex; flex-direction: column; gap: 1px; min-width: 0;
+}
+.em-foco span { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--texto-fraco); }
+.em-foco b { font-size: 12px; font-weight: 500; color: var(--texto-medio); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.em-foco i { font-style: normal; font-size: 11px; color: var(--texto-fraco); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ponto { width: 6px; height: 6px; border-radius: 50%; background: var(--texto-fraco); flex: none; }
 .ponto.vivo { background: var(--codigo); box-shadow: 0 0 8px var(--codigo); animation: pulsa 2.6s ease-in-out infinite; }
 .ponto.morno { background: var(--comunicacao); box-shadow: 0 0 8px var(--comunicacao); }
