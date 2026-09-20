@@ -1,18 +1,18 @@
 appId: com.hippocampus.app
-productName: Hipocampo
+productName: Hippocampus
 copyright: Rodolfo Bortolin
 
 directories:
   output: release
   buildResources: build
 
-afterSign: build/assina-registrador.cjs
+afterSign: build/sign-registrar.cjs
 
-# O núcleo não é código empacotado: é o próprio TypeScript, rodado pelo Node do
-# Electron com --experimental-strip-types. Dentro de um asar ele não abre — o
-# Node lê o arquivo do disco, e asar não é disco. Por isso o bundle fica sem
-# asar em vez de ganhar uma lista de exceções que quebra quando alguém
-# acrescenta um import.
+# The core is not packaged code: it is the TypeScript itself, run by Electron's
+# Node with --experimental-strip-types. Inside an asar it does not open — Node
+# reads the file from disk, and an asar is not disk. So the bundle goes without
+# asar rather than carrying an exception list that breaks the day someone adds
+# an import.
 asar: false
 
 files:
@@ -22,9 +22,9 @@ files:
   - package.json
   - '!**/*.map'
 
-# Os helpers nativos vão para Resources com a assinatura que já receberam. Eles
-# não podem ser reassinados aqui: a permissão de Acessibilidade está amarrada à
-# identidade deles, e o macOS trata "mesmo Developer ID" como a mesma coisa.
+# The native helpers go into Resources with the signature they already carry.
+# They must not be re-signed here: the Accessibility grant binds to their
+# identity, and macOS treats "same Developer ID" as the same thing.
 extraResources:
   - from: native
     to: native
@@ -38,9 +38,9 @@ extraResources:
       - launch-listener.sh
       - permissao.sh
 
-# Fora de Resources porque o macOS exige estes dois lugares exatos: os plists
-# dos agentes em Contents/Library/LaunchAgents, e o registrador em Contents/MacOS,
-# que é de onde `Bundle.main` resolve para o app.
+# Outside Resources because macOS demands these two exact places: the agents'
+# plists in Contents/Library/LaunchAgents, and the registrar in Contents/MacOS,
+# which is where `Bundle.main` resolves to the app.
 extraFiles:
   - from: build/agents
     to: Library/LaunchAgents
@@ -50,12 +50,13 @@ extraFiles:
 mac:
   category: public.app-category.productivity
   icon: build/icon.icns
-  # O registrador é assinado pelo afterPack, com a identidade do app, e não
-  # aqui: o electron-builder usaria o nome do arquivo como identificador, e o
-  # SMAppService recusa registrar um agente pedido por quem não é o app.
-  # Não é sandbox de propósito. O Hipocampo lê o histórico dos navegadores, fala
-  # com o launchd e usa a API de Acessibilidade — as três coisas que a sandbox
-  # existe para impedir. App fora da Mac App Store não precisa dela.
+  # The registrar is signed by the afterSign hook with the app's identity, not
+  # here: electron-builder would use the filename as the identifier, and
+  # SMAppService refuses to register an agent asked for by something that is
+  # not the app.
+  # Not sandboxed, on purpose. It reads browser history, talks to launchd and
+  # uses the Accessibility API — the three things the sandbox exists to prevent.
+  # An app outside the Mac App Store does not need it.
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
@@ -64,16 +65,18 @@ mac:
     - target: dir
       arch: [arm64]
   extendInfo:
-    # Sem estas frases o macOS derruba o app na primeira vez que ele pede a
-    # permissão, em vez de mostrar um diálogo.
+    # Without these sentences macOS kills the app the first time it asks for
+    # the permission, instead of showing a dialog. They stay in English: the
+    # Info.plist is static, and localising them needs an InfoPlist.strings per
+    # language, which is worth doing but is not done yet.
     NSMicrophoneUsageDescription: >-
-      O Hipocampo escuta a palavra de ativação e a sua pergunta. O áudio não
-      sai desta máquina enquanto você não pedir.
+      Hippocampus listens for the wake word and for your question. The audio
+      does not leave this machine unless you ask it to.
     NSSpeechRecognitionUsageDescription: >-
-      A palavra de ativação é reconhecida dentro do seu Mac, sem enviar áudio
-      para lugar nenhum.
+      The wake word is recognised inside your Mac, without sending audio
+      anywhere.
     NSAppleEventsUsageDescription: >-
-      O Hipocampo pergunta ao Spotify, ao Música e ao navegador o que está
-      tocando, para saber com que trilha você trabalha.
+      Hippocampus asks Spotify, Music and your browser what is playing, to
+      know which soundtrack you work to.
     NSSystemAdministrationUsageDescription: >-
-      O Hipocampo instala um agente que mede o seu dia enquanto você trabalha.
+      Hippocampus installs an agent that measures your day while you work.

@@ -9,7 +9,7 @@ export type CoreState = 'idle' | 'listening' | 'thinking' | 'tool' | 'speaking' 
 
 type Visual = { a: string; b: string; energia: number; giro: number }
 
-// A paleta é a do Hipocampo: brasa e ouro, com a água reservada para o momento
+// The palette: brasa e ouro, com a água reservada para o momento
 // em que ele está mexendo no banco — assim dá para saber o que acontece sem ler.
 const LOOKS: Record<CoreState, Visual> = {
   idle: { a: '#ff7a2f', b: '#ffd9a8', energia: 0.12, giro: 0.7 },

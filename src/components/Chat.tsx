@@ -24,7 +24,7 @@ export function Chat({ status }: { status: Status | null }) {
   const askedByVoice = useRef(false)
   const [speaking, setFalando] = useState(false)
   const [alwaysAloud, setAlwaysAloud] = useState(
-    () => localStorage.getItem('hipocampo.voz') === 'sempre')
+    () => localStorage.getItem('hippocampus.voice') === 'always')
   const speakAnswer = useRef<(text: string) => void>(() => {})
   const thread = useRef<HTMLDivElement>(null)
   const answerRef = useRef('')
@@ -199,7 +199,7 @@ export function Chat({ status }: { status: Status | null }) {
             if (speaking) { voice.stop(); setFalando(false); return }
             const next = !alwaysAloud
             setAlwaysAloud(next)
-            localStorage.setItem('hipocampo.voz', next ? 'sempre' : 'pedido')
+            localStorage.setItem('hippocampus.voice', next ? 'always' : 'on-request')
           }}
           title={speaking ? t.chat.stopTalking
             : alwaysAloud ? t.chat.alwaysAloud

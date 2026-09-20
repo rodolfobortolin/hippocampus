@@ -8,7 +8,7 @@ import { useSpeech } from './hooks/useSpeech.ts'
 import { useLanguage } from './lib/language.tsx'
 
 /** A bridge do Electron. No navegador ela não existe, e o arrasto some junto. */
-const bridge = (globalThis as any).hipocampo as {
+const bridge = (globalThis as any).hippocampus as {
   moveCore?: (dx: number, dy: number) => void
   settleCore?: () => void
   onWake?: (callback: () => void) => () => void

@@ -98,4 +98,4 @@ export const plural = (n: number, par: readonly [string, string]) => `${number(n
 
 /** Velocidade da speech das respostas. A voz sintética lê devagar para quem já
  *  conhece o assunto; 1,5× é o ponto em que ainda dá para acompanhar. */
-export const SPEECH_RATE = Number(localStorage.getItem('hipocampo.velocidade') ?? 1.5)
+export const SPEECH_RATE = Number(localStorage.getItem('hippocampus.speechRate') ?? 1.5)

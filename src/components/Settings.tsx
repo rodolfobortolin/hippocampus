@@ -15,7 +15,7 @@ function shortPath(caminho: string): string {
 /** O Electron expõe o seletor de pasta; no navegador ele simplesmente não existe. */
 type AgentStates = Record<string, { status: string; connected: boolean }>
 
-const bridge = (globalThis as any).hipocampo as {
+const bridge = (globalThis as any).hippocampus as {
   chooseFolder?: () => Promise<string | null>
   agents?: {
     status: () => Promise<AgentStates | null>

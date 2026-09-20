@@ -48,7 +48,7 @@ export function App() {
         <div className="marca">
           <Badge />
           <div>
-            <h1>Hipocampo</h1>
+            <h1>Hippocampus</h1>
             <span>{t.status.brand}</span>
           </div>
         </div>
@@ -75,7 +75,7 @@ export function App() {
             // desligado, que foi exatamente o que aconteceu.
             <div className="em-foco" title={sample.title ?? sample.app}>
               <span>{t.status.inFocus}</span>
-              <b>{sample.app === 'Electron' ? 'Hipocampo' : sample.app}</b>
+              <b>{sample.app === 'Electron' ? 'Hippocampus' : sample.app}</b>
               {sample.title && sample.title !== sample.app && <i>{sample.title}</i>}
             </div>
           )}

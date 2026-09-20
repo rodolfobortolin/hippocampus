@@ -1,29 +1,29 @@
-// A ponte entre a interface e o macOS.
+// The bridge between the interface and macOS.
 //
-// Só o que o app precisa atravessa: escolher uma pasta, arrastar a janela do
-// núcleo e ouvir quando a palavra de ativação chamou. Nada de `require` solto
-// no renderizador — a página é servida por HTTP, e o que ela pode fazer com o
-// sistema tem que caber nesta lista.
+// Only what the app needs crosses over: picking a folder, dragging the core's
+// window, and hearing when the wake word called. No loose `require` in the
+// renderer — the page is served over HTTP, and whatever it can do to the
+// system has to fit in this list.
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('hippocampus', {
   /** Abre o seletor de pastas do sistema. Devolve null se a pessoa desistir. */
   chooseFolder: () => ipcRenderer.invoke('choose-folder'),
 
-  /** Move a janela flutuante em pixels de tela — é o arrasto da esfera. */
+  /** Moves the floating window by screen pixels — this is the sphere's drag. */
   moveCore: (dx, dy) => ipcRenderer.send('core:move', { dx, dy }),
 
-  /** Avisa que o arrasto terminou, para a posição ser guardada. */
+  /** Signals that the drag ended, so the position gets stored. */
   settleCore: () => ipcRenderer.send('core:settle'),
 
-  /** O estado dos agents que medem o dia, e como ligá-los ou desligá-los. */
+  /** The state of the agents that measure the day, and how to switch them. */
   agents: {
     status: () => ipcRenderer.invoke('agents:estado'),
     register: () => ipcRenderer.invoke('agents:registrar'),
     desregister: () => ipcRenderer.invoke('agents:desregistrar'),
   },
 
-  /** Chamado quando a palavra de ativação ou o atalho trouxe o núcleo. */
+  /** Called when the wake word or the shortcut brought the core over. */
   onWake: (callback) => {
     const listener = () => callback()
     ipcRenderer.on('core:wake', listener)
