@@ -17,6 +17,7 @@
     "collector": "node --experimental-strip-types --disable-warning=ExperimentalWarning core/collector.ts",
     "rollup": "node --experimental-strip-types --disable-warning=ExperimentalWarning core/rollup.ts",
     "install:agent": "sh scripts/agent.sh install",
+    "permissao": "sh scripts/permissao.sh",
     "uninstall:agent": "sh scripts/agent.sh uninstall",
     "logs": "tail -f ~/Library/Logs/Hipocampo/collector.log"
   },

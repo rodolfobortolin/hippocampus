@@ -73,14 +73,23 @@ como *aguardando permissão* na barra lateral, sem travar o resto.
 | **Acesso a dados de outros apps** | histórico do Chrome/Arc e o Computer History | perde sites visitados e os eventos finos de teclado |
 
 ```bash
-sh scripts/permissao.sh   # abre o diálogo e o painel certo dos Ajustes
+npm run permissao
 ```
 
-Depois de conceder, reinicie o coletor:
+**Autorize pelo diálogo, não ligando o interruptor à mão.** Os dois parecem a
+mesma coisa e não são: o diálogo grava o requisito de código junto com a
+permissão, e o interruptor sozinho deixa o macOS negando por dentro enquanto
+mostra ligado na tela.
 
-```bash
-launchctl kickstart -k gui/$(id -u)/com.hipocampo.coletor
-```
+O helper tem agente próprio no `launchd` de propósito. O macOS não atribui a
+permissão a quem pede, e sim ao **processo responsável** — quem lançou. Fosse o
+coletor em Node a lançá-lo, quem apareceria na lista seria o `node`, e autorizar
+o `node` daria Acessibilidade a qualquer script Node da máquina. Lançado direto
+pelo `launchd`, ele responde por si mesmo e aparece como "Hipocampo Focus".
+
+Enquanto a assinatura for ad hoc, **recompilar o helper invalida a autorização**
+(o hash do código muda). É só rodar `npm run permissao` de novo. Com um
+Developer ID isso para de acontecer.
 
 ## O que ele coleta
 
