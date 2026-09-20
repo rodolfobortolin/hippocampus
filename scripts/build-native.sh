@@ -13,6 +13,8 @@ APP="native/Hipocampo Focus.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp native/Info.plist "$APP/Contents/Info.plist"
+mkdir -p "$APP/Contents/Resources"
+[ -f build/hipocampo.icns ] && cp build/hipocampo.icns "$APP/Contents/Resources/hipocampo.icns"
 
 swiftc -O -o "$APP/Contents/MacOS/hipocampo-focus" native/focus.swift \
   -framework AppKit -framework ApplicationServices -framework CoreGraphics -framework CoreAudio

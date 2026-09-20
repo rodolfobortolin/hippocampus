@@ -101,8 +101,11 @@ function montaBandeja() {
 }
 
 app.whenReady().then(async () => {
-  if (process.platform === 'darwin') app.dock?.setIcon(
-    nativeImage.createFromPath(path.join(RAIZ, 'public', 'trayTemplate@2x.png')))
+  // O ícone do Dock vem do .icns, que traz todas as resoluções; o da barra de
+  // menus é máscara monocromática, recolorida pelo próprio sistema.
+  if (process.platform === 'darwin') {
+    app.dock?.setIcon(nativeImage.createFromPath(path.join(RAIZ, 'build', 'icon.icns')))
+  }
   await garanteNucleo()
   montaBandeja()
   abreJanela()

@@ -3,9 +3,22 @@
 <plist version="1.0">
 <dict>
 	<key>files</key>
-	<dict/>
+	<dict>
+		<key>Resources/hipocampo.icns</key>
+		<data>
+		MvABbhTGLkwITaboJijhU4bIZ5U=
+		</data>
+	</dict>
 	<key>files2</key>
-	<dict/>
+	<dict>
+		<key>Resources/hipocampo.icns</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			pIA6y5rqVsWCaoWy2/6CVPffs4PxeeStpToGv2b0rLM=
+			</data>
+		</dict>
+	</dict>
 	<key>rules</key>
 	<dict>
 		<key>^Resources/</key>

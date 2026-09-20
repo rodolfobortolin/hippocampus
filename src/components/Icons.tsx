@@ -31,17 +31,5 @@ export const IconeAbrir = () => (
   <svg {...base}><path d="m9 6 6 6-6 6" /></svg>
 )
 export const Emblema = () => (
-  <svg viewBox="0 0 32 32" width={26} height={26}>
-    <defs>
-      <radialGradient id="emblema" cx="50%" cy="45%">
-        <stop offset="0%" stopColor="#ffd166" />
-        <stop offset="58%" stopColor="#ff8a3d" />
-        <stop offset="100%" stopColor="#9a3412" />
-      </radialGradient>
-    </defs>
-    <path
-      d="M16 3c7 0 12 4 12 10 0 5-3 7-3 11 0 3-2 5-5 5s-4-2-4-4c0-3-2-4-4-4-4 0-8-4-8-9C4 7 9 3 16 3z"
-      fill="url(#emblema)"
-    />
-  </svg>
+  <img src="/marca.png" alt="" width={26} height={26} style={{ objectFit: 'contain' }} />
 )
