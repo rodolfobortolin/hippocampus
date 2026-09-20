@@ -229,6 +229,20 @@ input, textarea { font: inherit; color: inherit; }
 }
 .atalhos-conversa button:hover { border-color: rgba(255, 138, 61, 0.4); color: var(--ouro); }
 
+/* O mapa: rótulos em HTML, grade em SVG. Assim o texto tem o tamanho da
+   interface e a grade continua se ajustando à largura do painel. */
+.mapa { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: stretch; }
+.mapa-dias { display: flex; flex-direction: column; }
+.mapa-dias span {
+  flex: 1; display: flex; align-items: center;
+  font-size: 11px; color: var(--texto-fraco); line-height: 1;
+}
+.mapa-horas { position: relative; height: 16px; margin-top: 5px; }
+.mapa-horas span {
+  position: absolute; transform: translateX(-50%);
+  font-size: 11px; color: var(--texto-fraco);
+}
+
 /* As horas da fita vivem fora do SVG: lá dentro elas seriam esticadas junto
    com o desenho, que não mantém proporção. */
 .fita-horas { position: relative; height: 16px; margin-top: 3px; }
@@ -248,7 +262,7 @@ input, textarea { font: inherit; color: inherit; }
    fundo atrás era claro. */
 .nucleo canvas { width: 100%; height: 100%; display: block; }
 .nucleo.grande { width: 260px; height: 260px; margin: 0 auto 6px; }
-.nucleo.pequeno { width: 34px; height: 34px; align-self: flex-end; margin-bottom: 1px; }
+.nucleo.pequeno { width: 42px; height: 42px; align-self: flex-end; margin-bottom: -2px; }
 
 .abertura { display: flex; flex-direction: column; padding-top: 14px; }
 .abertura h2 { font-size: 25px; font-weight: 300; letter-spacing: -0.5px; margin-bottom: 8px; text-align: center; }

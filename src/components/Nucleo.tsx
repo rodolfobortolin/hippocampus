@@ -11,7 +11,7 @@ export function Nucleo({
 
   useEffect(() => {
     if (!tela.current) return
-    const instancia = new Cena(tela.current)
+    const instancia = new Cena(tela.current, tamanho === 'pequeno')
     cena.current = instancia
     // O tamanho muda por CSS (grande na abertura, pequeno durante a conversa),
     // então quem manda no renderizador é o elemento, não uma prop.
@@ -22,7 +22,7 @@ export function Nucleo({
       instancia.dispose()
       cena.current = null
     }
-  }, [])
+  }, [tamanho])
 
   useEffect(() => { cena.current?.setEstado(estado) }, [estado])
   useEffect(() => { cena.current?.setNivel(nivel) }, [nivel])

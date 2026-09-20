@@ -81,7 +81,15 @@ export class Nucleo {
   private readonly alvoA = new THREE.Color(VISUAIS.parado.a)
   private readonly alvoB = new THREE.Color(VISUAIS.parado.b)
 
-  constructor(private readonly tela: HTMLCanvasElement) {
+  /**
+   * `compacto` é o núcleo miniatura ao lado do compositor.
+   *
+   * No tamanho pequeno os anéis e a poeira viram ruído, e a esfera preenchendo
+   * o quadro deixa o brilho ser cortado na borda — o resultado é um borrão
+   * quadrado. Aqui ele fica só com a esfera, menor dentro do quadro, para o
+   * halo terminar antes do fim do canvas.
+   */
+  constructor(private readonly tela: HTMLCanvasElement, private readonly compacto = false) {
     this.renderer = new THREE.WebGLRenderer({
       canvas: tela, antialias: true, alpha: true, premultipliedAlpha: false,
     })
@@ -92,7 +100,7 @@ export class Nucleo {
     // A câmera fica longe o bastante para os anéis (diâmetro 3,9) caberem
     // inteiros no quadro; encostados na borda eles viram um corte reto.
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100)
-    this.camera.position.set(0, 0, 6.6)
+    this.camera.position.set(0, 0, compacto ? 5.2 : 6.6)
 
     this.plasma = new THREE.ShaderMaterial({
       uniforms: {
@@ -147,11 +155,14 @@ export class Nucleo {
         }`,
     })
 
-    this.esfera = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 48), this.plasma)
+    this.esfera = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1, compacto ? 24 : 48), this.plasma)
+    // Menor dentro do quadro: sobra margem para o halo morrer antes da borda.
+    if (compacto) this.esfera.scale.setScalar(0.62)
     this.cena.add(this.esfera)
 
     // Dois anéis inclinados em eixos diferentes: dão profundidade ao giro.
-    for (const [indice, raio] of [1.55, 1.95].entries()) {
+    for (const [indice, raio] of (compacto ? [] : [1.55, 1.95]).entries()) {
       const anel = new THREE.Mesh(
         new THREE.TorusGeometry(raio, 0.006, 8, 220),
         new THREE.MeshBasicMaterial({
@@ -167,7 +178,7 @@ export class Nucleo {
     }
 
     // Poeira em volta: sem ela o núcleo parece recortado e colado no fundo.
-    const total = 420
+    const total = compacto ? 0 : 420
     const posicoes = new Float32Array(total * 3)
     for (let i = 0; i < total; i++) {
       const raio = 2.2 + Math.random() * 1.2
@@ -187,7 +198,8 @@ export class Nucleo {
 
     this.composer = new EffectComposer(this.renderer)
     this.composer.addPass(new RenderPass(this.cena, this.camera))
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.75, 0.2)
+    this.bloom = new UnrealBloomPass(
+      new THREE.Vector2(1, 1), compacto ? 0.62 : 0.85, compacto ? 0.55 : 0.75, 0.2)
     this.composer.addPass(this.bloom)
     const alfa = new ShaderPass(ALFA_POR_BRILHO)
     alfa.renderToScreen = true
@@ -245,7 +257,8 @@ export class Nucleo {
     this.plasma.uniforms.uNivel.value = this.nivelSuave
     this.plasma.uniforms.uClarao.value = this.clarao
 
-    const escala = 1 + this.nivelSuave * 0.14 + Math.sin(this.fase * 0.9) * 0.012
+    const base = this.compacto ? 0.62 : 1
+    const escala = base * (1 + this.nivelSuave * 0.14 + Math.sin(this.fase * 0.9) * 0.012)
     this.esfera.scale.setScalar(escala)
     this.esfera.rotation.y += dt * 0.12 * this.giroSuave
 
@@ -260,7 +273,9 @@ export class Nucleo {
     }
 
     this.poeira.rotation.y -= dt * 0.03 * this.giroSuave
-    this.bloom.strength = 0.72 + this.energiaSuave * 0.5 + this.nivelSuave * 0.55
+    this.bloom.strength = (this.compacto ? 0.5 : 0.72)
+      + this.energiaSuave * (this.compacto ? 0.3 : 0.5)
+      + this.nivelSuave * (this.compacto ? 0.3 : 0.55)
 
     this.composer.render()
   }

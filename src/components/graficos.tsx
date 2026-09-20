@@ -177,58 +177,69 @@ export function Medidor({ valor, segundos }: { valor: number; segundos?: number 
 
 const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 
-/** Mapa hora × dia da semana. Quanto mais quente, mais tempo ali. */
+/**
+ * Mapa hora × dia da semana. Quanto mais quente, mais tempo ali.
+ *
+ * Os rótulos ficam em HTML, fora do SVG. Texto dentro do SVG escala junto com
+ * o desenho — num monitor largo a mesma fonte chegava ao dobro do tamanho do
+ * resto da interface, e diminuir a fonte no SVG só empurra o problema, porque
+ * o fator de escala muda com a largura da janela.
+ */
 export function Mapa({ grade }: { grade: number[][] }) {
   const [sobre, setSobre] = useState<{ dia: number; hora: number } | null>(null)
   const maior = Math.max(1, ...grade.flat())
-  // Unidades grandes de propósito: o SVG estica para a largura do painel e o
-  // texto estica junto. Com célula de 15 o fator chegava a 3× num monitor
-  // grande, e uma fonte de 10px virava 30px na tela.
   const celula = 30
   const folga = 5
-  const colunaRotulo = 64
+  const largura = 24 * (celula + folga) - folga
+  const altura = 7 * (celula + folga) - folga
 
   return (
     <div>
-      <div style={{ height: 18, marginBottom: 8, fontSize: 12, color: 'var(--texto-medio)' }}>
+      <div style={{ height: 18, marginBottom: 10, fontSize: 12, color: 'var(--texto-medio)' }}>
         {sobre ? (
           <span className="aparece">
             {DIAS_SEMANA[sobre.dia]} às {String(sobre.hora).padStart(2, '0')}h ·{' '}
-            <b style={{ fontWeight: 500 }}>{duracao(grade[sobre.dia][sobre.hora])}</b> por semana
+            <b style={{ fontWeight: 500 }}>{duracao(grade[sobre.dia][sobre.hora])}</b> no total
           </span>
         ) : <span style={{ color: 'var(--texto-fraco)' }}>soma de todo o período</span>}
       </div>
-      <svg
-        viewBox={`0 0 ${24 * (celula + folga) + colunaRotulo} ${7 * (celula + folga) + 34}`}
-        style={{ width: '100%', maxWidth: 1040 }}>
-        {grade.map((linha, dia) =>
-          linha.map((segundos, hora) => {
-            const intensidade = segundos / maior
-            return (
-              <rect
-                key={`${dia}-${hora}`}
-                x={colunaRotulo + hora * (celula + folga)} y={dia * (celula + folga)}
-                width={celula} height={celula} rx={6}
-                fill="var(--brasa)"
-                opacity={segundos ? 0.13 + intensidade * 0.87 : 0.045}
-                style={{
-                  filter: intensidade > 0.62 ? 'drop-shadow(0 0 5px rgba(255,138,61,.55))' : undefined,
-                  transition: 'opacity .15s',
-                }}
-                onMouseEnter={() => setSobre({ dia, hora })} onMouseLeave={() => setSobre(null)}
-              />
-            )
-          }),
-        )}
-        {DIAS_SEMANA.map((nome, dia) => (
-          <text key={nome} x="0" y={dia * (celula + folga) + celula * 0.66}
-            fill="var(--texto-fraco)" fontSize="16">{nome}</text>
-        ))}
-        {[0, 6, 12, 18, 23].map((hora) => (
-          <text key={hora} x={colunaRotulo + hora * (celula + folga) + celula / 2} y={7 * (celula + folga) + 24}
-            fill="var(--texto-fraco)" fontSize="16" textAnchor="middle">{hora}h</text>
-        ))}
-      </svg>
+
+      <div className="mapa">
+        <div className="mapa-dias">
+          {DIAS_SEMANA.map((nome) => <span key={nome}>{nome}</span>)}
+        </div>
+
+        <div>
+          <svg viewBox={`0 0 ${largura} ${altura}`} style={{ width: '100%', display: 'block' }}>
+            {grade.map((linha, dia) =>
+              linha.map((segundos, hora) => {
+                const intensidade = segundos / maior
+                return (
+                  <rect
+                    key={`${dia}-${hora}`}
+                    x={hora * (celula + folga)} y={dia * (celula + folga)}
+                    width={celula} height={celula} rx={6}
+                    fill="var(--brasa)"
+                    opacity={segundos ? 0.13 + intensidade * 0.87 : 0.045}
+                    style={{
+                      filter: intensidade > 0.62 ? 'drop-shadow(0 0 6px rgba(255,138,61,.5))' : undefined,
+                      transition: 'opacity .15s',
+                    }}
+                    onMouseEnter={() => setSobre({ dia, hora })} onMouseLeave={() => setSobre(null)}
+                  />
+                )
+              }),
+            )}
+          </svg>
+
+          <div className="mapa-horas">
+            {[0, 6, 12, 18, 23].map((hora) => (
+              <span key={hora}
+                style={{ left: `${((hora + 0.5) / 24) * 100}%` }}>{hora}h</span>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
