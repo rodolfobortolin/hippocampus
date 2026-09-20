@@ -1,8 +1,9 @@
-// hipocampo-focus — amostra o que está em foco no Mac e escreve NDJSON no stdout.
+// hippocampus-focus — samples what is in focus on the Mac and writes NDJSON to stdout.
 //
-// Uma linha por amostra: app, bundle, título da janela, URL (quando é navegador),
-// segundos de ociosidade e se a tela está bloqueada. Sem título de janela a
-// amostra ainda sai — só perde o detalhe, que exige Acessibilidade.
+// One line per sample: app, bundle, window title, URL (when it is a browser),
+// seconds of idleness and whether the screen is locked. Without the window
+// title the sample still goes out — it only loses the detail, which needs
+// Accessibility.
 
 import AppKit
 import ApplicationServices
@@ -12,14 +13,14 @@ import Foundation
 
 let args = CommandLine.arguments
 
-/// Para onde as amostras vão. Sem `--post`, saem no stdout como antes.
+/// Where the samples go. Without `--post`, they go to stdout as before.
 ///
-/// O modo `--post` existe por causa do TCC: o macOS atribui a permissão de
-/// Acessibilidade ao *processo responsável*, que é quem lançou o programa. Se o
-/// coletor em Node der o start, quem aparece pedindo é o node — e autorizar o
-/// node daria Acessibilidade a qualquer script Node da máquina. Lançado direto
-/// pelo launchd, este helper responde por si mesmo, e a autorização fica onde
-/// deve: neste app, e só nele.
+/// The `--post` mode exists because of the TCC: macOS attributes the
+/// Accessibility permission to the *responsible process*, which is whoever
+/// launched the program. If the Node collector starts it, node is what shows up
+/// asking — and authorising node would grant Accessibility to every Node script
+/// on the machine. Launched directly by launchd, this helper answers for
+/// itself, and the grant stays where it belongs: on this app, and only on it.
 let destino: URL? = args.firstIndex(of: "--post").flatMap { i in
     i + 1 < args.count ? URL(string: args[i + 1]) : nil
 }
@@ -27,16 +28,17 @@ let interval = args.firstIndex(of: "--interval").flatMap { i -> Double? in
     i + 1 < args.count ? Double(args[i + 1]) : nil
 } ?? 4.0
 
-// --check apenas consulta e sai. Nunca pede: é chamado em laço por scripts, e
-// pedir aqui gera um diálogo do sistema a cada chamada.
+// --check only queries and exits. It never asks: scripts call it in a loop, and
+// asking here would raise a system dialog on every call.
 if args.contains("--check") {
     print(AXIsProcessTrusted() ? "trusted" : "untrusted")
     exit(AXIsProcessTrusted() ? 0 : 1)
 }
 
-// O pedido só parte de quem tem identidade própria no TCC: o agente do launchd
-// (que é quem usa --post) ou um pedido explícito. Lançado por outro programa,
-// o diálogo sairia em nome do programa pai, que não é o que se quer autorizar.
+// The prompt only comes from something with its own identity in the TCC: the
+// launchd agent (which is what uses --post) or an explicit request. Launched by
+// another program, the dialog would go out in the parent's name, which is not
+// what anyone means to authorise.
 if !AXIsProcessTrusted() && (destino != nil || args.contains("--ask")) {
     let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
     AXIsProcessTrustedWithOptions(options as CFDictionary)
@@ -55,8 +57,8 @@ func stringAttribute(_ element: AXUIElement, _ name: String) -> String? {
     return (value as? NSURL)?.absoluteString
 }
 
-/// Procura a URL da aba ativa varrendo a árvore de acessibilidade da janela.
-/// Navegadores baseados em Chromium expõem AXURL no nó AXWebArea.
+/// Finds the active tab's URL by walking the window's accessibility tree.
+/// Chromium-based browsers expose AXURL on the AXWebArea node.
 func findURL(in window: AXUIElement) -> String? {
     var queue: [(AXUIElement, Int)] = [(window, 0)]
     var visited = 0
@@ -80,17 +82,18 @@ let browsers: Set<String> = [
     "com.google.Chrome.canary", "com.vivaldi.Vivaldi",
 ]
 
-/// Contadores acumulados desde o boot. Não exigem Acessibilidade nem
-/// Monitoramento de Entrada: é a mesma classe que já dá a ociosidade.
+/// Counters accumulated since boot. They need neither Accessibility nor Input
+/// Monitoring: it is the same class that already gives idleness.
 /// O delta entre amostras mede *engajamento* — ler tem rolagem e zero tecla;
-/// escrever tem tecla. É o sinal que faltava para não depender só do título.
+/// writing has keys. This is the signal that was missing to stop depending on
+/// the title alone.
 func contador(_ tipo: CGEventType) -> Int {
     Int(CGEventSource.counterForEventType(.hidSystemState, eventType: tipo))
 }
 
-/// Um app de mídia aberto, se houver. Vem da lista de apps em execução, que
-/// não custa permissão — diferente de perguntar ao player o que está tocando,
-/// que exige Automação e devolve o nome da faixa.
+/// A media app that is open, if any. It comes from the list of running apps,
+/// which costs no permission — unlike asking the player what is playing, which
+/// needs Automation and returns the track name.
 let APPS_DE_MIDIA: [String: String] = [
     "com.apple.Music": "Music", "com.spotify.client": "Spotify",
     "com.apple.TV": "TV", "org.videolan.vlc": "VLC",
@@ -105,14 +108,15 @@ func appDeMidiaAberto() -> String? {
     return nil
 }
 
-/// A escuta da palavra de ativação segura o microfone o tempo todo.
+/// The wake-word listener holds the microphone the whole time.
 ///
-/// Sem saber disso, "microfone em uso" passaria a valer sempre e a detecção de
-/// chamada viraria ruído — foi o que aconteceu assim que a escuta foi ligada.
+/// Without knowing that, "microphone in use" would be true forever and call
+/// detection would turn to noise — which is exactly what happened the moment
+/// the listener was switched on.
 func escutaPropriaAtiva() -> Bool {
-    // Pelo sinal de vida, não pela lista de aplicações: a escuta é um laço com
-    // um reconhecedor dentro, nunca chama NSApplicationMain, e por isso não
-    // aparece como aplicação para o sistema.
+    // By its liveness file, not by the application list: the listener is a loop
+    // with a recogniser inside, never calls NSApplicationMain, and therefore
+    // does not appear as an application to the system.
     let vivo = FileManager.default
         .homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/Hipocampo/ouvido.vivo")
@@ -122,21 +126,22 @@ func escutaPropriaAtiva() -> Bool {
     return Date().timeIntervalSince(modificado) < 90
 }
 
-/// Sites que são fonte de música ou vídeo. Serve para escolher, entre as abas
-/// abertas, qual é a que provavelmente está tocando.
-/// Em dois níveis porque o navegador não diz qual aba tem áudio: com YouTube
-/// e um serviço de música abertos ao mesmo tempo, a aposta certa é a música.
+/// Sites that are a source of music or video. Used to pick, among the open
+/// tabs, the one that is probably playing.
+/// In two tiers because the browser does not say which tab has audio: with
+/// YouTube and a music service open at once, the safe bet is the music.
 let SITES_DE_MUSICA = [
     "flowmusic.app", "open.spotify.com", "music.youtube.com", "soundcloud.com",
     "deezer.com", "tidal.com", "music.apple.com", "bandcamp.com",
 ]
 let SITES_DE_VIDEO = ["youtube.com", "twitch.tv", "netflix.com", "vimeo.com"]
 
-/// Pergunta ao app o que está tocando. Exige permissão de Automação.
+/// Asks the app what is playing. Needs the Automation permission.
 ///
-/// Só roda quando há som de fato e quando o app está aberto: `osascript` contra
+/// Only runs when there is actually sound and the app is open: `osascript`
+/// against
 /// um app fechado pode travar por minutos, e travar a amostragem por causa de
-/// um nome de faixa seria um péssimo negócio.
+/// a track name would be a terrible bargain.
 func consultaPorAppleScript(_ script: String) -> String? {
     var erro: NSDictionary?
     guard let resultado = NSAppleScript(source: script)?.executeAndReturnError(&erro),
@@ -149,7 +154,7 @@ func appEstaAberto(_ bundle: String) -> Bool {
     NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundle }
 }
 
-/// O que está tocando: primeiro os players, depois a aba do navegador.
+/// What is playing: the players first, then the browser tab.
 func oQueEstaTocando() -> String? {
     if appEstaAberto("com.spotify.client"),
        let faixa = consultaPorAppleScript(
@@ -165,14 +170,14 @@ func oQueEstaTocando() -> String? {
         return faixa
     }
 
-    // Música em aba de navegador, que nenhum player consegue reportar.
-    // Entre as abas abertas, a de um site de mídia é a aposta.
+    // Music in a browser tab, which no player can report. Among the open tabs,
+    // one on a media site is the bet.
     for (bundle, nome) in [("com.google.Chrome", "Google Chrome"),
                            ("company.thebrowser.Browser", "Arc")] {
         guard appEstaAberto(bundle) else { continue }
-        // Pedir todos os títulos de uma vez cola tudo num texto só, sem
-        // separador, e não dá para saber qual título pertence a qual endereço.
-        // Então a busca acontece dentro do próprio AppleScript, aba por aba.
+        // Asking for every title at once glues them into one string with no
+        // separator, and there is no telling which title belongs to which
+        // address. So the search happens inside the AppleScript itself, tab by tab.
         for lista in [SITES_DE_MUSICA, SITES_DE_VIDEO] {
             let condicoes = lista.map { "(u contains \"\($0)\")" }.joined(separator: " or ")
             let script = """
@@ -191,10 +196,11 @@ func oQueEstaTocando() -> String? {
     return nil
 }
 
-/// Alguma SAÍDA de áudio está tocando agora?
+/// Is any audio OUTPUT playing right now?
 ///
-/// Sozinho isso não prova música: fone aberto para uma chamada também acende,
-/// e som de sistema também. Cruzado com o app de mídia aberto e com a ausência
+/// On its own this does not prove music: a headset open for a call lights it
+/// up too, and so does a system sound. Crossed with an open media app and with
+/// the absence
 /// de microfone em uso, vira um sinal decente de "estava ouvindo algo".
 func somTocando() -> Bool {
     dispositivosDeAudio().contains { dispositivo in
@@ -202,9 +208,10 @@ func somTocando() -> Bool {
     }
 }
 
-/// Algum dispositivo de ENTRADA de áudio está capturando agora?
-/// É a camada de hardware, não AVCaptureDevice — por isso não pede permissão.
-/// Serve como detector de reunião que independe de Zoom, Teams ou Meet.
+/// Is any audio INPUT device capturing right now?
+/// This is the hardware layer, not AVCaptureDevice — which is why it asks for
+/// no permission. It works as a meeting detector independent of Zoom, Teams or
+/// Meet.
 func dispositivosDeAudio() -> [AudioDeviceID] {
     var endereco = AudioObjectPropertyAddress(
         mSelector: kAudioHardwarePropertyDevices,
@@ -223,7 +230,7 @@ func dispositivosDeAudio() -> [AudioDeviceID] {
     return lista
 }
 
-/// Sem fluxo daquele lado, o dispositivo não serve para aquilo.
+/// With no stream on that side, the device is no use for that.
 func temFluxo(_ dispositivo: AudioDeviceID, entrada: Bool) -> Bool {
     var endereco = AudioObjectPropertyAddress(
         mSelector: kAudioDevicePropertyStreams,
@@ -253,9 +260,10 @@ func microfoneEmUso() -> Bool {
     }
 }
 
-/// Em qual tela a janela em foco está.
+/// Which screen the focused window is on.
 ///
-/// Nada aqui é por monitor — o app em foco é global —, mas saber onde a janela
+/// Nothing here is per monitor — the focused app is global — but knowing where
+/// the window
 /// estava responde "trabalho mais no monitor grande ou no notebook?" e serve de
 /// prova de que nenhuma tela fica de fora.
 func telaDaJanela(_ janela: AXUIElement) -> String? {
@@ -319,10 +327,10 @@ func field(_ key: String, _ value: String?) -> String? {
     return "\"\(key)\":\"\(escape(value))\""
 }
 
-/// Gancho de depuração: se o arquivo-marca existir, despeja a árvore de
+/// A debugging hook: if the marker file exists, it dumps the accessibility
 /// acessibilidade do app em foco e apaga a marca. Serve para descobrir onde um
-/// app guarda o que interessa sem ficar recompilando às cegas — e só o helper
-/// consegue fazer isso, porque só ele tem a permissão.
+/// app stores what matters without recompiling blind — and only the helper can
+/// do this, because only it holds the permission.
 func despejaArvoreSePedido(_ janela: AXUIElement, app: String) {
     let marca = "/tmp/hipocampo-arvore"
     guard FileManager.default.fileExists(atPath: marca) else { return }
@@ -360,8 +368,8 @@ func despejaArvoreSePedido(_ janela: AXUIElement, app: String) {
 
 var tocandoCache: (valor: String?, quando: Date) = (nil, .distantPast)
 
-/// A consulta por AppleScript é cara e pede permissão; faz sentido repetir de
-/// vez em quando, não a cada amostra de 4 segundos.
+/// The AppleScript query is expensive and asks for a permission; repeating it
+/// now and then makes sense, on every 4-second sample it does not.
 func tocandoAgora(_ temSom: Bool) -> String? {
     guard temSom else { tocandoCache = (nil, Date()); return nil }
     if Date().timeIntervalSince(tocandoCache.quando) < 30 { return tocandoCache.valor }
@@ -390,8 +398,9 @@ func sample() {
     let temSom = somTocando()
     parts.append("\"som\":\(temSom)")
     if let faixa = field("tocando", tocandoAgora(temSom)) { parts.append(faixa) }
-    // O app de mídia aberto é pista fraca, não fonte: um player aberto e parado
-    // aparece igual, e som de aba de navegador não aparece aqui de jeito nenhum.
+    // An open media app is a weak hint, not a source: a player that is open and
+    // paused looks the same, and sound from a browser tab does not show up here
+    // at all.
     if let midia = field("midiaAberta", appDeMidiaAberto()) { parts.append(midia) }
 
     if !locked, let app = NSWorkspace.shared.frontmostApplication {
@@ -434,7 +443,7 @@ func sample() {
     pedido.setValue("application/json", forHTTPHeaderField: "Content-Type")
     pedido.httpBody = linha.data(using: .utf8)
     pedido.timeoutInterval = 5
-    // Falha de envio é silenciosa de propósito: o núcleo pode estar reiniciando,
+    // A failed send is silent on purpose: the core may be restarting,
     // e derrubar a amostragem por causa disso perderia mais do que ganharia.
     URLSession.shared.dataTask(with: pedido).resume()
 }

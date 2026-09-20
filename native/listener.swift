@@ -1,9 +1,9 @@
-// hipocampo-ouvido — escuta a palavra de ativação, sem mandar áudio a lugar nenhum.
+// hippocampus-listener — listens for the wake word, sending audio nowhere.
 //
-// Usa o reconhecimento de fala do próprio macOS em modo local
-// (`requiresOnDeviceRecognition`), então o áudio não sai da máquina e não há
-// custo por uso. É um programa à parte do coletor de propósito: assim a
-// permissão de microfone é dele, e desligar a escuta não desliga a medição.
+// Uses macOS's own speech recognition on-device (`requiresOnDeviceRecognition`),
+// so the audio never leaves the machine and there is no cost per use. A
+// separate program from the collector on purpose: the microphone permission is
+// its own, and turning the listening off does not turn the measuring off.
 
 import AVFoundation
 import Foundation
@@ -17,8 +17,8 @@ func valor(_ nome: String, _ padrao: String) -> String {
 }
 
 let destino = URL(string: valor("--post", "http://127.0.0.1:7878/api/acordar"))!
-let idioma = valor("--idioma", "pt-BR")
-// Variações porque o reconhecedor erra o nome próprio de formas previsíveis.
+let language = valor("--language", "pt-BR")
+// Variations, because the recogniser mishears a proper noun in predictable ways.
 let gatilhos = valor("--palavra", "hipocampo,hipocampa,ipocampo,hipo campo")
     .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
 
@@ -27,9 +27,9 @@ var tarefa: SFSpeechRecognitionTask?
 var pedido: SFSpeechAudioBufferRecognitionRequest?
 var ultimoAviso = Date.distantPast
 
-guard let reconhecedor = SFSpeechRecognizer(locale: Locale(identifier: idioma)),
+guard let reconhecedor = SFSpeechRecognizer(locale: Locale(identifier: language)),
       reconhecedor.supportsOnDeviceRecognition else {
-    FileHandle.standardError.write("reconhecimento local indisponível para \(idioma)\n".data(using: .utf8)!)
+    FileHandle.standardError.write("on-device recognition unavailable for \(language)\n".data(using: .utf8)!)
     exit(1)
 }
 
@@ -53,18 +53,18 @@ func escuta() {
 
     let novo = SFSpeechAudioBufferRecognitionRequest()
     novo.shouldReportPartialResults = true
-    // O que garante que nada sai da máquina.
+    // This is what guarantees nothing leaves the machine.
     novo.requiresOnDeviceRecognition = true
     pedido = novo
 
     tarefa = reconhecedor.recognitionTask(with: novo) { resultado, erro in
         if let resultado {
             let dito = resultado.bestTranscription.formattedString.lowercased()
-            // Só o fim da frase interessa: o reconhecedor acumula a sessão inteira.
+            // Only the end of the phrase matters: the recogniser accumulates the whole session.
             let cauda = String(dito.suffix(40))
             if gatilhos.contains(where: { cauda.contains($0) }) {
                 avisa()
-                // Recomeça para não disparar de novo com o mesmo trecho.
+                // Restart so the same stretch does not fire it again.
                 DispatchQueue.main.async { escuta() }
             }
         }
@@ -76,7 +76,7 @@ func escuta() {
 
 SFSpeechRecognizer.requestAuthorization { estado in
     guard estado == .authorized else {
-        FileHandle.standardError.write("sem autorização para reconhecimento de fala\n".data(using: .utf8)!)
+        FileHandle.standardError.write("no authorisation for speech recognition\n".data(using: .utf8)!)
         exit(1)
     }
 
@@ -89,7 +89,7 @@ SFSpeechRecognizer.requestAuthorization { estado in
         do {
             try motor.start()
         } catch {
-            FileHandle.standardError.write("não consegui abrir o microfone: \(error)\n".data(using: .utf8)!)
+            FileHandle.standardError.write("could not open the microphone: \(error)\n".data(using: .utf8)!)
             exit(1)
         }
         escuta()
@@ -97,9 +97,9 @@ SFSpeechRecognizer.requestAuthorization { estado in
         fflush(stdout)
 
         // Sinal de vida em arquivo. O coletor precisa saber que o microfone
-        // está ocupado por nós, senão conta chamada onde não houve; e este
-        // processo não aparece em NSWorkspace, porque nunca vira aplicação —
-        // é só um laço com um reconhecedor dentro.
+        // is busy because of us, or it counts a call where there was none; and
+        // this process does not show up in NSWorkspace, because it never
+        // becomes an application — it is just a loop with a recogniser inside.
         let vivo = FileManager.default
             .homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/Hipocampo/ouvido.vivo")
@@ -107,7 +107,7 @@ SFSpeechRecognizer.requestAuthorization { estado in
         marca()
         Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in marca() }
 
-        // A sessão de reconhecimento degrada com o tempo; reinicia de hora em hora.
+        // The recognition session degrades over time; restart it hourly.
         Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { _ in escuta() }
     }
 }
