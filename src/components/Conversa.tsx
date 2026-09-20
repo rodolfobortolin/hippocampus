@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type Status } from '../lib/api.ts'
 import { Markdown } from '../lib/markdown.tsx'
+import { useNivelAudio } from '../hooks/useNivelAudio.ts'
+import { Nucleo, type EstadoNucleo } from './Nucleo.tsx'
 import { IconeEnviar, IconeMicrofone, IconeSom } from './Icons.tsx'
 
-type Fala = { de: 'eu' | 'ele'; texto: string; ferramentas?: string[] }
+type Fala = { de: 'eu' | 'ele'; texto: string }
 
 const SUGESTOES = [
   'Me dá um recap divertido do meu histórico: padrão de trabalho, distrações, atalhos favoritos, meu estilo de escrita e uma zoeira leve',
@@ -19,18 +21,26 @@ export function Conversa({ status }: { status: Status | null }) {
   const [pensando, setPensando] = useState(false)
   const [ferramenta, setFerramenta] = useState('')
   const [ouvindo, setOuvindo] = useState(false)
+  const [estado, setEstado] = useState<EstadoNucleo>('parado')
   const socket = useRef<WebSocket | null>(null)
   const fio = useRef<HTMLDivElement>(null)
   const reconhecimento = useRef<any>(null)
+  const { nivel, ouveMicrofone, ouveAudio, pulsaSozinho, encerra } = useNivelAudio()
 
   useEffect(() => {
     const ws = api.socket()
     socket.current = ws
     ws.onmessage = (evento) => {
       const dados = JSON.parse(evento.data)
-      if (dados.tipo === 'pensando') { setPensando(true); setFerramenta('') }
-      if (dados.tipo === 'ferramenta') setFerramenta(dados.nome)
+      if (dados.tipo === 'pensando') { setPensando(true); setFerramenta(''); setEstado('pensando') }
+      if (dados.tipo === 'ferramenta') {
+        // O núcleo só vira água quando ele está de fato lendo o banco; a busca
+        // interna de ferramenta do SDK não interessa a quem está olhando.
+        setFerramenta(dados.nome)
+        setEstado(dados.nome ? 'ferramenta' : 'pensando')
+      }
       if (dados.tipo === 'texto') {
+        setEstado('pensando')
         setFalas((atuais) => {
           const ultima = atuais[atuais.length - 1]
           // Emenda os pedaços do mesmo turno numa fala só.
@@ -40,12 +50,15 @@ export function Conversa({ status }: { status: Status | null }) {
           return [...atuais, { de: 'ele', texto: dados.texto }]
         })
       }
-      if (dados.tipo === 'fim') { setPensando(false); setFerramenta('') }
+      if (dados.tipo === 'fim') { setPensando(false); setFerramenta(''); setEstado('parado') }
       if (dados.tipo === 'erro') {
         setPensando(false)
+        setEstado('erro')
         setFalas((atuais) => [...atuais, { de: 'ele', texto: `Deu problema: ${dados.erro}` }])
+        setTimeout(() => setEstado('parado'), 2600)
       }
     }
+    ws.onclose = () => setEstado('parado')
     return () => ws.close()
   }, [])
 
@@ -64,47 +77,73 @@ export function Conversa({ status }: { status: Status | null }) {
   const escuta = () => {
     const Motor = (window as any).webkitSpeechRecognition ?? (window as any).SpeechRecognition
     if (!Motor) return
-    if (ouvindo) { reconhecimento.current?.stop(); setOuvindo(false); return }
+    if (ouvindo) {
+      reconhecimento.current?.stop()
+      setOuvindo(false)
+      setEstado('parado')
+      encerra()
+      return
+    }
 
     const motor = new Motor()
     motor.lang = 'pt-BR'
     motor.interimResults = true
     motor.continuous = false
+    const encerraEscuta = () => { setOuvindo(false); setEstado('parado'); encerra() }
     motor.onresult = (evento: any) => {
       const frase = Array.from(evento.results).map((r: any) => r[0].transcript).join('')
       setTexto(frase)
-      if (evento.results[evento.results.length - 1].isFinal) { setOuvindo(false); envia(frase) }
+      if (evento.results[evento.results.length - 1].isFinal) { encerraEscuta(); envia(frase) }
     }
-    motor.onerror = () => setOuvindo(false)
-    motor.onend = () => setOuvindo(false)
+    motor.onerror = encerraEscuta
+    motor.onend = encerraEscuta
     motor.start()
     reconhecimento.current = motor
     setOuvindo(true)
+    setEstado('ouvindo')
+    void ouveMicrofone()
   }
 
   const fala = async (conteudo: string) => {
+    const limpo = conteudo.replace(/[*#`]/g, '')
+    setEstado('falando')
+
     if (!status?.voz) {
-      // Sem chave da OpenAI, a voz do próprio macOS resolve.
-      const frase = new SpeechSynthesisUtterance(conteudo.replace(/[*#`]/g, ''))
+      // Sem chave da OpenAI, a voz do próprio macOS resolve — mas ela não dá
+      // acesso ao áudio, então o núcleo pulsa por conta própria.
+      const frase = new SpeechSynthesisUtterance(limpo)
       frase.lang = 'pt-BR'
+      frase.onend = () => { setEstado('parado'); encerra() }
+      pulsaSozinho()
       speechSynthesis.speak(frase)
       return
     }
-    const resposta = await api.voz(conteudo.replace(/[*#`]/g, ''))
-    if (!resposta.ok) return
-    const audio = new Audio(URL.createObjectURL(await resposta.blob()))
-    void audio.play()
+
+    try {
+      const resposta = await api.voz(limpo)
+      if (!resposta.ok) throw new Error('voz indisponível')
+      const audio = new Audio(URL.createObjectURL(await resposta.blob()))
+      audio.onended = () => { setEstado('parado'); encerra() }
+      ouveAudio(audio)
+      await audio.play()
+    } catch {
+      setEstado('parado')
+      encerra()
+    }
   }
+
+  const abertura = !falas.length
 
   return (
     <div className="conversa">
       <div className="fio" ref={fio}>
-        {!falas.length && (
-          <div style={{ paddingTop: 30 }}>
-            <h2 style={{ fontSize: 25, fontWeight: 300, letterSpacing: '-0.5px', marginBottom: 8 }}>
-              Pergunte sobre <b style={{ fontWeight: 600 }}>o seu dia</b>.
+        {abertura && (
+          <div className="abertura">
+            <Nucleo estado={estado} nivel={nivel} tamanho="grande" />
+            <h2>
+              Pergunte sobre <b>o seu dia</b>.
             </h2>
-            <p style={{ color: 'var(--texto-fraco)', fontSize: 13, marginBottom: 22, maxWidth: '62ch' }}>
+            <p>
               Eu consulto o que foi medido nesta máquina — tempo por app e janela, projetos,
               commits, sites, atalhos, o que você digitou e o que pediu ao Claude Code.
               Nada disso sai daqui.
@@ -139,6 +178,7 @@ export function Conversa({ status }: { status: Status | null }) {
       </div>
 
       <div className="compositor">
+        {!abertura && <Nucleo estado={estado} nivel={nivel} tamanho="pequeno" />}
         <textarea
           value={texto}
           onChange={(evento) => setTexto(evento.target.value)}

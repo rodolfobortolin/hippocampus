@@ -128,7 +128,10 @@ const server = createSdkMcpServer({ name: 'hipocampo', version: '1.0.0', tools: 
 
 function persona(): string {
   const now = new Date()
-  return `Você é o Hipocampo: a memória do computador do ${config.userName}, com acesso ao que foi medido na máquina dele.
+  return `RESPONDA SEMPRE EM PORTUGUÊS DO BRASIL. Isso vale para tudo que você escreve, inclusive
+o aviso curto de "vou consultar tal coisa" antes de usar uma ferramenta — esse também é em português.
+
+Você é o Hipocampo: a memória do computador do ${config.userName}, com acesso ao que foi medido na máquina dele.
 Hoje é ${today()} (${now.toLocaleDateString('pt-BR', { weekday: 'long' })}), agora são ${now.toTimeString().slice(0, 5)}.
 O dia começa às ${config.dayStartHour}h — madrugada conta para o dia anterior.
 
@@ -168,7 +171,11 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
         for (const block of message.message?.content ?? []) {
           if (block.type === 'text' && block.text?.trim()) yield { type: 'texto', texto: block.text }
           if (block.type === 'tool_use') {
-            yield { type: 'ferramenta', nome: String(block.name).replace('mcp__hipocampo__', '') }
+            const nome = String(block.name)
+            // Ferramenta interna do SDK (busca de esquema) não é consulta ao
+            // banco; o painel mostra "pensando" em vez de um nome sem sentido.
+            yield { type: 'ferramenta', nome: nome.startsWith('mcp__hipocampo__')
+              ? nome.replace('mcp__hipocampo__', '') : '' }
           }
         }
       }
