@@ -88,14 +88,14 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
 
   const language = validLanguage(config.lang)
   const who = PERSONAS[language]
-  const persona = [HOW_TO_WRITE[language], '', who.diario(config.userName), '', who.tom].join('\n')
+  const persona = [HOW_TO_WRITE[language], '', who.journal(config.userName), '', who.tone].join('\n')
 
   let narrative = ''
   let recap = ''
 
   if (options.narrate !== false && report.activeSeconds > 300) {
-    narrative = await ask(who.resumo(day).replace('%DADOS%', material), persona)
-    recap = await ask(who.recap(day).replace('%DADOS%', material), persona)
+    narrative = await ask(who.summary(day).replace('%DATA%', material), persona)
+    recap = await ask(who.recap(day).replace('%DATA%', material), persona)
   }
 
   const stats = {
@@ -141,7 +141,7 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const arg = process.argv.find((a) => /^\d{4}-\d{2}-\d{2}$/.test(a))
   const day = arg ?? dayOf(Date.now() / 1000 - 86_400)
-  const narrate = !process.argv.includes('--sem-narrativa')
+  const narrate = !process.argv.includes('--no-narrative')
   rollup(day, { narrate }).then((result) => {
     console.log(`day ${result.day}: ${result.classified} windows classified, ${result.episodes} episodes`)
     if (result.narrative) console.log('\n' + result.narrative)

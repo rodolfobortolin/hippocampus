@@ -18,7 +18,7 @@ type Task = { name: string; everyMinutes: number; run: () => unknown | Promise<u
 
 const tasks: Task[] = [
   { name: 'skysight', everyMinutes: 2, run: harvestSkysight },
-  { name: 'navegadores', everyMinutes: 10, run: harvestBrowsers },
+  { name: 'browsers', everyMinutes: 10, run: harvestBrowsers },
   { name: 'claude', everyMinutes: 10, run: harvestClaudeSessions },
   { name: 'codex', everyMinutes: 10, run: harvestCodexSessions },
   { name: 'shell', everyMinutes: 15, run: harvestShell },

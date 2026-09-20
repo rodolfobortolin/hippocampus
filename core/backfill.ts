@@ -25,8 +25,8 @@ export function backfillDay(day: string): { blocks: number; seconds: number } {
     `select ts, kind, app, detail, meta from events where day = ? order by ts, id`, day)
   if (events.length < 5) return { blocks: 0, seconds: 0 }
 
-  type Aberto = { app: string; title: string | null; url: string | null; start: number; last: number }
-  let openedAt: Aberto | null = null
+  type Open = { app: string; title: string | null; url: string | null; start: number; last: number }
+  let openedAt: Open | null = null
   let blocks = 0
   let seconds = 0
 
@@ -75,7 +75,7 @@ export function backfillDay(day: string): { blocks: number; seconds: number } {
       openedAt.last = event.ts
     }
   }
-  if (openedAt) close((openedAt as Aberto).last)
+  if (openedAt) close((openedAt as Open).last)
 
   return { blocks, seconds }
 }

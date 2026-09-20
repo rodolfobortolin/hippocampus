@@ -9,7 +9,7 @@ import { setDayStartHour, setLocale } from './format.ts'
  *
  * The core is what stores the choice — it is the one writing the journal and
  * holding the conversation, and
- * os dois precisam concordar. A canvas question uma vez ao subir e store uma
+ * the two have to agree. The screen asks once on start and keeps a
  * a copy in the browser only so it does not flash the wrong language before
  * the answer arrives.
  */
@@ -23,8 +23,8 @@ type Context = {
 }
 
 /**
- * O que pode ser mudado de dentro do app. `chaves` sai do molde por um reason:
- * aqui ela load o segredo a ser gravado, enquanto no `Settings` que volta da
+ * What can be changed from inside the app. `keys` breaks the mould for a reason:
+ * here it carries the secret to be written, while in the `Settings` coming back from
  * API it carries only the state — the value never makes the trip back.
  */
 export type Change = Omit<Partial<Settings>, 'keys' | 'languages'> & {

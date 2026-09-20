@@ -12,12 +12,12 @@ export function useSocket(criar: () => WebSocket, aoReceber: (data: any) => void
   const [connected, setLigado] = useState(false)
   const socket = useRef<WebSocket | null>(null)
   const attempt = useRef(0)
-  const vivo = useRef(true)
+  const alive = useRef(true)
   const receive = useRef(aoReceber)
   receive.current = aoReceber
 
   const connect = useCallback(() => {
-    if (!vivo.current) return
+    if (!alive.current) return
     let ws: WebSocket
     try {
       ws = criar()
@@ -34,7 +34,7 @@ export function useSocket(criar: () => WebSocket, aoReceber: (data: any) => void
     ws.onerror = () => ws.close()
     ws.onclose = () => {
       setLigado(false)
-      if (!vivo.current) return
+      if (!alive.current) return
       // A growing wait up to 8s: the core usually comes back in a few seconds.
       const wait = Math.min(8000, 400 * 2 ** attempt.current++)
       setTimeout(connect, wait)
@@ -42,10 +42,10 @@ export function useSocket(criar: () => WebSocket, aoReceber: (data: any) => void
   }, [criar])
 
   useEffect(() => {
-    vivo.current = true
+    alive.current = true
     connect()
     return () => {
-      vivo.current = false
+      alive.current = false
       socket.current?.close()
     }
   }, [connect])

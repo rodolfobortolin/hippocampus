@@ -66,11 +66,11 @@ const insert = db.prepare(
 // A browser that is installed but has no readable history fails every round.
 // The warning is worth saying once; every ten minutes only drowns the log.
 const alreadyWarned = new Set<string>()
-function warnOnce(fonte: string, message: string): void {
-  const key = `${fonte}:${message}`
+function warnOnce(source: string, message: string): void {
+  const key = `${source}:${message}`
   if (alreadyWarned.has(key)) return
   alreadyWarned.add(key)
-  console.error(`[navegador] ${fonte}: ${message}`)
+  console.error(`[browser] ${source}: ${message}`)
 }
 
 function hostOf(url: string): string {
@@ -83,7 +83,7 @@ export async function harvestBrowsers(): Promise<{ visits: number }> {
     const original = path.join(config.home, source.file)
     try { await fs.access(original) } catch { continue }
 
-    const copy = path.join(os.tmpdir(), `hipocampo-${source.name.replace(/\W/g, '')}.db`)
+    const copy = path.join(os.tmpdir(), `hippocampus-${source.name.replace(/\W/g, '')}.db`)
     try {
       await fs.copyFile(original, copy)
       for (const suffix of ['-wal', '-shm']) {

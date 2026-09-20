@@ -168,7 +168,7 @@ próximo boot. À mão:
 
 ```bash
 npm run rollup -- 2026-09-19
-npm run rollup -- 2026-09-19 --sem-narrativa   # só os números
+npm run rollup -- 2026-09-19 --no-narrative   # só os números
 ```
 
 ## Onde ficam os dados

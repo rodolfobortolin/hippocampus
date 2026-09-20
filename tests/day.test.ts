@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { config, dayOf } from '../core/config.ts'
 
-test('a madrugada conta para o dia anterior', () => {
+test('the small hours belong to the day before', () => {
   config.dayStartHour = 4
   // 2am on a Monday is still the Sunday of whoever was working.
   const madrugada = new Date(2026, 8, 21, 2, 30).getTime() / 1000
@@ -16,7 +16,7 @@ test('a madrugada conta para o dia anterior', () => {
   assert.equal(dayOf(virada), '2026-09-21')
 })
 
-test('mudar a hora da virada muda a que dia um instante pertence', () => {
+test('moving the turn of the day moves which day an instant belongs to', () => {
   const instante = new Date(2026, 8, 21, 5, 0).getTime() / 1000
   config.dayStartHour = 4
   assert.equal(dayOf(instante), '2026-09-21')

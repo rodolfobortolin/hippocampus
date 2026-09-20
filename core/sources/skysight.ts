@@ -7,8 +7,8 @@ import { redact } from '../redact.ts'
 import { shortcutLabel, hasModifier } from '../keys.ts'
 import { keepsTyping, isSecret } from '../privacy.ts'
 
-// O Computer History do Codex grava eventos ricos num cache que ele mesmo apaga
-// em poucas horas. Aqui a gente colhe before de sumir e guarda para sempre.
+// Codex's Computer History writes rich events into a cache it erases itself
+// within hours. Here we pick them up before they vanish and keep them.
 const segmentsDir = path.join(
   config.home,
   'Library/Group Containers/2DC432GLL2.com.openai.sky.CUAService',
@@ -22,7 +22,7 @@ const insertTyping = db.prepare(
   `insert or ignore into typing (source_id, ts, day, app, chars, text) values (?, ?, ?, ?, ?, ?)`,
 )
 
-// existsSync numa pasta protegida pelo macOS congela o processo inteiro
+// existsSync in a folder macOS protects freezes the whole process
 // while the permission dialog waits for an answer. Here the check is async and
 // the result is cached for whoever needs the answer right away.
 let available: boolean | null = null

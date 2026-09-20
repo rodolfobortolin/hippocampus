@@ -230,7 +230,7 @@ one command does the rest:
 ```bash
 xcrun notarytool store-credentials hippocampus \
   --apple-id YOU@EXAMPLE.COM --team-id YOURTEAM --password APP-SPECIFIC-PASSWORD
-npm run notarizar
+npm run notarize
 ```
 
 The app-specific password is generated at appleid.apple.com — it is not your
@@ -249,7 +249,7 @@ the next boot. By hand:
 
 ```bash
 npm run rollup -- 2026-09-19
-npm run rollup -- 2026-09-19 --sem-narrativa   # numbers only
+npm run rollup -- 2026-09-19 --no-narrative   # numbers only
 ```
 
 ## Where the data lives
