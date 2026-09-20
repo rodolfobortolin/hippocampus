@@ -14,6 +14,8 @@ type Sample = {
   clicks?: number
   scroll?: number
   mic?: boolean
+  /** Nome da tela onde a janela em foco está. */
+  tela?: string
   app?: string
   bundle?: string
   title?: string
@@ -147,7 +149,7 @@ export class FocusCollector {
     // estava escrito na barra de título, não.
     const sigiloso = !idle && ehSigiloso(sample.app, sample.title, sample.url)
     const title = idle || sigiloso ? null : sample.title ?? null
-    const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}`
+    const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}|${sample.tela ?? ''}`
 
     // Buraco grande (sono, coletor parado) fecha o bloco aberto.
     const gap = this.open ? ts - this.open.endedAt : 0
@@ -163,7 +165,7 @@ export class FocusCollector {
     const result = insert.run(
       ts, ts, 0, dayOf(ts), app, idle ? null : sample.bundle ?? null,
       title, url, hostOf(url ?? undefined), idle ? 1 : 0,
-      delta.keys, delta.clicks, delta.scroll, mic,
+      delta.keys, delta.clicks, delta.scroll, mic, idle ? null : sample.tela ?? null,
     )
     this.open = { id: Number(result.lastInsertRowid), key, startedAt: ts, endedAt: ts }
   }

@@ -1,5 +1,5 @@
 // A casca do Hipocampo: uma janela, um ícone na barra e o núcleo vivo por trás.
-const { app, BrowserWindow, Tray, Menu, shell, nativeImage, session } = require('electron')
+const { app, BrowserWindow, Tray, Menu, shell, nativeImage, session, globalShortcut, screen } = require('electron')
 const { spawn } = require('node:child_process')
 const path = require('node:path')
 const http = require('node:http')
@@ -10,6 +10,7 @@ const PORTA = Number(process.env.HIPOCAMPO_PORT || 7878)
 const ENDERECO = DEV ? 'http://localhost:5179' : `http://127.0.0.1:${PORTA}`
 
 let janela = null
+let janelaNucleo = null
 let bandeja = null
 let nucleo = null
 
@@ -77,6 +78,56 @@ function abreJanela() {
   })
 }
 
+/**
+ * O núcleo solto: uma janela sem moldura, sempre por cima, só com a esfera.
+ *
+ * É o app quando você não quer o app — fica num canto por cima do que você
+ * estiver fazendo, escuta com um clique e responde falando. Fechar o painel
+ * não encerra nada; esta janela e o coletor seguem por conta própria.
+ */
+function abreNucleo() {
+  if (janelaNucleo) {
+    janelaNucleo.show()
+    janelaNucleo.focus()
+    return
+  }
+
+  const area = screen.getPrimaryDisplay().workArea
+  const largura = 260
+  const altura = 330
+
+  janelaNucleo = new BrowserWindow({
+    width: largura,
+    height: altura,
+    x: area.x + area.width - largura - 24,
+    y: area.y + area.height - altura - 24,
+    frame: false,
+    transparent: true,
+    hasShadow: false,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    show: false,
+    webPreferences: { contextIsolation: true, nodeIntegration: false },
+  })
+
+  // Acima de tela cheia também: ele não some quando você entra num app inteiro.
+  janelaNucleo.setAlwaysOnTop(true, 'floating')
+  janelaNucleo.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  janelaNucleo.loadURL(`${ENDERECO}#nucleo`)
+  janelaNucleo.once('ready-to-show', () => janelaNucleo.show())
+  janelaNucleo.on('closed', () => { janelaNucleo = null })
+}
+
+function alternaNucleo() {
+  if (janelaNucleo) {
+    janelaNucleo.close()
+    janelaNucleo = null
+  } else {
+    abreNucleo()
+  }
+}
+
 function montaBandeja() {
   const icone = nativeImage.createFromPath(path.join(RAIZ, 'public', 'trayTemplate.png'))
   icone.setTemplateImage(true)
@@ -84,6 +135,7 @@ function montaBandeja() {
   bandeja.setToolTip('Hipocampo — medindo')
   bandeja.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir o Hipocampo', click: abreJanela },
+    { label: 'Núcleo flutuante', accelerator: 'Cmd+Shift+H', click: alternaNucleo },
     { type: 'separator' },
     {
       label: 'Fechar o dia de ontem',
@@ -118,9 +170,14 @@ app.whenReady().then(async () => {
   await garanteNucleo()
   montaBandeja()
   abreJanela()
+  // Chamar o núcleo de qualquer lugar, sem procurar o app.
+  globalShortcut.register('CommandOrControl+Shift+H', alternaNucleo)
 })
 
 app.on('activate', abreJanela)
 // O app vive na barra de menus: fechar a janela não encerra a medição.
 app.on('window-all-closed', () => {})
-app.on('before-quit', () => { if (nucleo) nucleo.kill() })
+app.on('before-quit', () => {
+  globalShortcut.unregisterAll()
+  if (nucleo) nucleo.kill()
+})

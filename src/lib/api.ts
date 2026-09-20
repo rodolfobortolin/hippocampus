@@ -4,12 +4,16 @@ export type Fatia = { name: string; seconds: number }
 export type BlocoFita = {
   start: number; end: number; app: string; title: string | null
   category: string | null; idle: number; focus: number | null
+  delegado: boolean
 }
 
 export type Dia = {
   day: string
   activeSeconds: number
   idleSeconds: number
+  delegatedSeconds: number
+  awaySeconds: number
+  agentMinutes: number
   focusRatio: number
   focusSeconds: number
   switches: number

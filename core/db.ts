@@ -126,6 +126,16 @@ create table if not exists days (
   built_at integer
 );
 
+-- Minutos em que um agente estava trabalhando, com ou sem você na frente.
+-- É o que separa "saiu para almoçar" de "delegou e foi fazer outra coisa".
+create table if not exists agent_minutes (
+  minute integer primary key,
+  day text not null,
+  project text,
+  events integer not null default 0
+);
+create index if not exists agent_minutes_day on agent_minutes(day);
+
 create table if not exists meta (key text primary key, value text);
 `)
 
@@ -138,6 +148,7 @@ for (const [coluna, tipo] of [
   ['clicks', 'integer not null default 0'],
   ['scroll', 'integer not null default 0'],
   ['mic', 'integer not null default 0'],
+  ['tela', 'text'],
 ] as const) {
   if (!colunasExistentes.has(coluna)) db.exec(`alter table blocks add column ${coluna} ${tipo}`)
 }

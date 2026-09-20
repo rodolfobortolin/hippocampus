@@ -12,6 +12,14 @@ const insert = db.prepare(
   `insert or ignore into ai_turns (source_id, ts, day, project, session, prompt, tools) values (?, ?, ?, ?, ?, ?, ?)`,
 )
 
+// Cada evento do assistente marca o minuto em que ele estava trabalhando.
+// Depois isso é cruzado com os blocos ociosos: tempo parado com agente ativo
+// não é ausência, é trabalho delegado.
+const marcaMinuto = db.prepare(
+  `insert into agent_minutes (minute, day, project, events) values (?, ?, ?, 1)
+   on conflict(minute) do update set events = events + 1`,
+)
+
 function textOf(content: unknown): string {
   if (typeof content === 'string') return content
   if (!Array.isArray(content)) return ''
@@ -69,7 +77,12 @@ export function harvestClaudeSessions(): { turns: number } {
             prompt.slice(0, 1200), '[]')
           lastPrompt = { id, tools: new Set() }
           turns++
-        } else if (event.type === 'assistant' && lastPrompt) {
+        } else if (event.type === 'assistant') {
+          marcaMinuto.run(Math.floor(ts / 60), dayOf(ts),
+            event.cwd ? path.basename(event.cwd) : project)
+        }
+
+        if (event.type === 'assistant' && lastPrompt) {
           for (const block of event.message?.content ?? []) {
             if (block?.type === 'tool_use' && block.name) lastPrompt.tools.add(String(block.name))
           }

@@ -14,7 +14,13 @@ const clock = (ts: number | null) => (ts ? new Date(ts * 1000).toTimeString().sl
 export function dossier(day: string): string {
   const report = dayReport(day)
   const lines: string[] = [
-    `Dia ${day}. Ativo ${hours(report.activeSeconds)}, ocioso ${hours(report.idleSeconds)}.`,
+    `Dia ${day}. Nas mãos dele: ${hours(report.activeSeconds)}.`,
+    report.delegatedSeconds > 300
+      ? `Trabalho delegado: ${hours(report.delegatedSeconds)} em que um agente estava produzindo ` +
+        `enquanto ele estava longe do teclado. Isso NÃO é ociosidade — é resultado que saiu sem ele ` +
+        `na frente, e vale ser contado como parte do dia. Fora isso, ${hours(report.awaySeconds)} ` +
+        `de ausência de verdade.`
+      : `Tempo parado: ${hours(report.idleSeconds)}, sem agente trabalhando no meio.`,
     `Começou ${clock(report.firstAt)}, parou ${clock(report.lastAt)}.`,
     `${report.switches} trocas de aplicativo, das quais ${report.switchesProjeto} mudaram de projeto ` +
     `(só essas custam resíduo de atenção).`,
@@ -139,7 +145,9 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
   let vaultFile: string | null = null
   if (narrative) {
     const body = [
-      `**${hours(report.activeSeconds)} ativo** · ${clock(report.firstAt)}–${clock(report.lastAt)} · ` +
+      `**${hours(report.activeSeconds)} nas suas mãos**` +
+      (report.delegatedSeconds > 300 ? ` · ${hours(report.delegatedSeconds)} delegado a agentes` : '') +
+      ` · ${clock(report.firstAt)}–${clock(report.lastAt)} · ` +
       `${hours(report.focusSeconds)} concentrado em ${report.forma.sessoes} sessões ` +
       `(maior ${report.forma.maior}min) · ${report.switches} trocas, ${report.switchesProjeto} de projeto`,
       '',

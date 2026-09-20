@@ -90,8 +90,10 @@ export function Fita({ blocos, dia, inicioDia = 4 }: { blocos: BlocoFita[]; dia:
       <div style={{ height: 22, marginBottom: 6, fontSize: 12, color: 'var(--texto-medio)' }}>
         {sobre ? (
           <span className="aparece">
-            <b style={{ color: 'var(--texto)', fontWeight: 500 }}>{sobre.app}</b>
-            {sobre.title ? ` · ${sobre.title.slice(0, 70)}` : ''}
+            <b style={{ color: sobre.delegado ? 'var(--ia)' : 'var(--texto)', fontWeight: 500 }}>
+              {sobre.delegado ? 'agente trabalhando' : sobre.app}
+            </b>
+            {!sobre.delegado && sobre.title ? ` · ${sobre.title.slice(0, 70)}` : ''}
             <span style={{ color: 'var(--texto-fraco)' }}> · {duracao(sobre.end - sobre.start)}</span>
           </span>
         ) : (
@@ -104,11 +106,16 @@ export function Fita({ blocos, dia, inicioDia = 4 }: { blocos: BlocoFita[]; dia:
         {blocos.map((bloco, indice) => {
           const x = posicao(bloco.start)
           const w = Math.max(1.4, posicao(bloco.end) - x)
-          const cores = bloco.idle ? 'var(--sem-rotulo)' : cor(bloco.category)
+          // Tempo delegado é trabalho acontecendo, só que não pelas suas mãos:
+          // ganha a cor da IA e altura própria, entre o ativo e o vazio.
+          const cores = bloco.delegado ? 'var(--ia)' : bloco.idle ? 'var(--sem-rotulo)' : cor(bloco.category)
+          const altura = bloco.delegado ? 22 : bloco.idle ? 16 : 30
+          const topo = bloco.delegado ? 8 : bloco.idle ? 13 : 3
           return (
             <rect
-              key={indice} x={x} y={bloco.idle ? 13 : 3} width={w} height={bloco.idle ? 16 : 30} rx={2}
-              fill={cores} opacity={bloco.idle ? 0.3 : sobre && sobre !== bloco ? 0.4 : 0.9}
+              key={indice} x={x} y={topo} width={w} height={altura} rx={2}
+              fill={cores}
+              opacity={bloco.delegado ? 0.55 : bloco.idle ? 0.3 : sobre && sobre !== bloco ? 0.4 : 0.9}
               style={{ transition: 'opacity .18s' }}
               onMouseEnter={() => setSobre(bloco)} onMouseLeave={() => setSobre(null)}
             />

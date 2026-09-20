@@ -6,6 +6,7 @@ export type Slice = { name: string; seconds: number }
 export type TimelineBlock = {
   start: number; end: number; app: string; title: string | null
   category: string | null; idle: number; focus: number | null
+  delegado: boolean
 }
 
 // A chave do rótulo normaliza dígitos, então a junção com o jev acontece em JS,
@@ -32,6 +33,30 @@ function labelOf(row: { app: string | null; title: string | null; host: string |
   return cachedLabel(labelKey(row))
 }
 
+/**
+ * Os minutos em que um agente estava trabalhando naquele dia.
+ *
+ * Serve para separar duas coisas que o relógio confunde: tempo parado porque
+ * você saiu, e tempo parado porque você delegou. Quem trabalha com agentes
+ * produz muito fora do teclado, e chamar isso de ociosidade é medir errado.
+ */
+function agentMinutes(day: string): Set<number> {
+  return new Set(
+    all<any>('select minute from agent_minutes where day = ?', day).map((r) => r.minute as number))
+}
+
+/** Quantos segundos de um intervalo caem em minutos com agente ativo. */
+function delegatedSeconds(start: number, end: number, ativos: Set<number>): number {
+  let total = 0
+  for (let minuto = Math.floor(start / 60); minuto <= Math.floor(end / 60); minuto++) {
+    if (!ativos.has(minuto)) continue
+    const de = Math.max(start, minuto * 60)
+    const ate = Math.min(end, (minuto + 1) * 60)
+    total += Math.max(0, ate - de)
+  }
+  return total
+}
+
 export function dayReport(day: string) {
   const blocks = all<any>(
     `select id, started_at, ended_at, seconds, app, bundle, title, url, host, idle
@@ -39,7 +64,13 @@ export function dayReport(day: string) {
 
   const active = blocks.filter((b) => !b.idle)
   const activeSeconds = active.reduce((sum, b) => sum + b.seconds, 0)
-  const idleSeconds = blocks.filter((b) => b.idle).reduce((sum, b) => sum + b.seconds, 0)
+  const idleBlocks = blocks.filter((b) => b.idle)
+  const idleSeconds = idleBlocks.reduce((sum, b) => sum + b.seconds, 0)
+
+  // O tempo parado se parte em dois: delegado (agente trabalhando) e ausente.
+  const agentes = agentMinutes(day)
+  const delegated = idleBlocks.reduce(
+    (sum, b) => sum + delegatedSeconds(b.started_at, b.ended_at, agentes), 0)
 
   const apps = new Map<string, number>()
   const categories = new Map<string, number>()
@@ -92,6 +123,10 @@ export function dayReport(day: string) {
     timeline.push({
       start: block.started_at, end: block.ended_at, app: block.app, title: block.title,
       category: label?.category ?? null, idle: block.idle, focus: label?.deep_work ?? null,
+      // Faixa ociosa com agente ativo se desenha diferente: não é buraco no dia.
+      delegado: block.idle
+        ? delegatedSeconds(block.started_at, block.ended_at, agentes) > (block.seconds * 0.4)
+        : false,
     })
   }
 
@@ -108,6 +143,9 @@ export function dayReport(day: string) {
     forma: focusShape(sessoes),
     activeSeconds,
     idleSeconds,
+    delegatedSeconds: delegated,
+    awaySeconds: Math.max(0, idleSeconds - delegated),
+    agentMinutes: agentes.size,
     focusSeconds,
     focusRatio: activeSeconds ? focusSeconds / activeSeconds : 0,
     switches,

@@ -92,9 +92,20 @@ export function Hoje({ status }: { status: Status | null }) {
         </div>
       ) : (
         <div className="grade" style={{ gap: 14 }}>
-          <div className="grade g4">
-            <Cartao rotulo="tempo ativo" nota={`${duracao(dados.idleSeconds)} de ociosidade`}>
+          <div className="grade g5">
+            <Cartao rotulo="seu tempo"
+              nota={dados.awaySeconds > 60 ? `${duracao(dados.awaySeconds)} longe da máquina` : undefined}>
               <div className="numero brilha">{ativo.valor}<small>{ativo.unidade}</small></div>
+            </Cartao>
+
+            <Cartao rotulo="trabalho delegado"
+              nota={dados.delegatedSeconds > 60
+                ? `agentes produzindo enquanto você fazia outra coisa`
+                : 'nenhum agente trabalhou fora do seu tempo'}>
+              <div className="numero" style={{ color: 'var(--ia)', textShadow: '0 0 26px rgba(167,139,250,.35)' }}>
+                {horas(dados.delegatedSeconds).valor}
+                <small>{horas(dados.delegatedSeconds).unidade}</small>
+              </div>
             </Cartao>
 
             <div className="painel">

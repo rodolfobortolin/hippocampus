@@ -147,6 +147,7 @@ input, textarea { font: inherit; color: inherit; }
 
 .grade { display: grid; gap: 14px; }
 .g4 { grid-template-columns: repeat(4, 1fr); }
+.g5 { grid-template-columns: repeat(5, 1fr); }
 .g2 { grid-template-columns: 1fr 1fr; }
 .g32 { grid-template-columns: 1.55fr 1fr; }
 
@@ -267,7 +268,67 @@ input, textarea { font: inherit; color: inherit; }
 .aparece { animation: aparece 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @keyframes aparece { from { opacity: 0; transform: translateY(7px) } to { opacity: 1; transform: none } }
 
+@media (max-width: 1400px) {
+  .g5 { grid-template-columns: repeat(3, 1fr); }
+}
+
 @media (max-width: 1180px) {
-  .g4 { grid-template-columns: repeat(2, 1fr); }
+  .g4, .g5 { grid-template-columns: repeat(2, 1fr); }
   .g32, .g2 { grid-template-columns: 1fr; }
+}
+
+/* ---------- o núcleo solto ---------- */
+
+/* A janela flutuante é transparente: sem fundo, sem brilho de fundo, sem grão.
+   Só a esfera e a legenda flutuam por cima do que estiver na tela. */
+body[data-modo='solto'] { background: transparent; overflow: hidden; }
+body[data-modo='solto']::before,
+body[data-modo='solto']::after { display: none; }
+
+.solto {
+  height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  padding: 4px 10px 12px;
+  -webkit-app-region: drag;   /* arrasta pela área vazia */
+  user-select: none;
+}
+
+.solto-orbe {
+  width: 190px; height: 190px; flex: none; padding: 0;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.solto-orbe:hover { transform: scale(1.04); }
+.solto-orbe:active { transform: scale(0.98); }
+.solto-orbe .nucleo.grande { width: 190px; height: 190px; margin: 0; }
+
+.solto-legenda {
+  margin-top: -6px; max-width: 240px; text-align: center;
+  -webkit-app-region: no-drag;
+  max-height: 120px; overflow-y: auto;
+}
+.solto-legenda p {
+  font-size: 12.5px; line-height: 1.5; color: var(--texto-medio);
+  /* Sombra em vez de caixa: o texto fica legível sobre qualquer fundo sem
+     desenhar um retângulo por cima do que a pessoa está fazendo. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.8);
+}
+.solto-legenda b {
+  display: block; font-size: 11px; font-weight: 500; color: var(--texto-fraco);
+  margin-bottom: 5px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.solto-legenda.longa p { text-align: left; }
+.solto-legenda::-webkit-scrollbar { width: 0; }
+
+/* ---------- tela cheia ---------- */
+
+/* Numa tela larga os painéis esticavam até virar faixas; a leitura pede uma
+   coluna com largura máxima, centralizada. */
+.tela > * { max-width: 1440px; margin-left: auto; margin-right: auto; }
+
+@media (min-width: 1700px) {
+  .tela { padding: 34px 48px 56px; }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+.g5 { grid-template-columns: repeat(5, 1fr); }
 }

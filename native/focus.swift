@@ -135,6 +135,35 @@ func microfoneEmUso() -> Bool {
     return false
 }
 
+/// Em qual tela a janela em foco está.
+///
+/// Nada aqui é por monitor — o app em foco é global —, mas saber onde a janela
+/// estava responde "trabalho mais no monitor grande ou no notebook?" e serve de
+/// prova de que nenhuma tela fica de fora.
+func telaDaJanela(_ janela: AXUIElement) -> String? {
+    var valor: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(janela, kAXPositionAttribute as CFString, &valor) == .success,
+          let bruto = valor, CFGetTypeID(bruto) == AXValueGetTypeID()
+    else { return nil }
+
+    var ponto = CGPoint.zero
+    guard AXValueGetValue(bruto as! AXValue, .cgPoint, &ponto) else { return nil }
+
+    // A acessibilidade mede do topo da tela principal para baixo; o NSScreen
+    // mede de baixo para cima. Sem converter, tudo cai na tela errada.
+    guard let principal = NSScreen.screens.first else { return nil }
+    let alturaTotal = principal.frame.maxY
+    let convertido = CGPoint(x: ponto.x, y: alturaTotal - ponto.y)
+
+    for (indice, tela) in NSScreen.screens.enumerated() {
+        if tela.frame.contains(convertido) {
+            let nome = tela.localizedName
+            return nome.isEmpty ? "Tela \(indice + 1)" : nome
+        }
+    }
+    return nil
+}
+
 func idleSeconds() -> Double {
     let types: [CGEventType] = [.mouseMoved, .keyDown, .leftMouseDown, .scrollWheel, .flagsChanged]
     return types
@@ -247,6 +276,9 @@ func sample() {
                 if let bundle = app.bundleIdentifier, browsers.contains(bundle),
                    let url = field("url", findURL(in: window)) {
                     parts.append(url)
+                }
+                if let tela = field("tela", telaDaJanela(window)) {
+                    parts.append(tela)
                 }
             }
         }
