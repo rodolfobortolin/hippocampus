@@ -4,21 +4,21 @@ import { api } from '../lib/api.ts'
 type State = 'idle' | 'listening' | 'transcribing'
 
 /**
- * Escuta por gravação, não pela API de voice do navegador.
+ * Listens by recording, not through the browser's speech API.
  *
- * `webkitSpeechRecognition` existe no Electron mas não funciona: ela depende de
- * um serviço do Google para o qual só o Chrome tem credencial, então falha na
+ * `webkitSpeechRecognition` exists in Electron but does not work: it depends on
+ * a Google service only Chrome has credentials for, so it fails at
  * hour com error de rede — o microfone acendia por um segundo e apagava. Aqui o
- * áudio é gravado, a speech é detectada pelo volume, e o trecho vai para a
- * transcrição quando você para de speak.
+ * the audio is recorded, speech is detected by volume, and the stretch goes to
+ * transcription when you stop speaking.
  */
-/** Quanto tempo o microfone wait por alguém, antes de desistir sozinho. */
+/** How long the microphone waits for someone before giving up on its own. */
 const PATIENCE = 7000
 
 export function useListening(
   aoOuvir: (text: string) => void,
   textos: { didNotCatch: string; micDenied: string } =
-    { didNotCatch: 'Não entendi.', micDenied: 'O microfone foi negado.' },
+    { didNotCatch: 'I did not catch that.', micDenied: 'The microphone was denied.' },
 ) {
   const [state, setState] = useState<State>('idle')
   const [level, setNivel] = useState(0)
@@ -74,7 +74,7 @@ export function useListening(
       recording.onstop = async () => {
         teardown()
         const audio = new Blob(chunks.current, { type: 'audio/webm' })
-        // Trecho curto demais é clique sem speech; não vale uma chamada.
+        // A stretch too short is a click with no speech; not worth a call.
         if (!spoke.current || audio.size < 4000) { setState('idle'); return }
         setState('transcribing')
         try {
@@ -89,10 +89,10 @@ export function useListening(
       }
 
       let silenceSince = 0
-      // Aberto pela palavra de ativação, o microfone pode ter sido openedAt por
-      // engano — a palavra sai de um vídeo, de uma conversa ao lado. Sem isto
-      // ele ficava openedAt para sempre esperando alguém que nunca spoke, com o
-      // ponto laranja aceso e a detecção de chamada quebrada junto.
+      // Opened by the wake word, the microphone may have been opened by
+      // mistake — the word comes out of a video, out of a conversation nearby.
+      // Without this it stayed open forever waiting for someone who never
+      // spoke, with the orange dot lit and call detection broken alongside.
       const openedAt = performance.now()
       const follow = () => {
         analyser.getByteTimeDomainData(data)
@@ -108,7 +108,7 @@ export function useListening(
           silenceSince = 0
         } else if (spoke.current) {
           if (!silenceSince) silenceSince = now
-          // Um segundo e meio de silêncio depois de speak finish o trecho.
+          // A second and a half of silence after speech ends the stretch.
           else if (now - silenceSince > 1500) { stop(); return }
         }
         frame.current = requestAnimationFrame(follow)

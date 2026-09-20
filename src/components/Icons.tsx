@@ -46,5 +46,5 @@ export const IconKey = () => (
   <svg {...base}><circle cx="8" cy="12" r="3.6" /><path d="M11.6 12H21M18 12v3M15 12v2.2" /></svg>
 )
 export const Badge = () => (
-  <img src="/marca.png" alt="" width={26} height={26} style={{ objectFit: 'contain' }} />
+  <img src="/brand.png" alt="" width={26} height={26} style={{ objectFit: 'contain' }} />
 )

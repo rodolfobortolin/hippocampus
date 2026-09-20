@@ -13,8 +13,8 @@
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSUIElement</key><true/>
   <key>NSMicrophoneUsageDescription</key>
-  <string>O Hippocampus escuta a palavra de ativação. O reconhecimento roda na própria máquina e nenhum áudio é gravado ou enviado.</string>
+  <string>Hippocampus listens for the wake word. Recognition runs on this machine and no audio is recorded or sent.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
-  <string>Usado só para reconhecer a palavra de ativação, em modo local. Nada é transcrito além dela e nada sai do computador.</string>
+  <string>Used only to recognise the wake word, on-device. Nothing beyond it is transcribed and nothing leaves the computer.</string>
 </dict>
 </plist>

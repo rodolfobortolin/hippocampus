@@ -11,15 +11,16 @@ export function Core({
 
   useEffect(() => {
     if (!canvas.current) return
-    // O floating é o large sem a poeira: ele fica por cima do trabalho da
-    // pessoa, e ali a poeira lê como sujeira na canvas, não como profundidade.
+    // The floating one is the large one without the dust: it sits over a
+    // person's work, and there the dust reads as dirt on the screen rather
+    // than as depth.
     const instance = new Cena(canvas.current, {
       compacto: size === 'small',
       poeira: size === 'large',
     })
     scene.current = instance
     // O size muda por CSS (large na opening, small durante a conversa),
-    // então quem manda no renderizador é o elemento, não uma prop.
+    // so what drives the renderer is the element, not a prop.
     const observador = new ResizeObserver(() => instance.redimensiona())
     observador.observe(canvas.current)
     return () => {

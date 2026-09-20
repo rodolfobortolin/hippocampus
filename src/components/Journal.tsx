@@ -42,7 +42,7 @@ export function Journal({ status }: { status: Status | null }) {
 
   return (
     <>
-      <div className="topo">
+      <div className="top">
         <div>
           <h2><b>{t.journal.title}</b></h2>
           <p>{t.journal.subtitle}</p>
@@ -50,34 +50,34 @@ export function Journal({ status }: { status: Status | null }) {
       </div>
 
       {status && !status.claude && (
-        <div className="aviso">
+        <div className="warning">
           <div>
             <p><strong>{t.journal.claudeDidNotAnswer}</strong> {t.journal.claudeText}</p>
           </div>
         </div>
       )}
 
-      {error && <div className="aviso"><div><p>{error}</p></div></div>}
+      {error && <div className="warning"><div><p>{error}</p></div></div>}
 
       {!linhas.length ? (
-        <div className="painel" style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <div className="panel" style={{ padding: '40px 20px', textAlign: 'center' }}>
           <p style={{ color: 'var(--text-mid)' }}>{t.journal.noDays}</p>
-          <p className="nota">{t.journal.fillsTomorrow}</p>
+          <p className="note">{t.journal.fillsTomorrow}</p>
         </div>
       ) : (
-        <div className="grade" style={{ gap: 10 }}>
+        <div className="grid" style={{ gap: 10 }}>
           {linhas.map((linha) => {
             const isOpen = openedAt === linha.day
             return (
-              <div key={linha.day} className="dia-cartao">
-                <button className="dia-cabeca" onClick={() => setAberto(isOpen ? null : linha.day)}>
+              <div key={linha.day} className="day-card">
+                <button className="day-head" onClick={() => setAberto(isOpen ? null : linha.day)}>
                   <span style={{
                     transform: isOpen ? 'rotate(90deg)' : 'none',
                     transition: 'transform .2s', color: 'var(--text-dim)', display: 'grid',
                   }}>
                     <IconOpen />
                   </span>
-                  <span className="data">
+                  <span className="date">
                     {linha.day}
                     <span>{longDate(linha.day)}</span>
                   </span>
@@ -92,15 +92,15 @@ export function Journal({ status }: { status: Status | null }) {
                 </button>
 
                 {isOpen && (
-                  <div className="dia-corpo aparece">
+                  <div className="day-body appear">
                     {linha.saved?.narrative ? (
                       <>
                         <h4>{t.journal.daySummary}</h4>
-                        <div className="fala dele"><Markdown text={linha.saved.narrative} /></div>
+                        <div className="message theirs"><Markdown text={linha.saved.narrative} /></div>
                         {linha.saved.recap && (
                           <>
                             <h4>{t.journal.theRecap}</h4>
-                            <div className="fala dele"><Markdown text={linha.saved.recap} /></div>
+                            <div className="message theirs"><Markdown text={linha.saved.recap} /></div>
                           </>
                         )}
                         <button

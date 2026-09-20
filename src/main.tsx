@@ -6,10 +6,10 @@ import { LanguageProvider } from './lib/language.tsx'
 import { Intro } from './components/Intro.tsx'
 import './styles.css'
 
-// Duas caras do mesmo app, servidas pelo mesmo endereço: o painel inteiro e o
-// núcleo floating, que a janela flutuante do Electron abre com #nucleo.
-const floating = window.location.hash === '#nucleo'
-if (floating) document.body.dataset.modo = 'floating'
+// Two faces of the same app, served from the same address: the whole panel and
+// the floating core, which Electron's frameless window opens with #core.
+const floating = window.location.hash === '#core'
+if (floating) document.body.dataset.mode = 'floating'
 
 createRoot(document.getElementById('raiz')!).render(
   <StrictMode>

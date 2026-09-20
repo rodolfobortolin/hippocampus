@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.hippocampus.collector</string>
-  <!-- Caminho relativo ao bundle: é o que faz o agente pertencer ao app em vez
-       de apontar para um lugar do disco que pode sumir. Cada lançador cuida do
-       próprio log, porque plist dentro de bundle é estático e o launchd não
-       expande $HOME. -->
+  <!-- A path relative to the bundle: that is what makes the agent belong to
+       the app rather than point at a place on disk that can disappear. Each
+       launcher handles its own log, because a plist inside a bundle is static
+       and launchd does not expand $HOME. -->
   <key>BundleProgram</key><string>Contents/Resources/scripts/launch-core.sh</string>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>

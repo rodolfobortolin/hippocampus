@@ -4,14 +4,14 @@ import { config, dayOf } from '../core/config.ts'
 
 test('a madrugada conta para o dia anterior', () => {
   config.dayStartHour = 4
-  // 2h da manhã de segunda ainda é o domingo de quem estava trabalhando.
+  // 2am on a Monday is still the Sunday of whoever was working.
   const madrugada = new Date(2026, 8, 21, 2, 30).getTime() / 1000
   assert.equal(dayOf(madrugada), '2026-09-20')
 
   const manha = new Date(2026, 8, 21, 9, 0).getTime() / 1000
   assert.equal(dayOf(manha), '2026-09-21')
 
-  // Exatamente na virada já é o dia novo.
+  // Exactly at the turn it is already the new day.
   const virada = new Date(2026, 8, 21, 4, 0).getTime() / 1000
   assert.equal(dayOf(virada), '2026-09-21')
 })

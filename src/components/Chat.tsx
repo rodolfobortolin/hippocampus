@@ -20,7 +20,7 @@ export function Chat({ status }: { status: Status | null }) {
   const [model, setModel] = useState('')
   const [state, setState] = useState<CoreState>('idle')
   // Se a question veio falada, a answer volta falada — esperar text depois
-  // de perguntar com a voice é esquisito. Digitou, fica em silêncio.
+  // after asking out loud is strange. Typed, it stays quiet.
   const askedByVoice = useRef(false)
   const [speaking, setFalando] = useState(false)
   const [alwaysAloud, setAlwaysAloud] = useState(
@@ -36,16 +36,17 @@ export function Chat({ status }: { status: Status | null }) {
 
   const { connected, send: sendToCore } = useSocket(api.socket, (data) => {
       if (data.tipo === 'thinking') { setThinking(true); setTool(''); setModel(''); setState('thinking') }
-      // Qual model o jev escolheu para este pedido. Fica visível de propósito:
-      // roteamento automático que ninguém vê é roteamento em que ninguém confia.
+      // Which model jev chose for this request. Visible on purpose: automatic
+      // routing nobody sees is routing nobody trusts.
       if (data.tipo === 'modelo') setModel(String(data.model).replace(/^claude-|-\d{8}$/g, ''))
       if (data.tipo === 'tool') {
-        // O núcleo só vira água quando ele está de fato lendo o banco; a search
-        // interna de tool do SDK não interessa a quem está olhando.
+        // The core only turns to water when it is genuinely reading the
+        // database; the SDK's internal tool lookup is of no interest to anyone
+        // watching.
         setTool(data.name)
         setState(data.name ? 'tool' : 'thinking')
       }
-      // Pedaço de text chegando: escreve na hour, na última speech dele.
+      // A piece of text arriving: write it at once, into its last message.
       if (data.tipo === 'delta') {
         answerRef.current += data.text
         setState('thinking')
@@ -62,7 +63,7 @@ export function Chat({ status }: { status: Status | null }) {
         answerRef.current = `${answerRef.current}\n${data.text}`.trim()
         setMessages((atuais) => {
           const last = atuais[atuais.length - 1]
-          // Emenda os pedaços do mesmo turno numa speech só.
+          // Splices the pieces of one turn into a single message.
           if (last?.of === 'ele') {
             return [...atuais.slice(0, -1), { ...last, text: `${last.text}\n\n${data.text}`.trim() }]
           }
@@ -77,7 +78,7 @@ export function Chat({ status }: { status: Status | null }) {
         else setState('idle')
         askedByVoice.current = false
       }
-      // A palavra de ativação toggle: speaking, cala; calado, começa a ouvir.
+      // The wake word toggles: speaking, it goes quiet; quiet, it starts listening.
       if (data.tipo === 'acordar') {
         if (speaking) voice.stop()
         else if (listening.state === 'idle' && !thinking) listening.toggle()
@@ -104,7 +105,7 @@ export function Chat({ status }: { status: Status | null }) {
     const clear = question.trim()
     if (!clear || thinking) return
     if (!sendToCore({ tipo: 'pergunta', text: clear })) {
-      // Nunca engolir a question em silêncio: o text fica no campo.
+      // Never swallow the question quietly: the text stays in the field.
       setState('error')
       setMessages((atuais) => [...atuais, { of: 'ele', text: t.chat.coreIsDown }])
       setTimeout(() => setState('idle'), 2600)
@@ -131,14 +132,14 @@ export function Chat({ status }: { status: Status | null }) {
   const opening = !messages.length
 
   return (
-    <div className="conversa">
-      <div className="fio" ref={thread}>
+    <div className="chat">
+      <div className="thread" ref={thread}>
         {opening && (
-          <div className="abertura">
+          <div className="opening">
             <Core state={state} level={level} size="large" />
             <h2>{t.chat.title} <b>{t.chat.titleStrong}</b>.</h2>
             <p>{t.chat.explanation}</p>
-            <div className="atalhos-conversa">
+            <div className="chat-shortcuts">
               {t.chat.suggestions.map((suggestion) => (
                 <button key={suggestion} onClick={() => send(suggestion)}>
                   {suggestion.length > 58 ? `${suggestion.slice(0, 56)}…` : suggestion}
@@ -152,7 +153,7 @@ export function Chat({ status }: { status: Status | null }) {
           <div key={index} className={`speech ${fala_.of === 'eu' ? 'minha' : 'dele'} aparece`}>
             {fala_.of === 'eu' ? fala_.text : <Markdown text={fala_.text} />}
             {fala_.of === 'ele' && (
-              <button className="icone" onClick={() => speech(fala_.text)} title={t.chat.listen}
+              <button className="icon" onClick={() => speech(fala_.text)} title={t.chat.listen}
                 style={{ marginTop: 6 }}>
                 <IconSound />
               </button>
@@ -161,20 +162,20 @@ export function Chat({ status }: { status: Status | null }) {
         ))}
 
         {listening.error && (
-          <div className="fala dele aparece" style={{ color: 'var(--communication)' }}>
+          <div className="message theirs appear" style={{ color: 'var(--communication)' }}>
             {listening.error}
           </div>
         )}
 
         {thinking && (
-          <div className="ferramenta aparece">
+          <div className="tool appear">
             {tool ? `${t.chat.lookingUp} ${tool}…` : t.chat.thinking}
-            {model && <span className="modelo">{model}</span>}
+            {model && <span className="model">{model}</span>}
           </div>
         )}
       </div>
 
-      <div className="compositor">
+      <div className="composer">
         {!opening && <Core state={state} level={level} size="small" />}
         <textarea
           value={text}
@@ -191,7 +192,7 @@ export function Chat({ status }: { status: Status | null }) {
           rows={1}
           style={{ height: Math.min(160, 24 + text.split('\n').length * 20) }}
         />
-        {/* Enquanto speech, este botão cala. Parado, ele liga e desliga o modo
+        {/* While speaking, this button silences. Idle, it turns on and off the mode
             de responder sempre speaking. */}
         <button
           className={`icone ${speaking ? 'speaking' : alwaysAloud ? 'ativo' : ''}`}
@@ -213,7 +214,7 @@ export function Chat({ status }: { status: Status | null }) {
           title={listening ? t.chat.stopListening : t.chat.speak}>
           <IconMicrophone />
         </button>
-        <button className="icone" onClick={() => send(text)}
+        <button className="icon" onClick={() => send(text)}
           disabled={!text.trim() || thinking || !connected} title={connected ? t.chat.send : t.chat.coreIsDown}>
           <IconSend />
         </button>

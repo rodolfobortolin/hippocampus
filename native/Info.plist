@@ -11,15 +11,15 @@
   <key>CFBundleVersion</key><string>1.0</string>
   <key>CFBundleShortVersionString</key><string>1.0</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
-  <!-- Agente: não aparece no Dock nem no alternador de apps.
-       Sem LSBackgroundOnly de propósito: app marcado como "somente segundo
-       plano" é tratado à parte pelo TCC e não segura bem a Acessibilidade.
-       LSUIElement sozinho é o que usam os utilitários de barra de menus que
-       precisam dessa permissão. -->
+  <!-- An agent: it appears neither in the Dock nor in the app switcher.
+       No LSBackgroundOnly, on purpose: an app marked "background only" is
+       handled apart by the TCC and does not hold Accessibility well.
+       LSUIElement on its own is what the menu bar utilities that need this
+       permission use. -->
   <key>LSUIElement</key><true/>
   <key>NSMicrophoneUsageDescription</key>
-  <string>O Hippocampus pergunta ao sistema se algum microfone está em uso, para reconhecer uma chamada sem depender de identificar o app. Ele não grava áudio.</string>
+  <string>Hippocampus asks the system whether any microphone is in use, to recognise a call without having to identify the app. It records no audio.</string>
   <key>NSAccessibilityUsageDescription</key>
-  <string>O Hippocampus lê o título da janela em foco para saber em que você está trabalhando. Nada sai desta máquina.</string>
+  <string>Hippocampus reads the focused window's title to know what you are working on. Nothing leaves this machine.</string>
 </dict>
 </plist>

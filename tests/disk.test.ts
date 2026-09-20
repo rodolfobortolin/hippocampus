@@ -4,38 +4,38 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 
 /**
- * Nenhuma fonte pode tocar o disco de forma síncrona.
+ * No source may touch disk synchronously.
  *
- * Isto já foi resolvido uma vez, no `skysight.ts`, e voltou nas outras fontes —
- * é o tipo de regra que só sobrevive se alguém verificar. O custo de quebrá-la
- * é alto e o sintoma é mudo: numa pasta protegida pelo macOS a chamada não dá
- * erro, ela para, e para o coletor inteiro junto. O servidor diz "de pé" e
- * nenhuma rota responde.
+ * This was solved once already, in `skysight.ts`, and came back in the other
+ * sources — the kind of rule that only survives if something checks. The cost
+ * of breaking it is high and the symptom is mute: inside a folder macOS
+ * protects the call does not error, it stops, and stops the whole collector
+ * with it. The server says it is up and no route answers.
  */
-const PROIBIDAS = [
+const FORBIDDEN = [
   'readdirSync', 'readFileSync', 'existsSync', 'statSync', 'lstatSync',
   'openSync', 'readSync', 'closeSync', 'writeFileSync', 'accessSync',
 ]
 
-test('nenhuma fonte de dados lê disco de forma síncrona', async () => {
+test('no data source reads disk synchronously', async () => {
   const dir = path.join(import.meta.dirname, '..', 'core', 'sources')
-  const problemas: string[] = []
+  const problems: string[] = []
 
-  for (const nome of await fs.readdir(dir)) {
-    if (!nome.endsWith('.ts')) continue
-    const texto = await fs.readFile(path.join(dir, nome), 'utf8')
-    texto.split('\n').forEach((linha, i) => {
-      // Comentário citando o nome da função é como este arquivo documenta a
-      // regra; o que importa é a chamada.
-      const semComentario = linha.replace(/\/\/.*$/, '').replace(/^\s*\*.*$/, '')
-      for (const proibida of PROIBIDAS) {
-        if (semComentario.includes(`${proibida}(`)) {
-          problemas.push(`${nome}:${i + 1} usa ${proibida}`)
+  for (const name of await fs.readdir(dir)) {
+    if (!name.endsWith('.ts')) continue
+    const text = await fs.readFile(path.join(dir, name), 'utf8')
+    text.split('\n').forEach((line, i) => {
+      // A comment naming the function is how this file documents the rule;
+      // what matters is the call.
+      const withoutComment = line.replace(/\/\/.*$/, '').replace(/^\s*\*.*$/, '')
+      for (const forbidden of FORBIDDEN) {
+        if (withoutComment.includes(`${forbidden}(`)) {
+          problems.push(`${name}:${i + 1} uses ${forbidden}`)
         }
       }
     })
   }
 
-  assert.deepEqual(problemas, [],
-    `disco síncrono numa fonte congela o coletor inteiro:\n  ${problemas.join('\n  ')}`)
+  assert.deepEqual(problems, [],
+    `synchronous disk in a source freezes the whole collector:\n  ${problems.join('\n  ')}`)
 })

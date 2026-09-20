@@ -7,7 +7,7 @@ import { useSocket } from './hooks/useSocket.ts'
 import { useSpeech } from './hooks/useSpeech.ts'
 import { useLanguage } from './lib/language.tsx'
 
-/** A bridge do Electron. No navegador ela não existe, e o arrasto some junto. */
+/** Electron's bridge. In a plain browser it does not exist, and the drag goes with it. */
 const bridge = (globalThis as any).hippocampus as {
   moveCore?: (dx: number, dy: number) => void
   settleCore?: () => void
@@ -15,15 +15,15 @@ const bridge = (globalThis as any).hippocampus as {
 } | undefined
 
 /**
- * O núcleo floating: uma janela sem moldura com a esfera e nada mais.
+ * The floating core: a frameless window with the sphere and nothing else.
  *
- * É o app quando você não quer o app — fica por cima do que você estiver
- * fazendo, listening com um clique e responde speaking. O text aparece só o
+ * It is the app when you do not want the app — it sits over whatever you are
+ * doing, listens with a click and answers out loud. The text shows only
  * suficiente para conferir; quem quiser ler tudo abre o painel.
  *
- * Arrastar a esfera move a janela e a posição fica guardada. O arrasto é feito
- * à mão, e não com `-webkit-app-region`, porque essa propriedade engole o
- * clique — e o clique é como se speech com ele.
+ * Dragging the sphere moves the window and the position is stored. The drag is
+ * done by hand rather than with `-webkit-app-region`, because that property
+ * swallows the click — and the click is how you talk to it.
  */
 export function FloatingCore() {
   const { t, language } = useLanguage()
@@ -63,7 +63,7 @@ export function FloatingCore() {
     send({ tipo: 'pergunta', text: utterance })
   }, t.common)
 
-  /** Falando, cala. Calado, começa a ouvir. É o mesmo gesto do clique. */
+  /** Speaking, it goes quiet. Quiet, it starts listening. The click's own gesture. */
   const wake = () => {
     if (state === 'speaking') voice.stop()
     else if (listening.state === 'idle') listening.toggle()
@@ -73,12 +73,12 @@ export function FloatingCore() {
 
   useEffect(() => { api.status().then(setStatus).catch(() => {}) }, [])
 
-  // A palavra de ativação e o atalho chegam pelo Electron: ele traz a janela
+  // The wake word and the shortcut arrive through Electron: it brings the window
   // para a frente e avisa aqui, porque a janela pode ter acabado de nascer e
   // ter perdido o aviso que passou pelo socket.
   useEffect(() => bridge?.onWake?.(() => wakeRef.current()), [])
 
-  // Aqui não há canvas para ler: a voice é a saída principal, e clicar na esfera
+  // There is no screen to read here: the voice is the main output, and clicking
   // enquanto ela speech manda calar.
   const voice = useSpeech({
     hasOwnVoice: Boolean(status?.voice),
@@ -109,7 +109,7 @@ export function FloatingCore() {
       travelled += Math.abs(dx) + Math.abs(dy)
       lastX = e.screenX
       lastY = e.screenY
-      // Um tremor de três pixels ao clicar não é arrasto; acima disso é.
+      // A three-pixel tremor while clicking is not a drag; beyond that it is.
       if (travelled > 4) {
         dragged.current = true
         bridge.moveCore?.(dx, dy)
@@ -128,12 +128,12 @@ export function FloatingCore() {
     (connected ? t.chat.clickToSpeak : t.chat.reconnecting)
 
   return (
-    <div className="solto">
+    <div className="floating">
       <button
-        className="solto-orbe"
+        className="floating-orb"
         onPointerDown={startDrag}
         onClick={() => {
-          // O clique que fecha um arrasto não é um pedido de conversa.
+          // The click that closes a drag is not a request to talk.
           if (dragged.current) { dragged.current = false; return }
           if (state === 'speaking') voice.stop()
           else listening.toggle()

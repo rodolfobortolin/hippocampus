@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
- * O volume de quem está speaking now, de 0 a 1 — o seu pelo microfone, o dele
- * pelo áudio da answer. É o que faz o núcleo se mexer junto com a voice.
+ * The volume of whoever is speaking now, from 0 to 1 — yours from the
+ * microphone, its own from the answer's audio. This is what makes the core move
+ * along with the voice.
  */
 export function useAudioLevel() {
   const [level, setNivel] = useState(0)
   const audioContext = useRef<AudioContext | null>(null)
   const stop = useRef<(() => void) | null>(null)
-  // Um elemento de áudio só pode virar source uma vez por audioContext.
+  // An audio element can only become a source once per audio context.
   const sources = useRef(new WeakMap<HTMLMediaElement, MediaElementAudioSourceNode>())
 
   const ensureContext = () => {
@@ -52,7 +53,7 @@ export function useAudioLevel() {
       ac.createMediaStreamSource(stream).connect(analyser)
       stop.current = measure(analyser, () => stream.getTracks().forEach((t) => t.stop()))
     } catch {
-      // Sem microfone o núcleo ainda muda de state; só não pulsa junto.
+      // With no microphone the core still changes state; it just does not pulse.
     }
   }, [finish])
 
@@ -68,15 +69,15 @@ export function useAudioLevel() {
       const analyser = ac.createAnalyser()
       analyser.fftSize = 512
       source.connect(analyser)
-      // Sem isto o áudio entra no grafo e nunca chega no alto-falante.
+      // Without this the audio enters the graph and never reaches the speaker.
       source.connect(ac.destination)
       stop.current = measure(analyser)
     } catch {
-      // Se o navegador recusar, cai no pulso sintético.
+      // If the browser refuses, fall back to the synthetic pulse.
     }
   }, [finish])
 
-  /** Quando não há áudio para analisar (voice do sistema), um pulso convincente. */
+  /** When there is no audio to analyse (the system voice), a convincing pulse. */
   const pulseAlone = useCallback(() => {
     finish()
     let frame = 0

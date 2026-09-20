@@ -4,15 +4,15 @@ import { LANGUAGES, type Language } from '../lib/strings.ts'
 import { IconKey, IconFolder } from './Icons.tsx'
 
 /**
- * O caminho do vault cabe em uma linha só se for cortado pelo começo — o que
- * identifica a pasta é o end dele, não o `/Users/fulano` que toda pasta tem.
+ * The vault's path fits on one line only if it is cut from the front — what
+ * identifies the folder is its end, not the `/Users/someone` every folder has.
  */
 function shortPath(caminho: string): string {
   const parts = caminho.replace(/\/$/, '').split('/').filter(Boolean)
   return parts.length > 3 ? `…/${parts.slice(-3).join('/')}` : caminho
 }
 
-/** O Electron expõe o seletor de pasta; no navegador ele simplesmente não existe. */
+/** Electron exposes the folder picker; in a plain browser it simply does not exist. */
 type AgentStates = Record<string, { status: string; connected: boolean }>
 
 const bridge = (globalThis as any).hippocampus as {
@@ -26,12 +26,12 @@ const bridge = (globalThis as any).hippocampus as {
 
 function Field({ rotulo, nota, children }: { rotulo: string; nota?: string; children: React.ReactNode }) {
   return (
-    <div className="ajuste">
-      <div className="ajuste-rotulo">
+    <div className="setting">
+      <div className="setting-label">
         {rotulo}
         {nota && <span>{nota}</span>}
       </div>
-      <div className="ajuste-campo">{children}</div>
+      <div className="setting-field">{children}</div>
     </div>
   )
 }
@@ -45,8 +45,8 @@ export function Settings() {
   const [state, setState] = useState<'' | 'salvando' | 'salvo'>('')
   const [agentes, setAgentes] = useState<AgentStates | null>(null)
 
-  // Os campos de text só se sincronizam quando os settings chegam ou mudam
-  // por fora; enquanto a pessoa digita, quem manda é o que está na canvas.
+  // The text fields only sync when the settings arrive or change from outside;
+  // while the person is typing, what is on screen is what wins.
   useEffect(() => {
     if (!settings) return
     setNome(settings.name)
@@ -58,10 +58,10 @@ export function Settings() {
   }, [])
   useEffect(readAgents, [readAgents])
 
-  if (!settings) return <p className="vazio">{t.today.loading}</p>
+  if (!settings) return <p className="empty">{t.today.loading}</p>
 
-  // O registrador devolve código, não utterance — casar com text traduzido para
-  // saber o que aconteceu quebraria assim que alguém trocasse de language.
+  // The registrar returns a code, not a sentence — matching against translated
+  // text to know what happened would break the moment someone switched language.
   const states = Object.values(agentes ?? {})
   const allOn = states.length > 0 && states.every((a) => a.connected)
   const awaitingApproval = states.some((a) => a.status === 'requer-aprovacao')
@@ -91,18 +91,18 @@ export function Settings() {
 
   return (
     <>
-      <div className="topo">
+      <div className="top">
         <div>
           <h2><b>{t.settings.title}</b></h2>
           <p>{t.settings.subtitle}</p>
         </div>
-        {state && <div className="navega"><span className="pilula">{state === 'salvando' ? t.settings.saving : t.settings.saved}</span></div>}
+        {state && <div className="nav"><span className="pill">{state === 'salvando' ? t.settings.saving : t.settings.saved}</span></div>}
       </div>
 
-      <div className="grade" style={{ gap: 14 }}>
-        <div className="painel">
+      <div className="grid" style={{ gap: 14 }}>
+        <div className="panel">
           <h3>{t.settings.language}<em>{t.settings.languageNote}</em></h3>
-          <div className="idiomas">
+          <div className="languages">
             {(Object.keys(LANGUAGES) as Language[]).map((chave) => (
               <button key={chave} className={`pilula ${chave === language ? 'ativo' : ''}`}
                 onClick={() => store({ language: chave })}>
@@ -133,10 +133,10 @@ export function Settings() {
           </Field>
         </div>
 
-        <div className="painel">
+        <div className="panel">
           <h3><IconFolder /> {t.settings.vault}<em>{t.settings.vaultNote}</em></h3>
           <Field rotulo={t.settings.chooseFolder}>
-            <div className="caminho">
+            <div className="path">
               <code title={settings.vault}>{settings.vault ? shortPath(settings.vault) : t.settings.noVault}</code>
               {bridge?.chooseFolder && <button onClick={chooseFolder}>{t.settings.chooseFolder}</button>}
             </div>
@@ -148,7 +148,7 @@ export function Settings() {
         </div>
 
         {agentes && (
-          <div className="painel">
+          <div className="panel">
             <h3>{t.settings.agents}<em>{t.settings.agentsNote}</em></h3>
             <Field
               rotulo={
@@ -169,11 +169,11 @@ export function Settings() {
           </div>
         )}
 
-        <div className="painel">
+        <div className="panel">
           <h3><IconKey /> {t.settings.keys}<em>{t.settings.keysNote}</em></h3>
 
           <Field rotulo={t.settings.jevKey} nota={t.settings.jevNote}>
-            <div className="caminho">
+            <div className="path">
               <input type="password" value={jev} placeholder={keyLabel('jev')}
                 onChange={(e) => setJev(e.target.value)} />
               <button disabled={!jev.trim()}
@@ -187,7 +187,7 @@ export function Settings() {
           </Field>
 
           <Field rotulo={`${t.settings.openaiKey} · ${t.settings.optional}`} nota={t.settings.openaiNote}>
-            <div className="caminho">
+            <div className="path">
               <input type="password" value={openai} placeholder={keyLabel('openai')}
                 onChange={(e) => setOpenai(e.target.value)} />
               <button disabled={!openai.trim()}

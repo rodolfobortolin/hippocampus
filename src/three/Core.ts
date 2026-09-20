@@ -9,8 +9,8 @@ export type CoreState = 'idle' | 'listening' | 'thinking' | 'tool' | 'speaking' 
 
 type Visual = { a: string; b: string; energia: number; giro: number }
 
-// The palette: brasa e ouro, com a água reservada para o momento
-// em que ele está mexendo no banco — assim dá para saber o que acontece sem ler.
+// The palette: ember and gold, with water held back for the moment it is
+// reaching into the database — so you can tell what is happening without reading.
 const LOOKS: Record<CoreState, Visual> = {
   idle: { a: '#ff7a2f', b: '#ffd9a8', energia: 0.12, giro: 0.7 },
   listening: { a: '#ffb43d', b: '#fff1cf', energia: 0.3, giro: 1.5 },
@@ -21,12 +21,13 @@ const LOOKS: Record<CoreState, Visual> = {
 }
 
 /**
- * Transparência a partir do brilho.
+ * Transparency derived from brightness.
  *
- * O composer devolve preto where não há nada, e preto opaco desenha um
- * retângulo. Misturar em modo canvas resolve hovered painel escuro, mas lava tudo
+ * The composer returns black where there is nothing, and opaque black draws a
+ * rectangle. Blending in screen mode solves it over a dark panel, but washes
+ * everything out
  * numa janela flutuante por cima do desktop claro. Aqui o alfa sai da
- * luminância: escuro vira transparente, aceso vira sólido, e o núcleo flutua
+ * luminance: dark becomes transparent, lit becomes solid, and the core floats
  * hovered qualquer fundo.
  */
 const ALPHA_FROM_BRIGHTNESS = {
@@ -39,9 +40,9 @@ const ALPHA_FROM_BRIGHTNESS = {
     void main() {
       vec4 colour = texture2D(tDiffuse, vUv);
       float brilho = dot(colour.rgb, vec3(0.299, 0.587, 0.114));
-      // Limiar suave em vez de curva de potência: pow levantava o quase-preto
+      // A soft threshold instead of a power curve: pow lifted the near-black
       // a uns 20% de opacidade, e isso desenhava um quadrado cinza em volta.
-      // Aqui o fundo do composer vai mesmo a zero e o corpo fica sólido.
+      // Here the composer's background really goes to zero and the body stays solid.
       gl_FragColor = vec4(colour.rgb, smoothstep(0.012, 0.22, brilho));
     }`,
 }
@@ -50,9 +51,9 @@ const damp = (de: number, para: number, lambda: number, dt: number) =>
   THREE.MathUtils.lerp(de, para, 1 - Math.exp(-lambda * dt))
 
 /**
- * O núcleo: uma esfera de plasma deslocada por ruído, com anéis em volta.
- * Ele reage ao volume — o seu quando você speech, o dele quando responde — e
- * muda de colour e de agitação conforme o state.
+ * The core: a plasma sphere displaced by noise, with rings around it. It reacts
+ * to volume — yours when you speak, its own when it answers — and changes colour
+ * and agitation according to its state.
  */
 export class Core {
   private readonly scene = new THREE.Scene()
@@ -83,15 +84,15 @@ export class Core {
   private readonly alvoB = new THREE.Color(LOOKS.idle.b)
 
   /**
-   * `compacto` é o núcleo miniatura ao lado do compositor.
+   * `compact` is the miniature core beside the composer.
    *
-   * No size small os anéis e a poeira viram ruído, e a esfera preenchendo
-   * o frame deixa o brilho ser cortado na borda — o resultado é um borrão
-   * quadrado. Aqui ele fica só com a esfera, menor dentro do frame, para o
+   * At the small size the rings and the dust become noise, and a sphere filling
+   * the frame lets the glow be cut off at the edge — the result is a square
+   * smudge. Here it keeps only the sphere, smaller inside the frame, so the
    * halo terminar antes do end do canvas.
    *
-   * `poeira` sai fora na janela flutuante: ali o núcleo paira hovered o que a
-   * pessoa está fazendo, e a poeira, que dentro do painel dá profundidade,
+   * `dust` is dropped in the floating window: there the core hovers over what
+   * the person is doing, and the dust, which gives depth inside the panel,
    * vira sujeira espalhada por cima do trabalho dela.
    */
   constructor(
@@ -105,10 +106,10 @@ export class Core {
       canvas: canvas, antialias: true, alpha: true, premultipliedAlpha: false,
     })
     this.renderer.setClearColor(0x000000, 0)
-    // Acima de 2 o custo cresce e ninguém enxerga a diferença.
+    // Above 2 the cost grows and nobody sees the difference.
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-    // A câmera fica longe o bastante para os anéis (diâmetro 3,9) caberem
+    // The camera sits far enough back for the rings (diameter 3.9) to fit
     // inteiros no frame; encostados na borda eles viram um corte reto.
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100)
     this.camera.position.set(0, 0, compacto ? 5.2 : 6.6)
@@ -144,7 +145,7 @@ export class Core {
         varying vec3 vNormal; varying vec3 vVista; varying float vDesl; varying vec3 vObj;
         ${simplex3}
 
-        // Ruído em crista: where o ruído cruza o zero nasce um filamento fino.
+        // Ridged noise: where the noise crosses zero a thin filament is born.
         float veia(vec3 p, float nitidez) {
           return pow(max(1.0 - abs(snoise(p)), 0.0), nitidez);
         }
@@ -172,7 +173,7 @@ export class Core {
     if (compacto) this.esfera.scale.setScalar(0.62)
     this.scene.add(this.esfera)
 
-    // Dois anéis inclinados em eixos diferentes: dão profundidade ao giro.
+    // Two rings tilted on different axes: they give the spin some depth.
     for (const [index, radius] of (compacto ? [] : [1.55, 1.95]).entries()) {
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(radius, 0.006, 8, 220),
@@ -188,7 +189,7 @@ export class Core {
       this.scene.add(ring)
     }
 
-    // Poeira em volta: sem ela o núcleo parece recortado e colado no fundo.
+    // Dust around it: without it the core looks cut out and pasted on.
     const total = compacto || !poeira ? 0 : 420
     const positions = new Float32Array(total * 3)
     for (let i = 0; i < total; i++) {
@@ -229,7 +230,7 @@ export class Core {
     this.clarao = Math.max(this.clarao, 0.35)
   }
 
-  /** 0 a 1: o volume de quem está speaking now. */
+  /** 0 to 1: the volume of whoever is speaking now. */
   setNivel(level: number): void {
     this.level = THREE.MathUtils.clamp(level, 0, 1)
   }
@@ -261,7 +262,7 @@ export class Core {
     this.corA.lerp(this.alvoA, 1 - Math.exp(-3 * dt))
     this.corB.lerp(this.alvoB, 1 - Math.exp(-3 * dt))
 
-    // A respiração de base nunca some: parado ele continua vivo.
+    // The baseline breathing never goes away: idle, it is still alive.
     this.phase += dt * (0.45 + this.giroSuave * 0.32 + this.nivelSuave * 1.1)
     this.plasma.uniforms.uFase.value = this.phase
     this.plasma.uniforms.uEnergia.value = this.energiaSuave

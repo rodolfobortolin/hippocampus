@@ -5,17 +5,19 @@ import { api, type Settings } from './api.ts'
 import { setDayStartHour, setLocale } from './format.ts'
 
 /**
- * O language escolhido, disponível para a canvas inteira.
+ * The chosen language, available to the whole screen.
  *
- * O núcleo é quem store a escolha — é ele que escreve o diário e conversa, e
+ * The core is what stores the choice — it is the one writing the journal and
+ * holding the conversation, and
  * os dois precisam concordar. A canvas question uma vez ao subir e store uma
- * cópia no navegador só para não piscar em português antes da answer chegar.
+ * a copy in the browser only so it does not flash the wrong language before
+ * the answer arrives.
  */
 type Context = {
   language: Language
   t: Strings
   settings: Settings | null
-  /** O name de uma category na língua de quem lê. */
+  /** A category's name in the reader's language. */
   category: (chave: string | null | undefined) => string
   save: (change: Change) => Promise<void>
 }
@@ -23,7 +25,7 @@ type Context = {
 /**
  * O que pode ser mudado de dentro do app. `chaves` sai do molde por um reason:
  * aqui ela load o segredo a ser gravado, enquanto no `Settings` que volta da
- * API ela load só o state — o value nunca faz o caminho de volta.
+ * API it carries only the state — the value never makes the trip back.
  */
 export type Change = Omit<Partial<Settings>, 'keys' | 'languages'> & {
   keys?: Partial<Record<'jev' | 'openai', string>>
@@ -36,8 +38,8 @@ const REMEMBERED = 'hippocampus.language'
 function initial(): Language {
   const saved = localStorage.getItem(REMEMBERED)
   if (saved && saved in LANGUAGES) return saved as Language
-  // Antes de a primeira answer chegar, o language do próprio sistema é o
-  // palpite menos errado: quem abre o app em alemão não quer ver português.
+  // Before the first answer arrives, the system's own language is the least
+  // wrong guess: someone who opens the app in German does not want Portuguese.
   const fromSystem = navigator.language ?? 'en-US'
   const family = fromSystem.split('-')[0]
   return (Object.keys(LANGUAGES).find((i) => i.startsWith(family)) ?? 'en-US') as Language
@@ -56,9 +58,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { api.settings().then(adopt).catch(() => {}) }, [adopt])
 
-  // Durante a renderização, e não num efeito: efeito roda depois que os filhos
-  // já desenharam, e a primeira canvas saía com a data em inglês debaixo de um
-  // text em português. Definir aqui é o que faz os dois combinarem sempre.
+  // During render, not in an effect: an effect runs after the children have
+  // already drawn, and the first screen came out with an English date under
+  // Portuguese text. Setting it here is what keeps the two in agreement.
   setLocale(LANGUAGES[language].intl)
 
   const save = useCallback(async (change: Change) => {
@@ -82,7 +84,7 @@ export function useLanguage(): Context {
   return audioContext
 }
 
-/** Atalho para quem só quer os textos. */
+/** A shortcut for whoever only wants the strings. */
 export function useStrings(): Strings {
   return useLanguage().t
 }

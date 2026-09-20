@@ -2,8 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- O V8 compila em tempo de execução; sem os três primeiros o Electron não
-       sobe sob Hardened Runtime. -->
+  <!-- V8 compiles at runtime; without the first three, Electron does not start
+       under the hardened runtime. -->
   <key>com.apple.security.cs.allow-jit</key>
   <true/>
   <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
@@ -11,23 +11,24 @@
   <key>com.apple.security.cs.disable-library-validation</key>
   <true/>
 
-  <!-- O núcleo sobe com ELECTRON_RUN_AS_NODE=1. Variável que mexe no dyld é
-       bloqueada sob Hardened Runtime, e sem isto o processo simplesmente não
-       nasce — sem erro, sem log, só um coletor que nunca responde. -->
+  <!-- The core starts with ELECTRON_RUN_AS_NODE=1. A variable that affects
+       dyld is blocked under the hardened runtime, and without this the process
+       simply never comes up — no error, no log, only a collector that never
+       answers. -->
   <key>com.apple.security.cs.allow-dyld-environment-variables</key>
   <true/>
 
-  <!-- A API local em 127.0.0.1, o jev e a voz da OpenAI. -->
+  <!-- The local API on 127.0.0.1, jev, and OpenAI's voice. -->
   <key>com.apple.security.network.client</key>
   <true/>
   <key>com.apple.security.network.server</key>
   <true/>
 
-  <!-- A escuta da palavra de ativação e a pergunta falada. -->
+  <!-- The wake-word listener and the spoken question. -->
   <key>com.apple.security.device.audio-input</key>
   <true/>
 
-  <!-- Perguntar ao Spotify, ao Música e ao navegador o que está tocando. -->
+  <!-- Asking Spotify, Music and the browser what is playing. -->
   <key>com.apple.security.automation.apple-events</key>
   <true/>
 </dict>

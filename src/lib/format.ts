@@ -5,11 +5,11 @@ export const COLOURS: Record<string, string> = {
 }
 
 /**
- * O language das datas e dos números.
+ * The language of dates and numbers.
  *
- * Fica num módulo em vez de descer por propriedade porque data aparece em toda
- * parte da canvas, e passar o locale por trinta camadas só para formatar "sábado"
- * é ruído sem retorno. O provedor de language define isto uma vez.
+ * It lives in a module rather than travelling down as a prop because dates show
+ * up all over the screen, and threading the locale through thirty layers just to
+ * format "Saturday" is noise with no return. The language provider sets it once.
  */
 let locale = 'pt-BR'
 export function setLocale(novo: string): void {
@@ -34,15 +34,16 @@ export function hours(seconds: number): { value: string; unit: string } {
   return { value: (seconds / 3600).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }), unit: 'h' }
 }
 
-/** Um número com o separador de milhar do language. */
+/** A number with the thousands separator of the language. */
 export const number = (value: number): string => value.toLocaleString(locale)
 
-/** Os names curtos dos days da semana, na língua de quem lê. */
+/** The short weekday names, in the reader's language. */
 export function weekdayNames(): string[] {
-  // 4 de janeiro de 1970 foi um domingo — é a âncora para a semana begin nele.
-  // O fuso tem que ser UTC também na formatação: sem isso, num fuso a oeste a
+  // 4 January 1970 was a Sunday — that is the anchor that makes the week start
+  // there. The time zone has to be UTC in the formatting too: without that, in a
+  // zone west of it
   // meia-noite UTC cai no day anterior e a semana inteira sai deslocada — a
-  // linha do domingo aparecia rotulada como sábado.
+  // the Sunday row came out labelled as Saturday.
   const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' })
   return Array.from({ length: 7 }, (_, i) => formatter.format(new Date(Date.UTC(1970, 0, 4 + i))).replace('.', ''))
 }
@@ -55,7 +56,7 @@ export function longDate(day: string): string {
   const text = new Date(year, month - 1, d).toLocaleDateString(locale, {
     weekday: 'long', day: 'numeric', month: 'long',
   })
-  // Só a primeira letra sobe: "Sábado, 19 de setembro", não "19 De Setembro".
+  // Only the first letter goes up: "Saturday, 19 September", not "19 September".
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
@@ -64,7 +65,7 @@ export function shortDate(day: string): string {
   return new Date(year, month - 1, d).toLocaleDateString(locale, { day: '2-digit', month: 'short' })
 }
 
-/** A hour em que o day vira, espelhada do núcleo pelo /api/settings. */
+/** The hour the day turns, mirrored from the core through /api/settings. */
 let dayStartHour = 4
 export function setDayStartHour(hour: number): void {
   dayStartHour = hour
@@ -82,7 +83,7 @@ export function addDays(day: string, delta: number): string {
   return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
 }
 
-/** Corta a cauda long: mantém os maiores e sum o rest em "outros". */
+/** Cuts the long tail: keeps the largest and sums the rest into "others". */
 export function topSlices<T extends { name: string; seconds: number }>(
   items: T[], max = 9, minimum = 25,
 ): { name: string; seconds: number }[] {
@@ -93,9 +94,9 @@ export function topSlices<T extends { name: string; seconds: number }>(
   return leftover >= minimum ? [...top, { name: `__outros__${rest.length}`, seconds: leftover }] : top
 }
 
-/** "1 sessão" / "3 sessões" — o par vem do dicionário do language. */
+/** "1 session" / "3 sessions" — the pair comes from the language's dictionary. */
 export const plural = (n: number, par: readonly [string, string]) => `${number(n)} ${n === 1 ? par[0] : par[1]}`
 
-/** Velocidade da speech das respostas. A voz sintética lê devagar para quem já
- *  conhece o assunto; 1,5× é o ponto em que ainda dá para acompanhar. */
+/** How fast the answers are spoken. A synthetic voice reads slowly for someone
+ *  who already knows the subject; 1.5× is where it is still followable. */
 export const SPEECH_RATE = Number(localStorage.getItem('hippocampus.speechRate') ?? 1.5)

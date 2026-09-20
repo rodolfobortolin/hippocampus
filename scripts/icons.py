@@ -50,7 +50,7 @@ for escala in (1, 2):
     caixa.save(f'public/trayTemplate{"@2x" if escala == 2 else ""}.png')
 
 for destino, altura, cor in [('public/favicon.png', 56, (255, 150, 60, 255)),
-                             ('public/marca.png', 120, (255, 145, 55, 255))]:
+                             ('public/brand.png', 120, (255, 145, 55, 255))]:
     prop = sil.size[0] / sil.size[1]
     lg = max(1, round(altura * prop))
     peca = sil.resize((lg, altura), Image.LANCZOS)

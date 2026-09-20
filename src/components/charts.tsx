@@ -3,7 +3,7 @@ import { colour, duration, weekdayNames, number } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
 import type { RibbonBlock, Slice } from '../lib/api.ts'
 
-/** "outros 12" é um aggregate do próprio app, não um projeto — traduz aqui. */
+/** "12 others" is the app's own aggregate, not a project — translated here. */
 function sliceName(name: string, category: (c: string) => string, outros: (n: number) => string): string {
   const aggregate = /^__outros__(\d+)$/.exec(name)
   return aggregate ? outros(Number(aggregate[1])) : category(name)
@@ -28,7 +28,7 @@ function arc(cx: number, cy: number, outer: number, inner: number, de: number, t
 export function Donut({ slices, total }: { slices: Slice[]; total: number }) {
   const { t, category } = useLanguage()
   const [hovered, setSobre] = useState<number | null>(null)
-  if (!total) return <p className="vazio">{t.common.noTime}</p>
+  if (!total) return <p className="empty">{t.common.noTime}</p>
 
   let accumulated = 0
   const shapes = slices.map((slice, index) => {
@@ -66,15 +66,15 @@ export function Donut({ slices, total }: { slices: Slice[]; total: number }) {
         </text>
       </svg>
 
-      <div className="linhas" style={{ flex: 1, minWidth: 0 }}>
+      <div className="rows" style={{ flex: 1, minWidth: 0 }}>
         {slices.slice(0, 7).map((slice, index) => (
-          <div key={slice.name} className="linha"
+          <div key={slice.name} className="row"
             onMouseEnter={() => setSobre(index)} onMouseLeave={() => setSobre(null)}>
-            <span className="nome" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="name" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <i style={{ width: 7, height: 7, borderRadius: 2, background: colour(slice.name), flex: 'none' }} />
               {category(slice.name)}
             </span>
-            <span className="valor">{Math.round((slice.seconds / total) * 100)}%</span>
+            <span className="value">{Math.round((slice.seconds / total) * 100)}%</span>
           </div>
         ))}
       </div>
@@ -82,7 +82,7 @@ export function Donut({ slices, total }: { slices: Slice[]; total: number }) {
   )
 }
 
-/** A fita do day: cada faixa é um pedaço contínuo no mesmo app. */
+/** The day's ribbon: each band is a continuous stretch in the same app. */
 export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; day: string; dayStart?: number }) {
   const t = useLanguage().t
   const [hovered, setSobre] = useState<RibbonBlock | null>(null)
@@ -98,7 +98,7 @@ export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; d
     <div>
       <div style={{ height: 22, marginBottom: 6, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered ? (
-          <span className="aparece">
+          <span className="appear">
             <b style={{ color: hovered.delegated ? 'var(--ai)' : 'var(--text)', fontWeight: 500 }}>
               {hovered.delegated ? t.common.agentWorking : hovered.app}
             </b>
@@ -110,15 +110,15 @@ export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; d
         )}
       </div>
 
-      {/* O SVG da fita é esticado sem manter proporção, então text dentro dele
+      {/* The ribbon's SVG is stretched without keeping its ratio, so text inside it
           sai deformado. As hours ficam em HTML, alinhadas por porcentagem. */}
       <svg viewBox={`0 0 ${width} 40`} preserveAspectRatio="none" style={{ width: '100%', height: 40 }}>
         <rect x="0" y="0" width={width} height="36" rx="7" fill="rgba(255,255,255,.035)" />
         {blocks.map((block, index) => {
           const x = position(block.start)
           const w = Math.max(1.4, position(block.end) - x)
-          // Tempo delegado é trabalho acontecendo, só que não pelas suas mãos:
-          // ganha a colour da IA e height própria, entre o active e o vazio.
+          // Delegated time is work happening, just not by your hands: it takes
+          // the AI colour and a height of its own, between active and empty.
           const tone = block.delegated ? 'var(--ai)' : block.idle ? 'var(--unlabelled)' : colour(block.category)
           const height = block.delegated ? 22 : block.idle ? 16 : 30
           const top = block.delegated ? 8 : block.idle ? 13 : 3
@@ -153,8 +153,8 @@ export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; d
 }
 
 /**
- * Gauge de foco. O número large é a hour absoluta, e não a proporção:
- * proporção sozinha premia o day curto — 1h de código puro daria 100%.
+ * The focus gauge. The big number is the absolute time, not the ratio: a ratio
+ * on its own rewards a short day — one hour of pure code would read 100%.
  */
 export function Gauge({ value, seconds }: { value: number; seconds?: number }) {
   const t = useLanguage().t
@@ -188,9 +188,10 @@ export function Gauge({ value, seconds }: { value: number; seconds?: number }) {
 /**
  * Heatmap hour × day da semana. Quanto mais quente, mais tempo ali.
  *
- * Os rótulos ficam em HTML, fora do SVG. Texto dentro do SVG scale junto com
+ * The labels live in HTML, outside the SVG. Text inside an SVG scales with
  * o desenho — num monitor largo a mesma source chegava ao dobro do size do
- * rest da interface, e diminuir a source no SVG só empurra o problema, porque
+ * rest of the interface, and shrinking the font inside the SVG only defers the
+ * problem, because
  * o fator de scale muda com a width da janela.
  */
 export function Heatmap({ grid }: { grid: number[][] }) {
@@ -207,14 +208,14 @@ export function Heatmap({ grid }: { grid: number[][] }) {
     <div>
       <div style={{ height: 18, marginBottom: 10, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered ? (
-          <span className="aparece">
+          <span className="appear">
             {WEEKDAYS[hovered.day]} {t.common.at} {String(hovered.hour).padStart(2, '0')}{t.common.h} ·{' '}
             <b style={{ fontWeight: 500 }}>{duration(grid[hovered.day][hovered.hour])}</b> {t.common.inTotal}
           </span>
         ) : <span style={{ color: 'var(--text-dim)' }}>{t.rhythm.sumOfPeriod}</span>}
       </div>
 
-      <div className="mapa">
+      <div className="heatmap">
         <div className="mapa-days">
           {WEEKDAYS.map((name) => <span key={name}>{name}</span>)}
         </div>
@@ -254,11 +255,11 @@ export function Heatmap({ grid }: { grid: number[][] }) {
   )
 }
 
-/** Tendência do tempo active por day. */
+/** The trend of active time per day. */
 export function Trend({ days }: { days: { day: string; active: number }[] }) {
   const t = useLanguage().t
   const [hovered, setSobre] = useState<number | null>(null)
-  if (days.length < 3) return <p className="vazio">{t.rhythm.needsThreeDays}</p>
+  if (days.length < 3) return <p className="empty">{t.rhythm.needsThreeDays}</p>
 
   const width = 1000
   const height = 130
@@ -273,7 +274,7 @@ export function Trend({ days }: { days: { day: string; active: number }[] }) {
     <div>
       <div style={{ height: 18, marginBottom: 6, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered != null ? (
-          <span className="aparece">
+          <span className="appear">
             {days[hovered].day} · <b style={{ fontWeight: 500 }}>{duration(days[hovered].active)}</b>
           </span>
         ) : (
@@ -310,15 +311,15 @@ export function Trend({ days }: { days: { day: string; active: number }[] }) {
 /** Lista com barra proporcional — apps, projetos, janelas. */
 export function Bars({ items, total, tone }: { items: Slice[]; total: number; tone?: string }) {
   const { t, category } = useLanguage()
-  if (!items.length) return <p className="vazio">{t.common.nothingHere}</p>
+  if (!items.length) return <p className="empty">{t.common.nothingHere}</p>
   const largest = Math.max(...items.map((i) => i.seconds), 1)
   return (
-    <div className="linhas">
+    <div className="rows">
       {items.map((item) => (
-        <div key={item.name} className="linha">
-          <span className="nome">{sliceName(item.name, category, t.common.others)}</span>
-          <span className="valor">{duration(item.seconds)}</span>
-          <span className="trilho">
+        <div key={item.name} className="row">
+          <span className="name">{sliceName(item.name, category, t.common.others)}</span>
+          <span className="value">{duration(item.seconds)}</span>
+          <span className="track">
             <i style={{
               width: `${(item.seconds / largest) * 100}%`,
               background: tone ?? colour(item.name),
@@ -333,9 +334,9 @@ export function Bars({ items, total, tone }: { items: Slice[]; total: number; to
 }
 
 /**
- * A focusShape do foco: quantos minutes vieram de sessões de cada size.
- * A barra conta MINUTOS, não sessões — contar sessões faz os pedaços curtos
- * dominarem a vista, e o que interessa é where o tempo foi de fato.
+ * The shape of the focus: how many minutes came from sessions of each length.
+ * The bar counts MINUTES, not sessions — counting sessions lets the short
+ * pieces dominate the view, and what matters is where the time actually went.
  */
 export function FocusShape({ bands, median, largest }: {
   bands: { name: string; minutes: number; n: number }[]
@@ -346,7 +347,7 @@ export function FocusShape({ bands, median, largest }: {
   const [hovered, setSobre] = useState<number | null>(null)
   const total = bands.reduce((sum, f) => sum + f.minutes, 0)
   if (!total) {
-    return <p className="vazio">{t.today.noSession}</p>
+    return <p className="empty">{t.today.noSession}</p>
   }
 
   const largestBand = Math.max(...bands.map((f) => f.minutes), 1)
@@ -358,7 +359,7 @@ export function FocusShape({ bands, median, largest }: {
     <div>
       <div style={{ height: 18, marginBottom: 8, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered != null ? (
-          <span className="aparece">
+          <span className="appear">
             {bands[hovered].n} {bands[hovered].n === 1 ? t.common.session : t.common.sessions} {t.common.of}{' '}
             {bands[hovered].name} {t.common.min} ·{' '}
             <b style={{ fontWeight: 500 }}>{duration(bands[hovered].minutes * 60)}</b> {t.common.inTotal}
@@ -375,7 +376,7 @@ export function FocusShape({ bands, median, largest }: {
           const h = (faixa.minutes / largestBand) * (height - 34)
           const x = index * step + step * 0.16
           const w = step * 0.68
-          // O glow marca hierarquia, não enfeite: só a sessão long acende.
+          // The glow marks hierarchy, not decoration: only the long session lights up.
           const long = index >= 3
           return (
             <g key={faixa.name}

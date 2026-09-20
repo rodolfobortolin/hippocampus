@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
- * A ligação com o núcleo, que se refaz sozinha.
+ * The link to the core, which repairs itself.
  *
- * O núcleo reinicia — atualização, launchd, queda — e sem reconexão a conversa
- * morre calada: o envio vira nada e quem está olhando não sabe. Aqui a conexão
- * volta com wait crescente, e o state fica visível para a interface poder
- * dizer que está fora do ar em vez de engolir a question.
+ * The core restarts — an update, launchd, a crash — and without reconnection the
+ * chat dies quietly: the send turns into nothing and whoever is looking has no
+ * idea. Here the connection comes back with a growing wait, and the state stays
+ * visible so the interface can say it is down instead of swallowing the question.
  */
 export function useSocket(criar: () => WebSocket, aoReceber: (data: any) => void) {
   const [connected, setLigado] = useState(false)
@@ -29,13 +29,13 @@ export function useSocket(criar: () => WebSocket, aoReceber: (data: any) => void
 
     ws.onopen = () => { attempt.current = 0; setLigado(true) }
     ws.onmessage = (evento) => {
-      try { receive.current(JSON.parse(evento.data)) } catch { /* frame inválido */ }
+      try { receive.current(JSON.parse(evento.data)) } catch { /* an invalid frame */ }
     }
     ws.onerror = () => ws.close()
     ws.onclose = () => {
       setLigado(false)
       if (!vivo.current) return
-      // Espera crescente até 8s: o núcleo costuma voltar em poucos seconds.
+      // A growing wait up to 8s: the core usually comes back in a few seconds.
       const wait = Math.min(8000, 400 * 2 ** attempt.current++)
       setTimeout(connect, wait)
     }
