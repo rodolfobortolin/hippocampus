@@ -1,4 +1,4 @@
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import { config, dayOf } from '../config.ts'
 import { db, getMeta, setMeta } from '../db.ts'
@@ -11,15 +11,23 @@ const historyFile = path.join(config.home, '.zsh_history')
 
 const insert = db.prepare('insert or ignore into shell_cmds (ts, day, cmd) values (?, ?, ?)')
 
-export function shellHasTimestamps(): boolean {
-  if (!fs.existsSync(historyFile)) return false
-  const raw = fs.readFileSync(historyFile, 'latin1')
-  return /^: \d+:\d+;/m.test(raw)
+/** O histórico, ou nulo se ele não existir ou não puder ser lido. */
+async function historico(): Promise<string | null> {
+  try {
+    return await fs.readFile(historyFile, 'latin1')
+  } catch {
+    return null
+  }
 }
 
-export function harvestShell(): { commands: number; timestamped: boolean } {
-  if (!fs.existsSync(historyFile)) return { commands: 0, timestamped: false }
-  const raw = fs.readFileSync(historyFile, 'latin1')
+export async function shellHasTimestamps(): Promise<boolean> {
+  const raw = await historico()
+  return raw !== null && /^: \d+:\d+;/m.test(raw)
+}
+
+export async function harvestShell(): Promise<{ commands: number; timestamped: boolean }> {
+  const raw = await historico()
+  if (raw === null) return { commands: 0, timestamped: false }
   const lines = raw.split('\n')
   const timestamped = /^: \d+:\d+;/m.test(raw)
   let total = 0

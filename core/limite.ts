@@ -1,4 +1,24 @@
+import fs from 'node:fs/promises'
 import { setMeta, getMeta } from './db.ts'
+
+/**
+ * "Este caminho existe?", sem congelar o processo se a resposta depender de uma
+ * permissão.
+ *
+ * `fs.existsSync` numa pasta protegida pelo macOS não devolve erro: ela para, e
+ * para o event loop junto. Num agente de fundo, que não tem como mostrar o
+ * diálogo de consentimento, ela para para sempre — o servidor já disse "de pé",
+ * nenhuma rota responde, e nem o log ganha mais uma linha. Assíncrono devolve o
+ * controle ao loop, e aí o `comLimite` abaixo consegue fazer o trabalho dele.
+ */
+export async function existe(caminho: string): Promise<boolean> {
+  try {
+    await fs.access(caminho)
+    return true
+  } catch {
+    return false
+  }
+}
 
 /**
  * O estado de uma fonte é guardado como código, não como frase.

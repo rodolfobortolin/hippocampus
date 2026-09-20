@@ -52,7 +52,7 @@ export class Collector {
         return
       }
       console.log('[foco] nenhum helper empurrando; lançando por conta própria')
-      this.focus.start()
+      void this.focus.start()
     }, 12_000)
     setMeta('collector.started', String(Math.floor(Date.now() / 1000)))
     console.log(`[coletor] de pé — amostra a cada ${config.sampleInterval}s`)

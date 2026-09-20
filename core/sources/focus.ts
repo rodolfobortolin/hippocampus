@@ -1,8 +1,8 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import fs from 'node:fs'
 import { config, paths, dayOf } from '../config.ts'
 import { db } from '../db.ts'
 import { ehSigiloso } from '../privacidade.ts'
+import { existe } from '../limite.ts'
 
 type Sample = {
   ts: string
@@ -105,8 +105,10 @@ export class FocusCollector {
     }
   }
 
-  start(): void {
-    if (!fs.existsSync(paths.native)) {
+  async start(): Promise<void> {
+    // Assíncrono porque o helper pode morar em `~/Documents`, que o macOS
+    // protege: `existsSync` ali não dá erro, congela o coletor inteiro.
+    if (!(await existe(paths.native))) {
       console.error('[foco] helper nativo ausente — rode `npm run build:native`')
       return
     }
@@ -119,7 +121,7 @@ export class FocusCollector {
       console.error(`[foco] helper saiu (${code}); tentando de novo em 5s`)
       this.child = null
       this.open = null
-      setTimeout(() => this.start(), 5000)
+      setTimeout(() => void this.start(), 5000)
     })
   }
 

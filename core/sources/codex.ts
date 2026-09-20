@@ -1,8 +1,9 @@
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import { config, dayOf } from '../config.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
+import { existe } from '../limite.ts'
 
 /**
  * As sessões do Codex, no mesmo molde das do Claude Code.
@@ -23,14 +24,16 @@ const insereTurno = db.prepare(
    values (?, ?, ?, ?, ?, ?, ?)`,
 )
 
-export function codexAvailable(): boolean {
-  return fs.existsSync(raiz)
+export function codexAvailable(): Promise<boolean> {
+  return existe(raiz)
 }
 
-function arquivos(dir: string, achados: string[] = []): string[] {
-  for (const entrada of fs.readdirSync(dir, { withFileTypes: true })) {
+// Assíncrona como o resto: recursão síncrona por uma árvore de pastas é o jeito
+// mais fácil de congelar o coletor num diretório que o macOS resolva proteger.
+async function arquivos(dir: string, achados: string[] = []): Promise<string[]> {
+  for (const entrada of await fs.readdir(dir, { withFileTypes: true })) {
     const caminho = path.join(dir, entrada.name)
-    if (entrada.isDirectory()) arquivos(caminho, achados)
+    if (entrada.isDirectory()) await arquivos(caminho, achados)
     else if (entrada.name.endsWith('.jsonl')) achados.push(caminho)
   }
   return achados
@@ -45,21 +48,24 @@ function textoDe(conteudo: unknown): string {
     .join(' ')
 }
 
-export function harvestCodexSessions(): { turns: number; minutes: number } {
-  if (!codexAvailable()) return { turns: 0, minutes: 0 }
+export async function harvestCodexSessions(): Promise<{ turns: number; minutes: number }> {
+  if (!(await codexAvailable())) return { turns: 0, minutes: 0 }
   const offsets = JSON.parse(getMeta('codex.offsets', '{}')) as Record<string, number>
   let turns = 0
   let minutes = 0
 
-  for (const arquivo of arquivos(raiz)) {
-    const tamanho = fs.statSync(arquivo).size
+  for (const arquivo of await arquivos(raiz)) {
+    const tamanho = (await fs.stat(arquivo)).size
     const de = offsets[arquivo] ?? 0
     if (tamanho <= de) continue
 
-    const handle = fs.openSync(arquivo, 'r')
+    const handle = await fs.open(arquivo, 'r')
     const buffer = Buffer.alloc(tamanho - de)
-    fs.readSync(handle, buffer, 0, buffer.length, de)
-    fs.closeSync(handle)
+    try {
+      await handle.read(buffer, 0, buffer.length, de)
+    } finally {
+      await handle.close()
+    }
 
     const pedaco = buffer.toString('utf8')
     const ultimaQuebra = pedaco.lastIndexOf('\n')

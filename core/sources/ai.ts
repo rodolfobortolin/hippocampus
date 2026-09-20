@@ -1,8 +1,9 @@
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import { config, dayOf } from '../config.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
+import { existe } from '../limite.ts'
 
 // Cada sessão do Claude Code é um .jsonl que só cresce. Guardamos o deslocamento
 // já lido de cada arquivo para não reprocessar 1 GB a cada rodada.
@@ -29,29 +30,39 @@ function textOf(content: unknown): string {
     .join(' ')
 }
 
-/** Lê o que há de novo nas sessões do Claude Code: seus pedidos e as ferramentas usadas. */
-export function harvestClaudeSessions(): { turns: number } {
-  if (!fs.existsSync(root)) return { turns: 0 }
+/**
+ * Lê o que há de novo nas sessões do Claude Code: seus pedidos e as ferramentas
+ * usadas.
+ *
+ * Todo acesso a disco aqui é assíncrono — ver a nota em `existe`. Uma leitura
+ * síncrona numa pasta que o macOS resolva proteger levaria o coletor inteiro
+ * junto, e não só esta fonte.
+ */
+export async function harvestClaudeSessions(): Promise<{ turns: number }> {
+  if (!(await existe(root))) return { turns: 0 }
   const offsets = JSON.parse(getMeta('claude.offsets', '{}')) as Record<string, number>
   let turns = 0
 
-  for (const projectDir of fs.readdirSync(root)) {
-    const dir = path.join(root, projectDir)
-    if (!fs.statSync(dir).isDirectory()) continue
+  for (const entrada of await fs.readdir(root, { withFileTypes: true })) {
+    if (!entrada.isDirectory()) continue
+    const dir = path.join(root, entrada.name)
     // O nome da pasta é o caminho do projeto com as barras trocadas por hífen.
-    const project = projectDir.split('-').filter(Boolean).pop() ?? projectDir
+    const project = entrada.name.split('-').filter(Boolean).pop() ?? entrada.name
 
-    for (const name of fs.readdirSync(dir)) {
+    for (const name of await fs.readdir(dir)) {
       if (!name.endsWith('.jsonl')) continue
       const file = path.join(dir, name)
-      const size = fs.statSync(file).size
+      const size = (await fs.stat(file)).size
       const from = offsets[file] ?? 0
       if (size <= from) continue
 
-      const handle = fs.openSync(file, 'r')
+      const handle = await fs.open(file, 'r')
       const buffer = Buffer.alloc(size - from)
-      fs.readSync(handle, buffer, 0, buffer.length, from)
-      fs.closeSync(handle)
+      try {
+        await handle.read(buffer, 0, buffer.length, from)
+      } finally {
+        await handle.close()
+      }
 
       const chunk = buffer.toString('utf8')
       const lastBreak = chunk.lastIndexOf('\n')
