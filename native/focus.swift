@@ -27,20 +27,19 @@ let interval = args.firstIndex(of: "--interval").flatMap { i -> Double? in
     i + 1 < args.count ? Double(args[i + 1]) : nil
 } ?? 4.0
 
-// Sem Acessibilidade não há título de janela, e o app fica sabendo *onde* você
-// esteve sem saber *em quê*. Então ele pede — uma vez, ao subir.
-//
-// O pedido só vale a pena vindo daqui: lançado pelo launchd, este processo
-// responde por si mesmo no TCC e aparece na lista como "Hipocampo Focus".
-// Lançado por outro programa, quem apareceria pedindo seria o programa pai.
-if !AXIsProcessTrusted() && !args.contains("--sem-pedido") {
-    let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-    AXIsProcessTrustedWithOptions(options as CFDictionary)
-}
-
+// --check apenas consulta e sai. Nunca pede: é chamado em laço por scripts, e
+// pedir aqui gera um diálogo do sistema a cada chamada.
 if args.contains("--check") {
     print(AXIsProcessTrusted() ? "trusted" : "untrusted")
     exit(AXIsProcessTrusted() ? 0 : 1)
+}
+
+// O pedido só parte de quem tem identidade própria no TCC: o agente do launchd
+// (que é quem usa --post) ou um pedido explícito. Lançado por outro programa,
+// o diálogo sairia em nome do programa pai, que não é o que se quer autorizar.
+if !AXIsProcessTrusted() && (destino != nil || args.contains("--ask")) {
+    let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+    AXIsProcessTrustedWithOptions(options as CFDictionary)
 }
 
 func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
