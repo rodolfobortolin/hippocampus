@@ -11,3 +11,6 @@ native/*.app/
 native/hipocampo-focus
 native/hipocampo-ouvido
 build/
+
+# Bundle assinado: sai do `npm run dist`, e a assinatura é de quem compila.
+release/

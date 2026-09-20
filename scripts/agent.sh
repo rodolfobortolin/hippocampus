@@ -5,6 +5,18 @@
 set -e
 
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Dentro do bundle empacotado os pedaços ficam em pastas irmãs: o código em
+# Contents/Resources/app e os recursos extras em Contents/Resources. No
+# repositório tudo divide a mesma raiz. Procurar nos dois evita um instalador
+# que só funciona de um jeito.
+if [ -f "$RAIZ/core/index.ts" ]; then
+  RAIZ_CODIGO="$RAIZ"
+elif [ -f "$RAIZ/app/core/index.ts" ]; then
+  RAIZ_CODIGO="$RAIZ/app"
+else
+  echo "não achei core/index.ts a partir de $RAIZ"; exit 1
+fi
 ETIQUETA="com.hipocampo.coletor"
 ETIQUETA_FOCO="com.hipocampo.foco"
 PLIST="$HOME/Library/LaunchAgents/$ETIQUETA.plist"
@@ -29,9 +41,9 @@ instalar() {
     <string>$NODE</string>
     <string>--experimental-strip-types</string>
     <string>--disable-warning=ExperimentalWarning</string>
-    <string>$RAIZ/core/index.ts</string>
+    <string>$RAIZ_CODIGO/core/index.ts</string>
   </array>
-  <key>WorkingDirectory</key><string>$RAIZ</string>
+  <key>WorkingDirectory</key><string>$RAIZ_CODIGO</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
@@ -76,7 +88,7 @@ FOCOEOF
   launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
   # bootout mata o processo principal, mas um filho vivo é reparentado no
   # launchd em vez de morrer junto. Dois coletores no mesmo banco é problema.
-  pkill -f "$RAIZ/core/index.ts" 2>/dev/null || true
+  pkill -f "$RAIZ_CODIGO/core/index.ts" 2>/dev/null || true
   sleep 1
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
   launchctl bootstrap "gui/$(id -u)" "$PLIST_FOCO"
@@ -116,7 +128,7 @@ FOCOEOF
 
   launchctl bootout "gui/$(id -u)/$ETIQUETA_FOCO" 2>/dev/null || true
   launchctl bootout "gui/$(id -u)/$ETIQUETA" 2>/dev/null || true
-  pkill -f "$RAIZ/core/index.ts" 2>/dev/null || true
+  pkill -f "$RAIZ_CODIGO/core/index.ts" 2>/dev/null || true
   rm -f "$PLIST"
   echo "coletor removido (os dados já guardados ficam onde estão)"
 }

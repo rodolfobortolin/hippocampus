@@ -1,0 +1,60 @@
+appId: com.hipocampo.app
+productName: Hipocampo
+copyright: Rodolfo Bortolin
+
+directories:
+  output: release
+  buildResources: build
+
+# O núcleo não é código empacotado: é o próprio TypeScript, rodado pelo Node do
+# Electron com --experimental-strip-types. Dentro de um asar ele não abre — o
+# Node lê o arquivo do disco, e asar não é disco. Por isso o bundle fica sem
+# asar em vez de ganhar uma lista de exceções que quebra quando alguém
+# acrescenta um import.
+asar: false
+
+files:
+  - app/**
+  - dist/**
+  - core/**
+  - package.json
+  - '!**/*.map'
+
+# Os helpers nativos vão para Resources com a assinatura que já receberam. Eles
+# não podem ser reassinados aqui: a permissão de Acessibilidade está amarrada à
+# identidade deles, e o macOS trata "mesmo Developer ID" como a mesma coisa.
+extraResources:
+  - from: native
+    to: native
+    filter:
+      - '**/*.app/**'
+  - from: scripts
+    to: scripts
+
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  # Não é sandbox de propósito. O Hipocampo lê o histórico dos navegadores, fala
+  # com o launchd e usa a API de Acessibilidade — as três coisas que a sandbox
+  # existe para impedir. App fora da Mac App Store não precisa dela.
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dir
+      arch: [arm64]
+  extendInfo:
+    # Sem estas frases o macOS derruba o app na primeira vez que ele pede a
+    # permissão, em vez de mostrar um diálogo.
+    NSMicrophoneUsageDescription: >-
+      O Hipocampo escuta a palavra de ativação e a sua pergunta. O áudio não
+      sai desta máquina enquanto você não pedir.
+    NSSpeechRecognitionUsageDescription: >-
+      A palavra de ativação é reconhecida dentro do seu Mac, sem enviar áudio
+      para lugar nenhum.
+    NSAppleEventsUsageDescription: >-
+      O Hipocampo pergunta ao Spotify, ao Música e ao navegador o que está
+      tocando, para saber com que trilha você trabalha.
+    NSSystemAdministrationUsageDescription: >-
+      O Hipocampo instala um agente que mede o seu dia enquanto você trabalha.
