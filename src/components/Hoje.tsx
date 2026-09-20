@@ -43,7 +43,11 @@ export function Hoje({ status }: { status: Status | null }) {
           <h2>{ehHoje ? <><b>Hoje</b></> : <b>{dataLonga(dia)}</b>}</h2>
           <p>
             {ehHoje && <>{dataLonga(dia)} · </>}
-            {dados.firstAt ? `das ${relogio(dados.firstAt)} às ${relogio(dados.lastAt)}` : 'nada medido ainda'}
+            {dados.firstAt
+              ? `das ${relogio(dados.firstAt)} às ${relogio(dados.lastAt)}`
+              : dados.idleSeconds > 60
+                ? `${duracao(dados.idleSeconds)} de máquina parada`
+                : 'nada medido ainda'}
           </p>
         </div>
         <div className="navega">
@@ -74,12 +78,16 @@ export function Hoje({ status }: { status: Status | null }) {
       {semDado ? (
         <div className="painel" style={{ padding: '40px 20px', textAlign: 'center' }}>
           <p style={{ color: 'var(--texto-medio)' }}>
-            Nada medido {ehHoje ? 'ainda hoje' : 'neste dia'}.
+            {dados.idleSeconds > 60
+              ? `Medindo, mas sem atividade: ${duracao(dados.idleSeconds)} de máquina parada.`
+              : `Nada medido ${ehHoje ? 'ainda hoje' : 'neste dia'}.`}
           </p>
           <p className="nota">
-            {ehHoje
-              ? 'O coletor grava a partir do momento em que sobe — o histórico anterior não existe.'
-              : 'O Hipocampo só enxerga a partir do dia em que começou a medir.'}
+            {dados.idleSeconds > 60
+              ? 'Assim que você voltar ao teclado, esta tela se enche sozinha.'
+              : ehHoje
+                ? 'O coletor grava a partir do momento em que sobe — o histórico anterior não existe.'
+                : 'O Hipocampo só enxerga a partir do dia em que começou a medir.'}
           </p>
         </div>
       ) : (
