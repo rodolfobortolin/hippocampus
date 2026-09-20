@@ -1,9 +1,19 @@
 """Prepara os ícones a partir da arte em assets/.
 
-O ícone do app é reencaixado na grade do macOS — 824 de 1024, com o resto
-reservado para a sombra que o sistema desenha. Sem isso ele aparece maior que
-os vizinhos no Dock. A silhueta vira máscara monocromática para a barra de
-menus, onde o que importa é só o canal alfa: o macOS recolore conforme o tema.
+O ícone do app sangra até a borda, de propósito.
+
+A grade clássica do macOS reservava 824 de 1024 para o conteúdo e o resto para
+a sombra que o sistema desenhava. Do macOS 26 em diante o sistema aplica a
+própria máscara em todo ícone — e aí a margem da arte vira margem *dentro* do
+recorte do sistema: o desenho aparece pequeno, boiando num quadrado vazio.
+Sangrando até a borda, quem define a forma é o macOS, que é o que ele quer.
+
+O fundo é pintado opaco antes de colar a arte. Se o raio do canto da arte não
+bater exatamente com o do sistema, a diferença fica preenchida com a mesma cor
+escura em vez de virar um respingo transparente na quina.
+
+A silhueta vira máscara monocromática para a barra de menus, onde o que importa
+é só o canal alfa: o macOS recolore conforme o tema.
 """
 from PIL import Image
 import pathlib
@@ -13,10 +23,14 @@ pathlib.Path('public').mkdir(exist_ok=True)
 
 bruto = Image.open('assets/icone.png').convert('RGBA')
 bruto = bruto.crop(bruto.getbbox())
-MESTRE, CONTEUDO = 1024, 824
-quadro = Image.new('RGBA', (MESTRE, MESTRE), (0, 0, 0, 0))
-corpo = bruto.resize((CONTEUDO, CONTEUDO), Image.LANCZOS)
-quadro.paste(corpo, ((MESTRE - CONTEUDO) // 2,) * 2, corpo)
+MESTRE = 1024
+corpo = bruto.resize((MESTRE, MESTRE), Image.LANCZOS)
+
+# A cor do fundo vem da própria arte, num ponto dentro da forma e longe do
+# desenho — assim o preenchimento é o mesmo preto, venha de onde vier a arte.
+fundo = corpo.convert('RGB').getpixel((int(MESTRE * 0.06), int(MESTRE * 0.5)))
+quadro = Image.new('RGBA', (MESTRE, MESTRE), (*fundo, 255))
+quadro.alpha_composite(corpo)
 quadro.save('build/icone-1024.png')
 
 sil = Image.open('assets/silhueta.png').convert('RGBA')
