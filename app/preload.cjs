@@ -11,7 +11,7 @@ contextBridge.exposeInMainWorld('hippocampus', {
   launchedAt: process.env.HIPPOCAMPUS_LAUNCH ?? '',
 
   /** Opens the system folder picker. Null when the person backs out. */
-  chooseFolder: () => ipcRenderer.invoke('choose-folder'),
+  chooseFolder: (message) => ipcRenderer.invoke('choose-folder', message),
 
   /** Opens the Accessibility pane of System Settings. */
   openAccessibility: () => ipcRenderer.invoke('open-accessibility'),

@@ -7,6 +7,7 @@ import { Work } from './components/Work.tsx'
 import { Journal } from './components/Journal.tsx'
 import { Chat } from './components/Chat.tsx'
 import { Settings } from './components/Settings.tsx'
+import { Onboarding } from './components/Onboarding.tsx'
 import {
   Badge, IconToday, IconRhythm, IconWork, IconJournal, IconChat, IconSettings,
 } from './components/Icons.tsx'
@@ -14,7 +15,7 @@ import {
 type Tab = 'today' | 'rhythm' | 'work' | 'journal' | 'chat' | 'settings'
 
 export function App() {
-  const t = useLanguage().t
+  const { t, settings } = useLanguage()
   const [tab, setTab] = useState<Tab>('today')
   const [status, setStatus] = useState<Status | null>(null)
   const [noCore, setSemNucleo] = useState(false)
@@ -126,6 +127,9 @@ export function App() {
           : tab === 'settings' ? <Settings />
           : <Chat status={status} />}
       </main>
+
+      {/* The first run, until it is finished or skipped; Settings can bring it back. */}
+      {settings && !settings.onboarded && !noCore && <Onboarding status={status} />}
     </div>
   )
 }

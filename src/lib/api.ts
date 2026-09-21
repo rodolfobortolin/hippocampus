@@ -96,6 +96,10 @@ export type Settings = {
   wideTools: boolean
   calendar: boolean
   timesheet: boolean
+  /** The folder the repositories live in. */
+  codeRoot: string
+  /** Whether the first-run walkthrough was finished or skipped. */
+  onboarded: boolean
   /** '' until the helper has asked; then 'granted' or 'denied'. */
   calendarStatus: string
   liveVoices: string[]
@@ -168,6 +172,11 @@ export const api = {
   days: () => get<StoredDay[]>('/api/days'),
   items: (from: string, to: string) => get<WorkItems>(`/api/items?from=${from}&to=${to}`),
   timesheet: (from: string, to: string) => get<Timesheet>(`/api/timesheet?from=${from}&to=${to}`),
+  repos: (root?: string) =>
+    get<{ root: string; repos: number; names: string[]; readable: boolean }>(`/api/repos${root ? `?root=${encodeURIComponent(root)}` : ''}`),
+  askAccessibility: () => get<{ asked: boolean }>('/api/permission/accessibility', { method: 'POST' }),
+  blocked: () => get<{ browsers: string[] }>('/api/blocked'),
+  retryBlocked: () => get<{ ok: boolean }>('/api/blocked', { method: 'POST' }),
   item: (key: string, from: string, to: string) =>
     get<{ item: Item | null; touches: Touch[] }>(`/api/item?key=${encodeURIComponent(key)}&from=${from}&to=${to}`),
   close: (day: string, narrate = true) =>

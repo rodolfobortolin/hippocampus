@@ -14,7 +14,7 @@ import { all } from './db.ts'
 import { backfillAll } from './backfill.ts'
 import { buildAllEpisodes } from './episodes.ts'
 import { withTimeout, sourceStates } from './guard.ts'
-import { classifyDay } from './jev.ts'
+import { classifyDay, labelLocally } from './jev.ts'
 import { knownProjects } from './metrics.ts'
 
 type Task = { name: string; everyMinutes: number; run: () => unknown | Promise<unknown> }
@@ -102,6 +102,8 @@ export class Collector {
    */
   private async catchUp(): Promise<void> {
     try {
+      const settled = labelLocally(null, knownProjects())
+      if (settled) console.log(`[collector] ${settled} windows labelled by rule`)
       const rebuilt = backfillAll()
       for (const day of rebuilt) {
         console.log(`[collector] ${day.day} rebuilt from events: ${day.blocks} blocks`)

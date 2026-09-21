@@ -1,5 +1,6 @@
 import { config } from './config.ts'
 import { db, one } from './db.ts'
+import { localLabel } from './rules.ts'
 import { CATEGORIES_BY_LANGUAGE, LEVELS_BY_LANGUAGE, JEV_QUESTIONS, validLanguage } from './languages.ts'
 
 // jev answers typed questions with a calibrated probability in about 100ms.
@@ -143,9 +144,36 @@ export async function classify(
   return label
 }
 
-/** Classifies a day's still-unlabelled windows, in controlled parallel. */
+/**
+ * The windows the app settles on its own (core/rules.ts): every one of the
+ * day, not just the longest, since it costs nothing. A gap jev left is filled
+ * too when the rule is certain; a label jev gave is never overwritten.
+ */
+export function labelLocally(day: string | null, projects: string[]): number {
+  // With no day, every window ever measured — run once at start, so the days
+  // measured before a rule existed read the same as the days after.
+  const windows = (day
+    ? db.prepare(`select app, title, host, url from blocks where day = ? and idle = 0 group by app, title`).all(day)
+    : db.prepare(`select app, title, host, url from blocks where idle = 0 group by app, title`).all()
+  ) as { app: string | null; title: string | null; host: string | null; url: string | null }[]
+  let done = 0
+  for (const window of windows) {
+    const key = labelKey(window)
+    const known = one<{ category: string }>('select category from labels where key = ?', key)
+    if (known && known.category !== 'unlabelled') continue
+    const local = localLabel(window, projects)
+    if (!local) continue
+    save.run(key, window.app, window.title?.slice(0, 200) ?? null, local.category, local.project,
+      0.5, 1, 'local', Math.floor(Date.now() / 1000))
+    done++
+  }
+  return done
+}
+
+/** Classifies a day's still-unlabelled windows: first by rule, then jev in controlled parallel. */
 export async function classifyDay(day: string, projects: string[]): Promise<number> {
-  if (!jevReady()) return 0
+  const settled = labelLocally(day, projects)
+  if (!jevReady()) return settled
   const blocks = db.prepare(
     `select app, title, host, url, sum(seconds) total from blocks
       where day = ? and idle = 0 group by app, title having total >= 20 order by total desc limit 120`,
@@ -162,7 +190,7 @@ export async function classifyDay(day: string, projects: string[]): Promise<numb
     }
   })
   await Promise.all(workers)
-  return done
+  return settled + done
 }
 
 /**

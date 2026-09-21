@@ -111,3 +111,18 @@ test('the region decides where OpenAI is reached, and a proxy still wins', async
     saveSettings({ region: 'global' })
   }
 })
+
+test('the code folder is a setting, and the collector reads it from there', async () => {
+  // It was fixed at ~/Documents/GitHub — where this machine keeps its
+  // repositories, and almost nobody else does.
+  const { saveSettings } = await import('../core/settings.ts')
+  const { config } = await import('../core/config.ts')
+  setMeta('settings', JSON.stringify({}))
+  const before = readSettings()
+  assert.equal(before.codeRoot, config.codeRoot, 'the default stays where it always was')
+  assert.equal(before.onboarded, false, 'a new install walks through the introduction')
+  saveSettings({ codeRoot: temporary, onboarded: true })
+  assert.equal(readSettings().codeRoot, temporary)
+  assert.equal(readSettings().onboarded, true)
+  assert.equal(config.codeRoot, temporary, 'the git harvest walks the folder the person chose')
+})

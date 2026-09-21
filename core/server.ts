@@ -15,6 +15,7 @@ import { readSettings, saveSettings, writeKey, keyState, openaiBase, type KeyNam
 import { LANGUAGES } from './languages.ts'
 import { workItems, itemDetail } from './items.ts'
 import { timesheet } from './timesheet.ts'
+import { countRepos } from './sources/git.ts'
 import { calendarAsk, calendarStatus, setCalendarStatus, keepMeetings, forgetMeetings } from './sources/calendar.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
 import { blockedBrowsers, retryDeniedBrowsers } from './sources/browser.ts'
@@ -162,6 +163,17 @@ export function serve(collector?: Collector): http.Server {
         const from = query.get('from') ?? dayOf(Date.now() / 1000 - 29 * 86_400)
         return json(response, workItems(from, to))
       }
+      // The walkthrough: how many repositories a folder holds, so the person
+      // sees at once whether they picked the right one.
+      if (route === '/api/repos') {
+        return json(response, await countRepos(query.get('root') ?? config.codeRoot))
+      }
+      // Raises the macOS Accessibility prompt, from the helper the core runs.
+      if (route === '/api/permission/accessibility' && request.method === 'POST') {
+        const asked = (collector ?? attached)?.focus?.askForAccessibility?.() ?? false
+        return json(response, { asked })
+      }
+
       if (route === '/api/timesheet') {
         const to = query.get('to') ?? today()
         return json(response, timesheet(query.get('from') ?? dayOf(Date.now() / 1000 - 6 * 86_400), to))

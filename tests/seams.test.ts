@@ -414,3 +414,18 @@ test('every source state the core reports has words on screen', () => {
   }
   assert.match(read('src/App.tsx'), /state !== 'never'/, 'sources never tried stay out of the sidebar')
 })
+
+test('the walkthrough asks the core only for routes it serves', () => {
+  const server = read('core/server.ts')
+  for (const route of ['/api/repos', '/api/permission/accessibility', '/api/blocked']) {
+    assert.match(read('src/lib/api.ts'), new RegExp(route.replace(/\//g, '\\/')), `api.ts calls ${route}`)
+    assert.match(server, new RegExp(`route === '${route.replace(/\//g, '\\/')}'`), `the core serves ${route}`)
+  }
+  // The folder picker says what it is for, in the person's language.
+  assert.match(read('app/preload.cjs'), /chooseFolder: \(message\) => ipcRenderer\.invoke\('choose-folder', message\)/)
+  assert.match(read('app/main.cjs'), /ipcMain\.handle\('choose-folder', async \(_event, message\)/)
+  // The logos it shows are in the folder Vite publishes.
+  for (const logo of ['claude.webp', 'obsidian.webp', 'typesafe.png']) {
+    assert.ok(fs.existsSync(path.join(root, 'public', 'logos', logo)), `public/logos/${logo}`)
+  }
+})

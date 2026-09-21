@@ -6,6 +6,15 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- A first-run walkthrough: what stays on the Mac and what each optional
+  service sees, the two macOS permissions with their live state, where your
+  code lives, the Obsidian vault, the services with their keys, and the two
+  extras. Every step can be skipped, and Settings can bring it back.
+- The folder your repositories live in is a setting, no longer fixed at
+  ~/Documents/GitHub.
+- Well-known apps get their category on the Mac itself — an editor is code,
+  Slack is communication — so the day's focus is not empty without a
+  TypeSafe key. Anything uncertain is still left unlabelled.
 - The Work tab can show just today.
 - The sidebar says in words why a source is not collecting — "waiting for you
   to allow it" — instead of an internal code, and no longer lists the sources

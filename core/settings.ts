@@ -80,6 +80,13 @@ export type Settings = {
    * surveillance, so it stays off until asked for.
    */
   timesheet: boolean
+  /**
+   * The folder the repositories live in. It was fixed at ~/Documents/GitHub,
+   * which is where this machine keeps them and almost nobody else does.
+   */
+  codeRoot: string
+  /** Whether the first-run walkthrough was finished or skipped. */
+  onboarded: boolean
 }
 
 export type Region = 'global' | 'eu'
@@ -172,6 +179,8 @@ const DEFAULTS: Settings = {
   wideTools: false,
   calendar: false,
   timesheet: false,
+  codeRoot: config.codeRoot,
+  onboarded: false,
 }
 
 /**
@@ -217,6 +226,8 @@ export function readSettings(): Settings {
       wideTools: data.wideTools === true,
       calendar: data.calendar === true,
       timesheet: data.timesheet === true,
+      codeRoot: String(data.codeRoot ?? '').trim() || DEFAULTS.codeRoot,
+      onboarded: data.onboarded === true,
     }
   } catch {
     return { ...DEFAULTS }
@@ -236,6 +247,7 @@ export function applySettings(settings: Settings = readSettings()): Settings {
   config.dayStartHour = settings.dayStartHour
   config.keepTyping = settings.keepTyping
   config.voice = settings.voice
+  config.codeRoot = settings.codeRoot
   config.typesafeKey = readKey('jev') || (process.env.TYPESAFE_API_KEY ?? '').trim()
   config.openaiKey = readKey('openai') || (process.env.OPENAI_API_KEY ?? '').trim()
   return settings

@@ -125,7 +125,12 @@ export class FocusCollector {
     }
     // The samples come back on stdout; the calendar, when it is turned on, is
     // read by the helper and sent to the core, so it needs the address.
-    this.child = spawn(paths.native, ['--interval', String(config.sampleInterval), '--core', `http://127.0.0.1:${config.port}`], {
+    // --ask raises the system's Accessibility prompt once, when the
+    // walkthrough asks for it: the app then appears in the list by itself,
+    // instead of the person having to find it and add it by hand.
+    const ask = this.askNext ? ['--ask'] : []
+    this.askNext = false
+    this.child = spawn(paths.native, ['--interval', String(config.sampleInterval), '--core', `http://127.0.0.1:${config.port}`, ...ask], {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     this.child.stdout?.on('data', (chunk) => this.consume(String(chunk)))
@@ -136,6 +141,22 @@ export class FocusCollector {
       this.open = null
       setTimeout(() => void this.start(), 5000)
     })
+  }
+
+  private askNext = false
+
+  /**
+   * Restarts the helper this collector runs, asking macOS for Accessibility on
+   * the way. A helper started by launchd asks on its own; this is for the one
+   * the core starts, which otherwise never asks.
+   */
+  askForAccessibility(): boolean {
+    if (!this.child) return false
+    this.askNext = true
+    this.child.removeAllListeners('exit')
+    this.child.once('exit', () => { this.child = null; this.open = null; void this.start() })
+    this.child.kill()
+    return true
   }
 
   stop(): void {

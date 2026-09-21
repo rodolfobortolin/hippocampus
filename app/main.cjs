@@ -360,12 +360,13 @@ app.whenReady().then(async () => {
   if (process.platform === 'darwin' && !app.isPackaged) {
     app.dock?.setIcon(nativeImage.createFromPath(path.join(ROOT, 'build', 'icon.icns')))
   }
-  // The vault's folder picker. It lives in the main process because only that
-  // one has access to the file system and to the macOS dialogs.
-  ipcMain.handle('choose-folder', async () => {
+  // The folder picker — the vault, the code. It lives in the main process
+  // because only that one has access to the file system and to the macOS
+  // dialogs. The page passes the sentence to show, already in its language.
+  ipcMain.handle('choose-folder', async (_event, message) => {
     const choice = await dialog.showOpenDialog({
       properties: ['openDirectory', 'createDirectory'],
-      message: 'Choose your Obsidian vault folder',
+      message: typeof message === 'string' && message ? message : 'Choose a folder',
     })
     return choice.canceled ? null : choice.filePaths[0] ?? null
   })

@@ -134,3 +134,29 @@ export async function harvestGit(days = 3): Promise<{ commits: number; branches:
   }
   return { commits: total, branches: switches }
 }
+
+/**
+ * The repositories directly inside a folder, for the walkthrough to show
+ * what it found. Asynchronous and bounded in time, like the harvest: the
+ * folder people pick is often inside ~/Documents, where macOS protects reads,
+ * and a synchronous read there freezes the whole core instead of failing.
+ */
+export async function countRepos(root: string): Promise<{ root: string; repos: number; names: string[]; readable: boolean }> {
+  const look = async () => {
+    const names = await fs.readdir(root)
+    const found: string[] = []
+    await Promise.all(names.map(async (name) => {
+      try { await fs.access(path.join(root, name, '.git')); found.push(name) } catch { /* not a repository */ }
+    }))
+    return found.sort()
+  }
+  try {
+    const found = await Promise.race([
+      look(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+    ])
+    return { root, repos: found.length, names: found.slice(0, 8), readable: true }
+  } catch {
+    return { root, repos: 0, names: [], readable: false }
+  }
+}
