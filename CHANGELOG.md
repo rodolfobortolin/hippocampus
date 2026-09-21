@@ -6,6 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The Work tab can show just today.
+- The sidebar says in words why a source is not collecting — "waiting for you
+  to allow it" — instead of an internal code, and no longer lists the sources
+  that were simply never tried.
 - The menu bar icon shows in the installed app. Since the first release it had
   been an empty space you could click but not see.
 - The app no longer says that nothing leaves the Mac. The database stays on it;

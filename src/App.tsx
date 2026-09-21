@@ -96,7 +96,7 @@ export function App() {
                   : status.collector.trusted === false ? 'warm' : ''}`} />{t.status.accessibility}
               </div>
               {Object.entries(status.collector.sources ?? {})
-                .filter(([, state]) => state !== 'ok' && state !== 'nunca')
+                .filter(([, state]) => state !== 'ok' && state !== 'never')
                 .map(([source, state]) => {
                   // A known code becomes a sentence in the person's language; what is not
                   // not known came from the system and goes through raw, because

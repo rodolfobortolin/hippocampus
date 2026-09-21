@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { api, type Item, type PageKind, type Timesheet, type Touch, type WorkItems } from '../lib/api.ts'
-import { addDays, clock, dayOf, duration, number, plural, shortDate, today as todayString, weekdayNames } from '../lib/format.ts'
+import { addDays, clock, dayOf, duration, longDate, number, plural, shortDate, today as todayString, weekdayNames } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
 import type { Strings } from '../lib/strings.ts'
 
@@ -48,6 +48,7 @@ function titleOf(item: Item, t: Strings) {
 export function Work() {
   const t = useLanguage().t
   const WINDOWS = [
+    { days: 1, name: t.today.todayButton },
     { days: 7, name: t.rhythm.days7 },
     { days: 30, name: t.rhythm.days30 },
     { days: 90, name: t.rhythm.days90 },
@@ -116,7 +117,7 @@ export function Work() {
       <div className="top">
         <div>
           <h2><b>{t.work.title}</b></h2>
-          <p>{t.work.pieces(view.pieces)} {t.rhythm.between} {from} {t.rhythm.and} {to}</p>
+          <p>{t.work.pieces(view.pieces)} · {span === 1 ? longDate(to) : `${t.rhythm.between} ${from} ${t.rhythm.and} ${to}`}</p>
           {!timed && data.timeSince && <p>{t.work.timeSince(shortDate(data.timeSince))}</p>}
         </div>
         <div className="nav">

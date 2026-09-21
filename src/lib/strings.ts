@@ -21,7 +21,7 @@ export type Strings = {
   status: {
     brand: string
     /** Por que uma fonte de dados não está coletando. */
-    source: Record<'aguardando-permissao' | 'sem-permissao' | 'nunca', string>
+    source: Record<'awaiting-permission' | 'no-permission' | 'never', string>
     measuring: string; idle: string; stopped: string; coreDown: string
     inFocus: string; accessibility: string; classification: string; narrative: string
     startItWith: string; noCore: string
@@ -135,7 +135,7 @@ const pt: Strings = {
   tabs: { today: 'Hoje', rhythm: 'Ritmo', work: 'Trabalho', journal: 'Diário', chat: 'Conversa', settings: 'Ajustes' },
   status: {
     brand: 'memória da máquina',
-    source: { 'aguardando-permissao': 'esperando você permitir', 'sem-permissao': 'sem permissão', nunca: 'ainda não tentou' },
+    source: { 'awaiting-permission': 'esperando você permitir', 'no-permission': 'sem permissão', never: 'ainda não tentou' },
     measuring: 'medindo', idle: 'ocioso', stopped: 'parado', coreDown: 'núcleo desligado',
     inFocus: 'em foco', accessibility: 'acessibilidade', classification: 'classificação das janelas',
     narrative: 'narrativa e conversa',
@@ -302,7 +302,7 @@ const en: Strings = {
   tabs: { today: 'Today', rhythm: 'Rhythm', work: 'Work', journal: 'Journal', chat: 'Chat', settings: 'Settings' },
   status: {
     brand: 'the machine’s memory',
-    source: { 'aguardando-permissao': 'waiting for you to allow it', 'sem-permissao': 'no permission', nunca: 'not tried yet' },
+    source: { 'awaiting-permission': 'waiting for you to allow it', 'no-permission': 'no permission', never: 'not tried yet' },
     measuring: 'measuring', idle: 'idle', stopped: 'stopped', coreDown: 'core is down',
     inFocus: 'in focus', accessibility: 'accessibility', classification: 'window classification',
     narrative: 'writing and chat',
@@ -469,7 +469,7 @@ const es: Strings = {
   tabs: { today: 'Hoy', rhythm: 'Ritmo', work: 'Trabajo', journal: 'Diario', chat: 'Conversación', settings: 'Ajustes' },
   status: {
     brand: 'la memoria de la máquina',
-    source: { 'aguardando-permissao': 'esperando que lo permitas', 'sem-permissao': 'sin permiso', nunca: 'aún no lo intentó' },
+    source: { 'awaiting-permission': 'esperando que lo permitas', 'no-permission': 'sin permiso', never: 'aún no lo intentó' },
     measuring: 'midiendo', idle: 'inactivo', stopped: 'parado', coreDown: 'núcleo apagado',
     inFocus: 'en foco', accessibility: 'accesibilidad', classification: 'clasificación de ventanas',
     narrative: 'redacción y conversación',
@@ -636,7 +636,7 @@ const fr: Strings = {
   tabs: { today: 'Aujourd’hui', rhythm: 'Rythme', work: 'Travail', journal: 'Journal', chat: 'Conversation', settings: 'Réglages' },
   status: {
     brand: 'la mémoire de la machine',
-    source: { 'aguardando-permissao': 'en attente de ton autorisation', 'sem-permissao': 'sans autorisation', nunca: 'pas encore tenté' },
+    source: { 'awaiting-permission': 'en attente de ton autorisation', 'no-permission': 'sans autorisation', never: 'pas encore tenté' },
     measuring: 'mesure en cours', idle: 'inactif', stopped: 'arrêté', coreDown: 'le noyau est éteint',
     inFocus: 'concentré', accessibility: 'accessibilité', classification: 'classement des fenêtres',
     narrative: 'rédaction et conversation',
@@ -803,7 +803,7 @@ const de: Strings = {
   tabs: { today: 'Heute', rhythm: 'Rhythmus', work: 'Arbeit', journal: 'Tagebuch', chat: 'Gespräch', settings: 'Einstellungen' },
   status: {
     brand: 'das Gedächtnis der Maschine',
-    source: { 'aguardando-permissao': 'wartet auf deine Erlaubnis', 'sem-permissao': 'keine Berechtigung', nunca: 'noch nicht versucht' },
+    source: { 'awaiting-permission': 'wartet auf deine Erlaubnis', 'no-permission': 'keine Berechtigung', never: 'noch nicht versucht' },
     measuring: 'misst', idle: 'untätig', stopped: 'steht still', coreDown: 'Kern ist aus',
     inFocus: 'konzentriert', accessibility: 'Bedienungshilfen', classification: 'Fensterklassifizierung',
     narrative: 'Schreiben und Gespräch',

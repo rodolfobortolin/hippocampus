@@ -401,3 +401,16 @@ test('what the installed app reads from its own folder is in the package', () =>
     assert.ok(fs.existsSync(path.join(root, file)), `${file} is what the tray shows`)
   }
 })
+
+test('every source state the core reports has words on screen', () => {
+  // The core's states were renamed to English and the screen kept looking for
+  // the Portuguese ones: the sidebar showed "browsers: never", untranslated.
+  const guard = read('core/sources/../guard.ts')
+  const union = guard.match(/type SourceState = ([^\n]+)/)?.[1] ?? ''
+  const states = [...union.matchAll(/'([\w-]+)'/g)].map((m) => m[1]).filter((s) => s !== 'ok')
+  const strings = read('src/lib/strings.ts')
+  for (const state of states) {
+    assert.match(strings, new RegExp(`'${state}'`), `the interface has no words for the source state "${state}"`)
+  }
+  assert.match(read('src/App.tsx'), /state !== 'never'/, 'sources never tried stay out of the sidebar')
+})
