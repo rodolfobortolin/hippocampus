@@ -175,3 +175,8 @@ describes it — the Rhythm copy names Thursday at 16h because the capture picks
 that cell. `npm run site` serves it; `npm run site:build` builds it into
 `site/dist`.
 
+It is published on GitHub Pages at https://rodolfobortolin.github.io/hippocampus/
+by `.github/workflows/site.yml`, which runs when `site/`, the sphere in
+`src/three/` or the lockfile change on main, and by hand. Nothing else
+publishes it, so a push that only touches the app leaves the site as it is.
+

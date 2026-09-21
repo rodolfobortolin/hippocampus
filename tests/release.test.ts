@@ -40,3 +40,16 @@ test('the latest release in the changelog is the version the app reports', () =>
   assert.equal(latest, version,
     `CHANGELOG.md's latest release is v${latest} but package.json says ${version}`)
 })
+
+test('the website publishes when the site changes, not on every commit', () => {
+  // The same rule as the pipeline: a commit to the app alone would publish a
+  // site identical to the one already up.
+  const workflow = read('.github/workflows/site.yml')
+  const on = workflow.slice(workflow.indexOf('\non:'), workflow.indexOf('\npermissions:'))
+  assert.match(on, /paths:/, 'site.yml should only run when the files the site is built from change')
+  assert.match(on, /'site\/\*\*'/)
+  assert.match(on, /workflow_dispatch/, 'site.yml should be runnable by hand')
+  // And what it publishes is what `npm run site:build` writes.
+  assert.match(workflow, /path: site\/dist/)
+  assert.match(read('site/vite.config.ts'), /outDir: 'dist'/)
+})
