@@ -252,10 +252,17 @@ export function FloatingCore() {
   // opens, the session is refused, everything resets, and the screen looks
   // exactly like a click that did nothing.
   const liveTrouble = live.error === 'live-no-answer' ? t.chat.liveNoAnswer : live.error
+  // Turned off, the sphere sits alone on the desktop: it still listens and
+  // still speaks, it just stops putting words over whatever is behind it.
+  // What went wrong is still said — an error nobody can see is worse than no
+  // caption at all.
+  const writes = settings?.caption !== false
+  const trouble = listening.error || liveTrouble
   // An answer is newer than the complaint above it. Put the error first and a
   // single "I did not catch that" pins itself over every reply that follows.
-  const said = answer || listening.error || liveTrouble || question
-  const hint = !connected ? t.chat.reconnecting
+  const said = writes ? (answer || trouble || question) : trouble
+  const hint = !writes ? ''
+    : !connected ? t.chat.reconnecting
     : liveWanted ? (liveOn ? t.chat.liveOn : t.chat.liveStart)
     : t.chat.clickToSpeak
 
@@ -297,18 +304,18 @@ export function FloatingCore() {
       </button>
 
       {said ? (
-        <div className={`floating-caption ${answer ? 'long' : ''}`}>
-          {question && answer && <b>{question}</b>}
+        <div className={`floating-caption ${answer && writes ? 'long' : ''}`}>
+          {writes && question && answer && <b>{question}</b>}
           {/* The model writes markdown whether or not anyone renders it, so a
               caption that prints it raw shows asterisks around the words it
               meant to emphasise. */}
           {answer && said === answer ? <Markdown text={said} /> : <p>{said}</p>}
         </div>
-      ) : (
+      ) : hint ? (
         // The hint carries no panel: it is lit text over the desktop, readable
         // on light and dark alike because the glow comes from the letters.
         <p className="floating-hint">{hint}</p>
-      )}
+      ) : null}
     </div>
   )
 }

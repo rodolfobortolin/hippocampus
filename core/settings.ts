@@ -45,6 +45,14 @@ export type Settings = {
    * is worse than not working.
    */
   region: Region
+  /**
+   * Whether the floating core writes what it heard and what it answered.
+   *
+   * Off leaves the sphere alone on the desktop: it still listens and still
+   * speaks, it just stops putting words over whatever is behind it. What goes
+   * wrong is still said — an error nobody can see is worse than no caption.
+   */
+  caption: boolean
 }
 
 export type Region = 'global' | 'eu'
@@ -133,6 +141,7 @@ const DEFAULTS: Settings = {
   voiceMode: 'push',
   liveVoice: 'marin',
   region: 'global',
+  caption: true,
 }
 
 /**
@@ -174,6 +183,7 @@ export function readSettings(): Settings {
       voiceMode: data.voiceMode === 'live' ? 'live' : 'push',
       liveVoice: String(data.liveVoice ?? DEFAULTS.liveVoice),
       region: data.region === 'eu' ? 'eu' : 'global',
+      caption: data.caption !== false,
     }
   } catch {
     return { ...DEFAULTS }

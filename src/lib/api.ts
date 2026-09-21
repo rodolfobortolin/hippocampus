@@ -75,6 +75,8 @@ export type Settings = {
   liveVoice: string
   /** Which OpenAI geography the key belongs to. */
   region: 'global' | 'eu'
+  /** Whether the floating core writes what it heard and what it answered. */
+  caption: boolean
   liveVoices: string[]
   /** False when there is no OpenAI key, which is what the live voice needs. */
   liveAvailable: boolean
