@@ -122,3 +122,18 @@ test('the category names are translated, not left in English', async () => {
     }
   }
 })
+
+test('the line that opens the day in the vault is written whole in one language', async () => {
+  const { VAULT_LINE } = await import('../core/languages.ts')
+  const day = { active: '5h14', from: '10:45', to: '20:49', focus: '3h33', sessions: 8, longest: 50, switches: 622, ofProject: 171 }
+  // Exactly the line already sitting in a real note, written before the rename.
+  assert.equal(VAULT_LINE['pt-BR'](day), '**5h14 ativo** · 10:45–20:49 · 3h33 concentrado em 8 sessões (maior 50min) · 622 trocas, 171 de projeto')
+  assert.equal(VAULT_LINE['en-US']({ ...day, delegated: '2h30' }),
+    '**5h14 active** · 2h30 delegated to agents · 10:45–20:49 · 3h33 focused in 8 sessions (longest 50min) · 622 switches, 171 between projects')
+  // No language borrows another's words, which is how the rename broke it.
+  for (const [language, line] of Object.entries(VAULT_LINE)) {
+    const text = line(day)
+    if (language !== 'en-US') assert.doesNotMatch(text, /\b(from your|focused|switches|longest)\b/, language)
+    if (language !== 'pt-BR') assert.doesNotMatch(text, /\b(maior|trocas|concentrado em)\b/, language)
+  }
+})

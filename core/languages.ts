@@ -235,3 +235,32 @@ export const TIMESHEET_WORDS: Record<Language, { client: string; total: string; 
   'de-DE': { client: 'Kunde', total: 'gesamt', agent: 'Agent', unassigned: 'ohne Kunde',
     note: 'Entwurf zum Prüfen: gemessener Fokus nach Kunde und Arbeitselement; die Zeit des Agenten steht getrennt.' },
 }
+
+export type DayLine = {
+  active: string; delegated?: string; from: string; to: string
+  focus: string; sessions: number; longest: number; switches: number; ofProject: number
+}
+
+/**
+ * The one line that opens the day's section in the vault. It sat in the
+ * rollup as a sentence in Portuguese, and the rename translated half of it —
+ * "from your own hands … focused across 8 sessions (maior 50min) · 622
+ * trocas, 171 de project". Kept here, it is written whole in each language.
+ */
+export const VAULT_LINE: Record<Language, (v: DayLine) => string> = {
+  'pt-BR': (v) => `**${v.active} ativo**${v.delegated ? ` · ${v.delegated} delegado a agentes` : ''} · ${v.from}–${v.to} · `
+    + `${v.focus} concentrado em ${v.sessions} ${v.sessions === 1 ? 'sessão' : 'sessões'} (maior ${v.longest}min) · `
+    + `${v.switches} trocas, ${v.ofProject} de projeto`,
+  'en-US': (v) => `**${v.active} active**${v.delegated ? ` · ${v.delegated} delegated to agents` : ''} · ${v.from}–${v.to} · `
+    + `${v.focus} focused in ${v.sessions} ${v.sessions === 1 ? 'session' : 'sessions'} (longest ${v.longest}min) · `
+    + `${v.switches} switches, ${v.ofProject} between projects`,
+  'es-ES': (v) => `**${v.active} activo**${v.delegated ? ` · ${v.delegated} delegado a agentes` : ''} · ${v.from}–${v.to} · `
+    + `${v.focus} concentrado en ${v.sessions} ${v.sessions === 1 ? 'sesión' : 'sesiones'} (la mayor de ${v.longest}min) · `
+    + `${v.switches} cambios, ${v.ofProject} de proyecto`,
+  'fr-FR': (v) => `**${v.active} actif**${v.delegated ? ` · ${v.delegated} délégué à des agents` : ''} · ${v.from}–${v.to} · `
+    + `${v.focus} concentré en ${v.sessions} ${v.sessions === 1 ? 'session' : 'sessions'} (la plus longue ${v.longest} min) · `
+    + `${v.switches} changements, ${v.ofProject} de projet`,
+  'de-DE': (v) => `**${v.active} aktiv**${v.delegated ? ` · ${v.delegated} an Agenten delegiert` : ''} · ${v.from}–${v.to} · `
+    + `${v.focus} konzentriert in ${v.sessions} ${v.sessions === 1 ? 'Sitzung' : 'Sitzungen'} (längste ${v.longest} Min) · `
+    + `${v.switches} Wechsel, ${v.ofProject} zwischen Projekten`,
+}

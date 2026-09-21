@@ -6,6 +6,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The line that opens each day in the journal is written in one language again;
+  the rename had left it half in English.
 - The same question about your day gets the same number, with the wider tools on
   too: the assistant is told to use the app's own tools, never its own SQL.
 - Commits are counted once, even after a rebase or a rewritten history. One

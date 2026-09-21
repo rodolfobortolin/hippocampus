@@ -7,7 +7,7 @@ import { buildEpisodes } from './episodes.ts'
 import { knownProjects } from './metrics.ts'
 import { ask } from './claude.ts'
 import { writeDaySection } from './vault.ts'
-import { HOW_TO_WRITE, VAULT_HEADING, TIMESHEET_HEADING, TIMESHEET_WORDS, validLanguage } from './languages.ts'
+import { HOW_TO_WRITE, VAULT_HEADING, VAULT_LINE, TIMESHEET_HEADING, TIMESHEET_WORDS, validLanguage } from './languages.ts'
 import { PERSONAS } from './personas.ts'
 import { DOSSIER } from './dossier.ts'
 import { timesheet, timesheetTable } from './timesheet.ts'
@@ -130,11 +130,13 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
   let vaultFile: string | null = null
   if (narrative) {
     const body = [
-      `**${hours(report.activeSeconds)} from your own hands**` +
-      (report.delegatedSeconds > 300 ? ` · ${hours(report.delegatedSeconds)} delegado a agents` : '') +
-      ` · ${clock(report.firstAt)}–${clock(report.lastAt)} · ` +
-      `${hours(report.focusSeconds)} focused across ${report.focusShape.sessions} sessions ` +
-      `(maior ${report.focusShape.longest}min) · ${report.switches} trocas, ${report.switchesProject} de project`,
+      VAULT_LINE[language]({
+        active: hours(report.activeSeconds),
+        delegated: report.delegatedSeconds > 300 ? hours(report.delegatedSeconds) : undefined,
+        from: clock(report.firstAt), to: clock(report.lastAt),
+        focus: hours(report.focusSeconds), sessions: report.focusShape.sessions, longest: report.focusShape.longest,
+        switches: report.switches, ofProject: report.switchesProject,
+      }),
       '',
       narrative,
       '',
