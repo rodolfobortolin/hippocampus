@@ -26,3 +26,17 @@ test('the pipeline does not run on every push to main', () => {
   assert.match(on, /workflow_dispatch/, 'build.yml should be runnable by hand')
 })
 
+
+test('the changelog keeps a place for what is not released yet', () => {
+  assert.match(read('CHANGELOG.md'), /^## Unreleased$/m,
+    'CHANGELOG.md needs an "## Unreleased" section to record changes as they land')
+})
+
+test('the latest release in the changelog is the version the app reports', () => {
+  // Both move at release time, by hand. Forgetting one leaves the app calling
+  // itself a version whose notes describe something else.
+  const latest = read('CHANGELOG.md').match(/^## v(\d+\.\d+\.\d+)/m)?.[1]
+  const version = JSON.parse(read('package.json')).version
+  assert.equal(latest, version,
+    `CHANGELOG.md's latest release is v${latest} but package.json says ${version}`)
+})
