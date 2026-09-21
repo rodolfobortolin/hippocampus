@@ -60,8 +60,10 @@ function flow(): void {
   const core = root.querySelector<HTMLElement>('.core')!
   const sources = [...root.querySelectorAll<HTMLElement>('.sources li')]
   const outputs = [...root.querySelectorAll<HTMLElement>('.outputs li')]
+  const services = [...root.querySelectorAll<HTMLElement>('.services li')]
   sources.forEach((li, k) => li.style.setProperty('--k', String(k)))
   outputs.forEach((li, k) => li.style.setProperty('--k', String(k)))
+  services.forEach((li, k) => li.style.setProperty('--k', String(k)))
 
   let shown = false
   let live = false
@@ -75,10 +77,11 @@ function flow(): void {
     svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`)
     svg.replaceChildren()
 
-    const wire = (from: readonly [number, number], to: readonly [number, number], colour: string, delay: number) => {
+    const wire = (from: readonly [number, number], to: readonly [number, number], colour: string, delay: number,
+      vertical = stacked) => {
       const [fx, fy] = from
       const [tx, ty] = to
-      const d = stacked
+      const d = vertical
         ? `M${fx},${fy} C${fx},${(fy + ty) / 2} ${tx},${(fy + ty) / 2} ${tx},${ty}`
         : `M${fx},${fy} C${(fx + tx) / 2},${fy} ${(fx + tx) / 2},${ty} ${tx},${ty}`
       const path = document.createElementNS(SVG, 'path')
@@ -91,7 +94,7 @@ function flow(): void {
     }
 
     const spread = (k: number, n: number, size: number) => (k - (n - 1) / 2) * Math.min(12, size / (n + 1))
-    const lines: { d: string; colour: string; outbound: boolean; k: number }[] = []
+    const lines: { d: string; colour: string; outbound: boolean; k: number; away?: boolean }[] = []
     sources.forEach((li, k) => {
       const r = li.getBoundingClientRect()
       const colour = getComputedStyle(li).getPropertyValue('--c').trim() || '#ffffff'
@@ -110,11 +113,54 @@ function flow(): void {
       const to = stacked ? at(r.left + r.width / 2, r.top) : at(r.left, r.top + r.height / 2)
       lines.push({ d: wire(from, to, colour, 750 + k * 60), colour, outbound: true, k })
     })
+    // Out of the Mac and back: from the core's foot, across the frame's edge,
+    // to each service. Not drawn when the drawing stands up, as on a phone —
+    // the outputs sit between the core and the services there, and a wire
+    // would run straight through them.
+    if (!stacked) services.forEach((li, k) => {
+      const r = li.getBoundingClientRect()
+      const colour = getComputedStyle(li).getPropertyValue('--c').trim() || '#ffffff'
+      const from = at(c.left + c.width / 2 + (k - (services.length - 1) / 2) * 28, c.bottom)
+      const to = at(r.left + r.width / 2, r.top)
+      lines.push({ d: wire(from, to, colour, 1300 + k * 90, true), colour, outbound: false, k, away: true })
+    })
 
     // The light, only once the wires exist and only if motion is welcome.
     if (still()) return
     const now = svg.getCurrentTime()
-    for (const { d, colour, outbound, k } of lines) {
+    for (const { d, colour, outbound, k, away } of lines) {
+      if (away) {
+        for (const back of [false, true]) {
+          const dot = document.createElementNS(SVG, 'circle')
+          dot.setAttribute('r', '2.6')
+          dot.setAttribute('fill', back ? '#ff8a3d' : colour)
+          dot.setAttribute('opacity', '0')
+          dot.style.color = back ? '#ff8a3d' : colour
+          const duration = 2.4
+          const begin = now + (shown ? 0 : 1.6) + 2 + k * 0.6 + (back ? duration / 2 : 0)
+          const motion = document.createElementNS(SVG, 'animateMotion')
+          motion.setAttribute('path', d)
+          motion.setAttribute('dur', `${duration}s`)
+          motion.setAttribute('begin', `${begin}s`)
+          motion.setAttribute('repeatCount', 'indefinite')
+          // What comes back travels the same wire the other way.
+          if (back) {
+            motion.setAttribute('keyPoints', '1;0')
+            motion.setAttribute('keyTimes', '0;1')
+            motion.setAttribute('calcMode', 'linear')
+          }
+          const fade = document.createElementNS(SVG, 'animate')
+          fade.setAttribute('attributeName', 'opacity')
+          fade.setAttribute('values', '0;1;1;0')
+          fade.setAttribute('keyTimes', '0;0.12;0.85;1')
+          fade.setAttribute('dur', `${duration}s`)
+          fade.setAttribute('begin', `${begin}s`)
+          fade.setAttribute('repeatCount', 'indefinite')
+          dot.append(motion, fade)
+          svg.append(dot)
+        }
+        continue
+      }
       const dot = document.createElementNS(SVG, 'circle')
       dot.setAttribute('r', outbound ? '2.8' : '2.4')
       dot.setAttribute('fill', colour)

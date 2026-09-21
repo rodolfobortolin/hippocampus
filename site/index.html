@@ -118,6 +118,61 @@
     </a>
   </section>
 
+  <!-- How it is built. The boxes are HTML, so the words stay crisp and
+       readable; the wires between them are drawn by motion.ts from where the
+       boxes actually landed, which is what lets the same drawing work as three
+       columns on a laptop and as a stack on a phone. The two services sit
+       outside the Mac's frame on purpose: the drawing says what the privacy
+       paragraph says — two things leave, under your own login and key, and
+       nothing else does. -->
+  <section id="how" class="how">
+    <h2 class="reveal">Almost everything happens on <b>this Mac</b></h2>
+    <p class="kicker reveal">The sources are what macOS, your browsers, git and your agents already write down.
+      The core reads them into one database on this machine. Two things leave it, under your own login and key:
+      window titles go to jev to be labelled, and the day goes to Claude Code to be written up.</p>
+    <div class="arch" data-flow>
+      <svg class="wires" aria-hidden="true"></svg>
+      <div class="flow">
+        <p class="machine">This Mac</p>
+        <ul class="sources" aria-label="What it reads">
+          <li style="--c: var(--code)"><b>Window and tab</b><span>every four seconds</span></li>
+          <li style="--c: var(--research)"><b>Browser history</b><span>sites, tickets, pages</span></li>
+          <li style="--c: var(--ember)"><b>Git</b><span>commits and branches</span></li>
+          <li style="--c: var(--ai)"><b>Claude Code and Codex</b><span>what you asked</span></li>
+          <li style="--c: var(--gold)"><b>The power log</b><span>when you sat down</span></li>
+          <li style="--c: var(--communication)" class="optional"><b>Calendar</b><span>if you allow it</span></li>
+        </ul>
+        <div class="core" aria-label="The core">
+          <img src="brand.png" alt="" width="22" height="34">
+          <b>The core</b>
+          <span>one SQLite file · each window labelled · the day written up</span>
+        </div>
+        <ul class="outputs" aria-label="What it gives back">
+          <li><b>Today and Rhythm</b><span>charts of the day and the month</span></li>
+          <li><b>Work</b><span>time by client and ticket</span></li>
+          <li><b><img src="logos/obsidian.webp" alt="" width="16" height="16">Journal</b><span>a note in your Obsidian vault</span></li>
+          <li><b><img src="logos/obsidian.webp" alt="" width="16" height="16">Notes</b><span>projects, knowledge, people</span></li>
+          <li><b>Conversation</b><span>typed or out loud</span></li>
+        </ul>
+      </div>
+      <div class="beyond">
+        <p class="machine">Outside this Mac · your own login and key</p>
+        <ul class="services" aria-label="What it asks outside this Mac">
+          <li style="--c: var(--research)">
+            <img src="logos/typesafe.png" alt="" width="26" height="28">
+            <b>jev <em>by TypeSafe</em></b>
+            <span>window titles go · a category and a project come back</span>
+          </li>
+          <li style="--c: var(--ai)">
+            <img src="logos/claude.webp" alt="" width="28" height="28">
+            <b>Claude Code</b>
+            <span>the day and your requests go · the journal, the notes and the answers come back</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <section class="keeps">
     <h2 class="reveal">What it <b>keeps</b></h2>
     <p class="kicker reveal">Text and events, never pixels. Everything below is read from what your Mac already writes down.</p>
@@ -150,39 +205,6 @@
     </div>
   </section>
 
-  <!-- How the day travels. The boxes are HTML, so the words stay crisp and
-       readable; the lines between them are drawn by motion.ts from where the
-       boxes actually landed, which is what lets the same drawing work as three
-       columns on a laptop and as a stack on a phone. -->
-  <section id="how" class="how">
-    <h2 class="reveal">Everything happens on <b>this Mac</b></h2>
-    <p class="kicker reveal">The sources are what macOS, your browsers, git and your agents already write down.
-      The core reads them into one database on this machine, and the day comes back as charts, a journal and a conversation.</p>
-    <div class="flow" data-flow>
-      <svg class="wires" aria-hidden="true"></svg>
-      <p class="machine">This Mac</p>
-      <ul class="sources" aria-label="What it reads">
-        <li style="--c: var(--code)"><b>Window and tab</b><span>every four seconds</span></li>
-        <li style="--c: var(--research)"><b>Browser history</b><span>sites, tickets, pages</span></li>
-        <li style="--c: var(--ember)"><b>Git</b><span>commits and branches</span></li>
-        <li style="--c: var(--ai)"><b>Claude Code and Codex</b><span>what you asked</span></li>
-        <li style="--c: var(--gold)"><b>The power log</b><span>when you sat down</span></li>
-        <li style="--c: var(--communication)" class="optional"><b>Calendar</b><span>if you allow it</span></li>
-      </ul>
-      <div class="core" aria-label="The core">
-        <img src="brand.png" alt="" width="22" height="34">
-        <b>The core</b>
-        <span>one SQLite file · each window labelled · the day written up</span>
-      </div>
-      <ul class="outputs" aria-label="What it gives back">
-        <li><b>Today and Rhythm</b><span>charts of the day and the month</span></li>
-        <li><b>Work</b><span>time by client and ticket</span></li>
-        <li><b>Journal</b><span>a note in your Obsidian vault</span></li>
-        <li><b>Notes</b><span>projects, knowledge, people</span></li>
-        <li><b>Conversation</b><span>typed or out loud</span></li>
-      </ul>
-    </div>
-  </section>
 
   <!-- What it needs. Said early and plainly: an app that needs two other
        tools to be whole has to say so before the screenshots, not after them.
