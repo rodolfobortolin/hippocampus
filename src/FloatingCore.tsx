@@ -12,6 +12,7 @@ import { useLanguage } from './lib/language.tsx'
 const bridge = (globalThis as any).hippocampus as {
   moveCore?: (dx: number, dy: number) => void
   settleCore?: () => void
+  hideCore?: () => void
   onWake?: (callback: () => void) => () => void
 } | undefined
 
@@ -119,6 +120,26 @@ export function FloatingCore() {
 
   useEffect(() => { api.status().then(setStatus).catch(() => {}) }, [])
 
+  // A way out that does not need the tray menu. Whatever is open goes quiet
+  // first: dismissing while it is still listening would leave the microphone
+  // running behind a window nobody can see.
+  const dismiss = () => {
+    if (liveOn) live.stop()
+    if (listening.state === 'listening') listening.toggle()
+    voice.stop()
+    bridge?.hideCore?.()
+  }
+  const dismissRef = useRef(dismiss)
+  dismissRef.current = dismiss
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') dismissRef.current()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   // The wake word and the shortcut arrive through Electron: it brings the window
   // forward and says so here, because the window may have just been born and
   // missed the notice that went through the socket.
@@ -195,6 +216,19 @@ export function FloatingCore() {
 
   return (
     <div className="floating">
+      {/* Whether the core is answering at all. The sphere looks the same
+          either way, and a sphere that cannot reach anything looks exactly
+          like one waiting for you to speak. */}
+      <button
+        className="floating-close"
+        onClick={dismiss}
+        title={t.common.close}
+        aria-label={t.common.close}>
+        ×
+      </button>
+      <i className={`floating-link ${connected ? 'alive' : ''}`}
+        title={connected ? t.chat.connected : t.chat.reconnecting} />
+
       <button
         className="floating-orb"
         onPointerDown={startDrag}

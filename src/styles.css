@@ -495,3 +495,43 @@ body[data-mode='floating']::after { display: none; }
   .g4 { grid-template-columns: repeat(4, 1fr); }
 .g5 { grid-template-columns: repeat(5, 1fr); }
 }
+
+/* The floating window's two small controls. They stay out of the way until the
+   pointer is over the window: a sphere sitting on someone's desktop should not
+   carry chrome, but it does have to be dismissible without the tray menu. */
+.floating-close {
+  position: absolute; top: 6px; right: 8px;
+  width: 18px; height: 18px; line-height: 1;
+  border-radius: 50%;
+  font-size: 15px;
+  color: #e8edf6;
+  background: rgba(10, 11, 14, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  -webkit-app-region: no-drag;
+  opacity: 0; transition: opacity 0.16s, background 0.16s;
+  display: grid; place-items: center;
+}
+.floating:hover .floating-close { opacity: 1; }
+.floating-close:hover { background: rgba(255, 90, 90, 0.55); }
+
+/* Lit means the core is answering. Amber means the sphere is on its own, which
+   otherwise looks exactly like a sphere waiting for you to speak.
+   The unlit state is the one that has to be visible without hovering: a light
+   you only see when things are fine is not telling you anything. */
+.floating-link {
+  position: absolute; top: 11px; left: 10px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--communication);
+  box-shadow: 0 0 7px var(--communication);
+  -webkit-app-region: no-drag;
+  transition: background 0.2s, box-shadow 0.2s, opacity 0.2s;
+  animation: pulsa 1.6s ease-in-out infinite;
+}
+.floating-link.alive {
+  background: var(--code);
+  box-shadow: 0 0 7px var(--code);
+  opacity: 0.7;
+  animation: none;
+}
+.floating { position: relative; }

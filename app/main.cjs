@@ -102,7 +102,7 @@ function useShortcut(accelerator) {
   if (globalShortcut.isRegistered(wanted)) return { ok: true, shortcut: wanted }
   let ok = false
   try {
-    ok = globalShortcut.register(wanted, callCore)
+    ok = globalShortcut.register(wanted, shortcutCore)
   } catch {
     // An accelerator Electron cannot parse throws instead of returning false.
     ok = false
@@ -263,7 +263,7 @@ function watchTheCore() {
 }
 
 /**
- * Esconde em vez de fechar.
+ * Hides rather than closes.
  *
  * Closing destroys the WebGL scene, and the wake word would then wait a second
  * or two for it to load before it could listen. Hidden, the window comes back
@@ -275,6 +275,33 @@ function toggleCore() {
   else openCore()
 }
 
+/**
+ * What the shortcut does: brings it over and starts listening, or sends it
+ * away.
+ *
+ * A shortcut that only ever summons leaves the sphere sitting on the desktop
+ * with no way out but the tray menu. The wake word keeps calling
+ * unconditionally — someone who just said the word out loud means to talk, not
+ * to dismiss.
+ */
+function shortcutCore() {
+  if (coreWindow?.isVisible()) {
+    coreWindow.hide()
+    return
+  }
+  callCore()
+}
+
+/** The page asking to be sent away: its own Esc, and its close button. */
+function hideCore() {
+  coreWindow?.hide()
+}
+
+/** The chosen shortcut, written the way a macOS menu writes one. */
+function menuAccelerator() {
+  return callShortcut ? callShortcut.replace('CommandOrControl', 'Cmd') : undefined
+}
+
 function buildTray() {
   const icon = nativeImage.createFromPath(path.join(ROOT, 'public', 'trayTemplate.png'))
   icon.setTemplateImage(true)
@@ -283,7 +310,9 @@ function buildTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open Hippocampus', click: openWindow },
     { label: 'Floating core', accelerator: 'Cmd+Shift+H', click: toggleCore },
-    { label: 'Talk to Hippocampus', accelerator: 'Cmd+Shift+Space', click: callCore },
+    // The accelerator shown is whatever is registered right now, not the one
+    // this line was written with.
+    { label: 'Talk to Hippocampus', accelerator: menuAccelerator(), click: callCore },
     { type: 'separator' },
     {
       label: 'Close yesterday',
@@ -333,6 +362,7 @@ app.whenReady().then(async () => {
     coreWindow.setPosition(Math.round(x + dx), Math.round(y + dy))
   })
   ipcMain.on('core:settle', storePosition)
+  ipcMain.on('core:hide', hideCore)
 
   // The Accessibility pane of System Settings. Without that permission the
   // helper sees which app is in front but not the window title.
@@ -374,5 +404,10 @@ app.on('window-all-closed', () => {})
 app.on('before-quit', () => {
   globalShortcut.unregisterAll()
   watcher?.close()
+  // The floating window is always on top and visible on every space, so a
+  // quit that leaves it behind leaves a sphere hovering over a desktop with
+  // nothing running underneath it.
+  coreWindow?.destroy()
+  coreWindow = null
   if (core) core.kill()
 })

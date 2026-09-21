@@ -25,6 +25,9 @@ contextBridge.exposeInMainWorld('hippocampus', {
   /** Signals that the drag ended, so the position gets stored. */
   settleCore: () => ipcRenderer.send('core:settle'),
 
+  /** Sends the floating window away — its own Esc and its close button. */
+  hideCore: () => ipcRenderer.send('core:hide'),
+
   /** The state of the agents that measure the day, and how to switch them. */
   agents: {
     status: () => ipcRenderer.invoke('agents:status'),
