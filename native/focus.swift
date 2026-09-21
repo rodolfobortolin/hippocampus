@@ -9,6 +9,8 @@ import AppKit
 import ApplicationServices
 import CoreAudio
 import CoreGraphics
+import CoreMediaIO
+import EventKit
 import Foundation
 
 let args = CommandLine.arguments
@@ -377,6 +379,38 @@ func playingNow(_ hasSound: Bool) -> String? {
     return playingCache.value
 }
 
+/// Is any camera on, in any app?
+///
+/// The same question the microphone check asks of CoreAudio, asked of
+/// CoreMediaIO: whether a device is running somewhere. It reads no frame and
+/// needs no camera permission. With the microphone open it separates a video
+/// call from an audio one; a virtual camera counts too, since an app running
+/// one is almost always in a call.
+func cmioAddress(_ selector: Int) -> CMIOObjectPropertyAddress {
+    CMIOObjectPropertyAddress(
+        mSelector: CMIOObjectPropertySelector(selector),
+        mScope: CMIOObjectPropertyScope(kCMIOObjectPropertyScopeGlobal),
+        mElement: CMIOObjectPropertyElement(kCMIOObjectPropertyElementMain))
+}
+
+func cameraInUse() -> Bool {
+    let system = CMIOObjectID(kCMIOObjectSystemObject)
+    var devicesAddress = cmioAddress(kCMIOHardwarePropertyDevices)
+    var size: UInt32 = 0
+    guard CMIOObjectGetPropertyDataSize(system, &devicesAddress, 0, nil, &size) == 0, size > 0 else { return false }
+    var devices = [CMIOObjectID](repeating: 0, count: Int(size) / MemoryLayout<CMIOObjectID>.size)
+    var used: UInt32 = 0
+    guard CMIOObjectGetPropertyData(system, &devicesAddress, 0, nil, size, &used, &devices) == 0 else { return false }
+    return devices.contains { device in
+        var runningAddress = cmioAddress(kCMIODevicePropertyDeviceIsRunningSomewhere)
+        var running: UInt32 = 0
+        var got: UInt32 = 0
+        let status = CMIOObjectGetPropertyData(
+            device, &runningAddress, 0, nil, UInt32(MemoryLayout<UInt32>.size), &got, &running)
+        return status == 0 && running != 0
+    }
+}
+
 let formatter = ISO8601DateFormatter()
 formatter.formatOptions = [.withInternetDateTime]
 
@@ -394,6 +428,7 @@ func sample() {
     parts.append("\"scroll\":\(counter(.scrollWheel))")
     let ownListening = ownListeningIsOn()
     parts.append("\"mic\":\(microphoneInUse())")
+    parts.append("\"camera\":\(cameraInUse())")
     parts.append("\"listening\":\(ownListening)")
     let hasSound = soundIsPlaying()
     parts.append("\"sound\":\(hasSound)")
@@ -448,7 +483,92 @@ func sample() {
     URLSession.shared.dataTask(with: request).resume()
 }
 
+// MARK: - The calendar, when asked for
+
+/// Meeting names, from the macOS Calendar — only once the person turns it on.
+///
+/// The core says whether it is wanted and for which window; this helper does
+/// the asking and the reading, because the permission belongs to whoever
+/// asks. Launched by launchd, the prompt names Hippocampus Focus. Asked from
+/// a process the core started, it would name node, and granting it would open
+/// every calendar to every Node script on the machine.
+///
+/// Nothing is read until the core says "wanted": no prompt appears for someone
+/// who never turned the switch on.
+let calendarStore = EKEventStore()
+
+func calendarGranted() -> Bool {
+    let status = EKEventStore.authorizationStatus(for: .event)
+    if #available(macOS 14.0, *) { return status == .fullAccess }
+    return status == .authorized
+}
+
+func postJSON(_ url: URL, _ body: [String: Any]) {
+    guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = data
+    request.timeoutInterval = 5
+    URLSession.shared.dataTask(with: request).resume()
+}
+
+func sendEvents(_ url: URL, from: Date, to: Date) {
+    let predicate = calendarStore.predicateForEvents(withStart: from, end: to, calendars: nil)
+    // All-day events are days off and birthdays, not time spent in a meeting.
+    let events = calendarStore.events(matching: predicate).filter { !$0.isAllDay }
+    let list: [[String: Any]] = events.map { event in
+        [
+            "id": event.calendarItemIdentifier,
+            "title": event.title ?? "",
+            "start": event.startDate.timeIntervalSince1970,
+            "end": event.endDate.timeIntervalSince1970,
+            "calendar": event.calendar?.title ?? "",
+            "attendees": event.attendees?.count ?? 0,
+        ]
+    }
+    postJSON(url, ["status": "granted", "from": from.timeIntervalSince1970, "to": to.timeIntervalSince1970, "events": list])
+}
+
+func syncCalendar() {
+    guard let target, var parts = URLComponents(url: target, resolvingAgainstBaseURL: false) else { return }
+    parts.path = "/api/calendar"
+    guard let url = parts.url else { return }
+    URLSession.shared.dataTask(with: url) { data, _, _ in
+        guard let data,
+              let ask = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              ask["wanted"] as? Bool == true,
+              let from = ask["from"] as? Double, let to = ask["to"] as? Double
+        else { return }
+        let window = (Date(timeIntervalSince1970: from), Date(timeIntervalSince1970: to))
+        if EKEventStore.authorizationStatus(for: .event) == .notDetermined {
+            let answered: (Bool, Error?) -> Void = { granted, _ in
+                if granted {
+                    calendarStore.reset()
+                    sendEvents(url, from: window.0, to: window.1)
+                } else {
+                    postJSON(url, ["status": "denied"])
+                }
+            }
+            if #available(macOS 14.0, *) {
+                calendarStore.requestFullAccessToEvents(completion: answered)
+            } else {
+                calendarStore.requestAccess(to: .event, completion: answered)
+            }
+            return
+        }
+        if calendarGranted() { sendEvents(url, from: window.0, to: window.1) }
+        else { postJSON(url, ["status": "denied"]) }
+    }.resume()
+}
+
 sample()
 let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in sample() }
+// The calendar changes slowly; every ten minutes, and once shortly after start.
+if target != nil {
+    DispatchQueue.main.asyncAfter(deadline: .now() + 20) { syncCalendar() }
+    let calendarTimer = Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { _ in syncCalendar() }
+    RunLoop.main.add(calendarTimer, forMode: .common)
+}
 RunLoop.main.add(timer, forMode: .common)
 RunLoop.main.run()

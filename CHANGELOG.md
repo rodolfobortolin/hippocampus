@@ -29,6 +29,13 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   has: no clients box for someone who has no clients.
 - The Rhythm shows where the keys went, per app, and what kind of writing
   the typed text was — requests to AI, chats, code — without reading it.
+- A call with the camera on is told apart from an audio one. The camera is
+  asked only whether it is running, the way the microphone already was; no
+  frame is read and no permission is needed.
+- Calendar meetings, off until you turn them on in Settings: their names and
+  times appear on the day beside how much of each had a microphone open.
+  The helper asks macOS once, under its own name; turning it off deletes what
+  came.
 
 ## v0.1.0 — 2026-09-21
 

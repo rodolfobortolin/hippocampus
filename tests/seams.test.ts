@@ -327,3 +327,30 @@ test('today is labelled while it happens, not only when it closes', () => {
     'core/collector.ts should classify the current day on a timer')
 })
 
+
+test('the calendar the helper reads is the one the core asks for and keeps', () => {
+  const helper = read('native/focus.swift')
+  const server = read('core/server.ts')
+  const calendar = read('core/sources/calendar.ts')
+  // The route, on both sides.
+  assert.match(helper, /parts\.path = "\/api\/calendar"/)
+  assert.match(server, /route === '\/api\/calendar' && request\.method === 'GET'/)
+  assert.match(server, /route === '\/api\/calendar' && request\.method === 'POST'/)
+  // What the core answers, the helper reads.
+  for (const field of ['wanted', 'from', 'to']) {
+    assert.match(helper, new RegExp(`ask\\["${field}"\\]`), `the helper reads "${field}"`)
+    assert.match(calendar, new RegExp(`\\b${field}\\b`), `the core answers "${field}"`)
+  }
+  // What the helper sends, the core reads.
+  for (const field of ['id', 'title', 'start', 'end', 'calendar', 'attendees']) {
+    assert.match(helper, new RegExp(`"${field}":`), `the helper sends "${field}"`)
+    assert.match(calendar, new RegExp(`event\\.${field}\\b`), `the core reads event.${field}`)
+  }
+  for (const field of ['status', 'events', 'from', 'to']) {
+    assert.match(helper, new RegExp(`"${field}":`), `the helper sends "${field}"`)
+    assert.match(server, new RegExp(`body\\.${field}\\b`), `the core reads body.${field}`)
+  }
+  // And the permission is asked only when the core says it is wanted.
+  assert.match(helper, /ask\["wanted"\] as\? Bool == true/)
+  assert.match(read('core/settings.ts'), /calendar: false,/, 'off until asked for')
+})

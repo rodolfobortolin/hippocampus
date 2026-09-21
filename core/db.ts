@@ -171,6 +171,19 @@ create table if not exists branches (
 );
 create index if not exists branches_repo on branches(repo, ts);
 
+-- Meetings from the macOS Calendar, only once the person turns it on. The key
+-- is the event and its start: a recurring meeting is one event many times.
+create table if not exists meetings (
+  id text primary key,
+  started_at integer not null,
+  ended_at integer not null,
+  day text not null,
+  title text,
+  calendar text,
+  attendees integer not null default 0
+);
+create index if not exists meetings_start on meetings(started_at);
+
 create table if not exists meta (key text primary key, value text);
 `)
 
@@ -217,6 +230,7 @@ for (const [column, type] of [
   ['clicks', 'integer not null default 0'],
   ['scroll', 'integer not null default 0'],
   ['mic', 'integer not null default 0'],
+  ['camera', 'integer not null default 0'],
   ['screen', 'text'],
   ['sound', 'integer not null default 0'],
   ['media', 'text'],

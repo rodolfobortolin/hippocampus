@@ -19,6 +19,11 @@
   <key>LSUIElement</key><true/>
   <key>NSMicrophoneUsageDescription</key>
   <string>Hippocampus asks the system whether any microphone is in use, to recognise a call without having to identify the app. It records no audio.</string>
+  <!-- Asked only after the Calendar switch is turned on in the app. -->
+  <key>NSCalendarsFullAccessUsageDescription</key>
+  <string>Hippocampus reads the names and times of your meetings to name the calls it already measures. Nothing leaves this machine.</string>
+  <key>NSCalendarsUsageDescription</key>
+  <string>Hippocampus reads the names and times of your meetings to name the calls it already measures. Nothing leaves this machine.</string>
   <key>NSAccessibilityUsageDescription</key>
   <string>Hippocampus reads the focused window's title to know what you are working on. Nothing leaves this machine.</string>
 </dict>

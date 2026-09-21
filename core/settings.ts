@@ -66,6 +66,14 @@ export type Settings = {
    * what it looks at can leave it.
    */
   wideTools: boolean
+  /**
+   * Whether meeting names come from the macOS Calendar.
+   *
+   * Off until asked for, and nothing is requested until then: the permission
+   * prompt appears only after the switch is turned on, asked by the focus
+   * helper under its own name.
+   */
+  calendar: boolean
 }
 
 export type Region = 'global' | 'eu'
@@ -156,6 +164,7 @@ const DEFAULTS: Settings = {
   region: 'global',
   caption: true,
   wideTools: false,
+  calendar: false,
 }
 
 /**
@@ -199,6 +208,7 @@ export function readSettings(): Settings {
       region: data.region === 'eu' ? 'eu' : 'global',
       caption: data.caption !== false,
       wideTools: data.wideTools === true,
+      calendar: data.calendar === true,
     }
   } catch {
     return { ...DEFAULTS }

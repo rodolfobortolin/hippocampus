@@ -157,12 +157,15 @@ const tools = [
         && (!kind || item.kind === kind))
       if (!items.length) return say('No pieces of work in that range match.')
       const orgs = found.orgs.slice(0, 8).map((o) =>
-        `- ${o.org} (${o.sites.join(', ')}): ${hours(o.seconds)} focused, ${o.visits} visits, ${o.items} items`)
+        `- ${o.org} (${o.sites.join(', ')}): ${hours(o.seconds)} focused, ${hours(o.agentSeconds)} agent, `
+        + `${o.visits} visits, ${o.commits} commits, ${o.prompts} prompts, ${o.items} items`)
       const lines = items.slice(0, 30).map((item) =>
         `- ${item.kind} ${item.key ?? ''} ${item.label ? `"${item.label}"` : ''} · ${item.site}${item.org ? `/${item.org}` : ''}`
-        + `${item.project ? ` · project ${item.project}` : ''}: ${hours(item.seconds)}, ${item.visits} visits`
+        + `${item.project ? ` · project ${item.project}` : ''}: ${hours(item.seconds)} focused`
+        + `${item.agentSeconds ? `, ${hours(item.agentSeconds)} agent` : ''}, ${item.visits} visits`
         + `${item.commits ? `, ${item.commits} commits` : ''}${item.prompts ? `, ${item.prompts} prompts` : ''}`)
-      return say([wanted ? '' : `Clients:\n${orgs.join('\n')}\n`, `Items:\n${lines.join('\n')}`].join('\n'))
+      const since = found.timeSince ? `Focus time is measured since ${found.timeSince}; before that only visits, commits and prompts exist.\n\n` : ''
+      return say(since + [wanted ? '' : `Clients:\n${orgs.join('\n')}\n`, `Items:\n${lines.join('\n')}`].join('\n'))
     },
   },
   {
@@ -176,7 +179,7 @@ const tools = [
         `- ${when(t.at)} ${t.source}${t.seconds ? ` ${hours(t.seconds)}` : ''}${t.text ? `: ${t.text.slice(0, 140)}` : ''}`)
       return say(`${item.kind} ${key}${item.label ? ` "${item.label}"` : ''} · ${item.site}${item.org ? `/${item.org}` : ''}`
         + `${item.project ? ` · project ${item.project}` : ''}\n`
-        + `${hours(item.seconds)} focused, ${item.visits} visits, ${item.commits} commits, ${item.prompts} prompts\n\n${lines.join('\n')}`)
+        + `${hours(item.seconds)} focused, ${hours(item.agentSeconds)} agent, ${item.visits} visits, ${item.commits} commits, ${item.prompts} prompts\n\n${lines.join('\n')}`)
     },
   },
   {

@@ -301,9 +301,29 @@ export function Today({ status }: { status: Status | null }) {
                     {data.soundtrack.inCall > 60 && (
                       <div className="row">
                         <span className="name">{t.today.call}</span>
-                        <span className="value">{duration(data.soundtrack.inCall)}</span>
+                        <span className="value">
+                          {duration(data.soundtrack.inCall)}
+                          {data.soundtrack.onCamera > 60 && ` · ${duration(data.soundtrack.onCamera)} ${t.today.withCamera}`}
+                        </span>
                       </div>
                     )}
+                  </div>
+                </>
+              )}
+
+              {data.meetings.length > 0 && (
+                <>
+                  <h3 style={{ marginTop: 22 }}>{t.today.meetings}</h3>
+                  <div className="rows">
+                    {data.meetings.map((meeting) => (
+                      <div key={meeting.id} className="row">
+                        <span className="name">{meeting.title}</span>
+                        <span className="value">
+                          {clock(meeting.start)}–{clock(meeting.end)} · {meeting.onCall > 60
+                            ? `${duration(meeting.onCall)} ${t.today.onCall}` : t.today.noCall}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </>
               )}

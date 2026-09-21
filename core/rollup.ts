@@ -49,6 +49,10 @@ export function dossier(day: string, level: 'resumo' | 'completo' = 'completo'):
   if (report.projects.length) {
     lines.push('', d.byProject, ...report.projects.map((p) => `- ${p.name}: ${hours(p.seconds)}`))
   }
+  if (report.meetings.length) {
+    lines.push('', d.meetings, ...report.meetings.map((m) =>
+      `- ${clock(m.start)}–${clock(m.end)} ${m.title} · ${m.onCall > 60 ? d.onCall(hours(m.onCall)) : d.noCall}`))
+  }
 
   if (level === 'resumo') {
     lines.push('', d.alsoMeasured(report.commits.length, report.aiTurns.length, report.visits, report.windows.length))

@@ -14,6 +14,8 @@ type Sample = {
   clicks?: number
   scroll?: number
   mic?: boolean
+  /** Some camera is on, in any app — read without camera permission. */
+  camera?: boolean
   /** Some audio output is playing. */
   sound?: boolean
   /** The wake-word listener is on (and therefore holding the microphone). */
@@ -40,8 +42,8 @@ type Counters = { keys: number; clicks: number; scroll: number }
 // version refuses with "column index out of range", which is the right call.
 const insert = db.prepare(
   `insert into blocks (started_at, ended_at, seconds, day, app, bundle, title, url, host, idle,
-                       keys, clicks, scroll, mic, screen, sound, media, playing)
-   values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                       keys, clicks, scroll, mic, camera, screen, sound, media, playing)
+   values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 )
 
 // Inside one block the track changes, the call starts and the sound stops. So
@@ -53,7 +55,7 @@ const insert = db.prepare(
 const extend = db.prepare(
   `update blocks set ended_at = ?, seconds = ?,
           keys = keys + ?, clicks = clicks + ?, scroll = scroll + ?,
-          mic = max(coalesce(mic, 0), ?), sound = max(coalesce(sound, 0), ?),
+          mic = max(coalesce(mic, 0), ?), camera = max(coalesce(camera, 0), ?), sound = max(coalesce(sound, 0), ?),
           media = coalesce(?, media), playing = coalesce(?, playing)
      where id = ?`,
 )
@@ -195,7 +197,7 @@ export class FocusCollector {
     if (this.open) {
       this.open.endedAt = ts
       extend.run(ts, ts - this.open.startedAt, delta.keys, delta.clicks, delta.scroll,
-        mic, sample.sound ? 1 : 0,
+        mic, sample.camera ? 1 : 0, sample.sound ? 1 : 0,
         sample.listening ? null : sample.mediaOpen ?? null, sample.playing ?? null,
         this.open.id)
       return
@@ -205,7 +207,7 @@ export class FocusCollector {
     const result = insert.run(
       ts, ts, 0, dayOf(ts), app, idle ? null : sample.bundle ?? null,
       title, url, hostOf(url ?? undefined), idle ? 1 : 0,
-      delta.keys, delta.clicks, delta.scroll, mic, idle ? null : sample.screen ?? null,
+      delta.keys, delta.clicks, delta.scroll, mic, sample.camera ? 1 : 0, idle ? null : sample.screen ?? null,
       sample.sound ? 1 : 0,
       // With the listener on, the microphone is always open because of us;
       // marking a call in that state would invent a meeting every day.

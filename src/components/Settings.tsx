@@ -260,6 +260,18 @@ export function Settings() {
             </button>
           </Field>
 
+          <Field
+            label={t.settings.calendar}
+            note={!settings.calendar ? t.settings.calendarNote
+              : settings.calendarStatus === 'denied' ? t.settings.calendarDenied
+              : settings.calendarStatus === 'granted' ? t.settings.calendarGranted
+              : t.settings.calendarWaiting}>
+            <button className={`switch ${settings.calendar ? 'active' : ''}`}
+              onClick={() => store({ calendar: !settings.calendar })}>
+              <i />
+            </button>
+          </Field>
+
           <Field label={t.settings.keepTyping} note={t.settings.keepTypingNote}>
             <button className={`switch ${settings.keepTyping ? 'active' : ''}`}
               onClick={() => store({ keepTyping: !settings.keepTyping })}>

@@ -17,7 +17,7 @@ mkdir -p "$APP/Contents/Resources"
 [ -f build/hippocampus.icns ] && cp build/hippocampus.icns "$APP/Contents/Resources/hippocampus.icns"
 
 swiftc -O -o "$APP/Contents/MacOS/hippocampus-focus" native/focus.swift \
-  -framework AppKit -framework ApplicationServices -framework CoreGraphics -framework CoreAudio
+  -framework AppKit -framework ApplicationServices -framework CoreGraphics -framework CoreAudio -framework CoreMediaIO -framework EventKit
 
 # Signs with the Developer ID when one exists. This is not about distribution:
 # the Accessibility grant binds to the certificate identity, which does not

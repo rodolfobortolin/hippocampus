@@ -1,5 +1,6 @@
 import { all, one } from './db.ts'
 import { presenceOf } from './sources/presence.ts'
+import { meetingsOf } from './sources/calendar.ts'
 import { config, dayOf } from './config.ts'
 
 export type AppSlice = { app: string; seconds: number; category: string | null }
@@ -161,6 +162,7 @@ export function dayReport(day: string) {
     firstAt: earliest(bounds?.first_at ?? null, presence.firstAt),
     lastAt: latest(bounds?.last_at ?? null, presence.lastAt),
     presence: { seconds: presence.seconds, stretches: presence.spans.length },
+    meetings: meetingsOf(day),
     apps: sortSlices(apps).slice(0, 14),
     categories: sortSlices(categories),
     projects: sortSlices(projects).slice(0, 10),
@@ -197,7 +199,8 @@ export function dayReport(day: string) {
     // at collection time.
     soundtrack: one<any>(
       `select coalesce(sum(case when sound = 1 and mic = 0 then seconds else 0 end), 0) seconds,
-              coalesce(sum(case when mic = 1 then seconds else 0 end), 0) inCall
+              coalesce(sum(case when mic = 1 then seconds else 0 end), 0) inCall,
+              coalesce(sum(case when mic = 1 and camera = 1 then seconds else 0 end), 0) onCamera
          from blocks where day = ? and idle = 0`, day),
     media: all<any>(
       `select media as name, sum(seconds) seconds from blocks

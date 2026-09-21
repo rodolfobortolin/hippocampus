@@ -14,6 +14,7 @@ import { vaultReady } from './vault.ts'
 import { readSettings, saveSettings, writeKey, keyState, openaiBase, type KeyName } from './settings.ts'
 import { LANGUAGES } from './languages.ts'
 import { workItems, itemDetail } from './items.ts'
+import { calendarAsk, calendarStatus, setCalendarStatus, keepMeetings, forgetMeetings } from './sources/calendar.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
 import { blockedBrowsers, retryDeniedBrowsers } from './sources/browser.ts'
 import { retryDeniedSkysight } from './sources/skysight.ts'
@@ -73,9 +74,26 @@ export function serve(collector?: Collector): http.Server {
         })
       }
 
+      // The focus helper asks whether to read the calendar, and brings what it read.
+      if (route === '/api/calendar' && request.method === 'GET') {
+        return json(response, calendarAsk(readSettings().calendar))
+      }
+      if (route === '/api/calendar' && request.method === 'POST') {
+        const chunks: Buffer[] = []
+        for await (const chunk of request) chunks.push(chunk as Buffer)
+        const body = JSON.parse(Buffer.concat(chunks).toString() || '{}')
+        // A helper still sending after the switch went off is not listened to.
+        if (!readSettings().calendar) return json(response, { kept: 0 })
+        setCalendarStatus(body.status === 'granted' ? 'granted' : 'denied')
+        const kept = body.status === 'granted' && Array.isArray(body.events)
+          ? keepMeetings(Number(body.from), Number(body.to), body.events) : 0
+        return json(response, { kept })
+      }
+
       if (route === '/api/settings' && request.method === 'GET') {
         return json(response, {
           ...readSettings(),
+          calendarStatus: calendarStatus(),
           languages: LANGUAGES,
           liveVoices: LIVE_VOICES,
           liveAvailable: liveAvailable(),
@@ -94,11 +112,15 @@ export function serve(collector?: Collector): http.Server {
           if (typeof value === 'string') await writeKey(name, value.trim())
         }
         delete body.keys
+        const before = readSettings()
         const settings = saveSettings(body)
+        // Turning the calendar off forgets what it brought: off means off.
+        if (before.calendar && !settings.calendar) forgetMeetings()
         // The switch has to reach the session, not just the next answer.
         if (settings.voiceMode !== 'live') closeLive?.()
         return json(response, {
           ...settings,
+          calendarStatus: calendarStatus(),
           languages: LANGUAGES,
           liveVoices: LIVE_VOICES,
           liveAvailable: liveAvailable(),

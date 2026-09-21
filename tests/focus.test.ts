@@ -21,7 +21,7 @@ function sample(extra: Record<string, unknown> = {}) {
     ts: new Date().toISOString(),
     idle: 0, locked: false, trusted: true,
     keys: 100, clicks: 10, scroll: 5,
-    mic: true, sound: true, listening: false,
+    mic: true, camera: true, sound: true, listening: false,
     mediaOpen: 'Music', playing: 'Miles Davis — So What',
     screen: 'GP27-FQS',
     app: 'Code', bundle: 'com.microsoft.VSCode', title: 'focus.ts',
@@ -51,6 +51,7 @@ test('every value has a column: the insert stores everything the helper reports'
   assert.equal(block.screen, 'GP27-FQS')
   assert.equal(block.sound, 1)
   assert.equal(block.mic, 1)
+  assert.equal(block.camera, 1)
   assert.equal(block.playing, 'Miles Davis — So What')
   assert.equal(block.media, 'Music')
 })
@@ -98,4 +99,19 @@ test('a secret window keeps neither title nor address', () => {
   assert.equal(block.app, '1Password', 'the app itself may be recorded')
   assert.equal(block.title, null, 'the title of a secret window leaked')
   assert.equal(block.url, null, 'the address of a secret window leaked')
+})
+
+test('a camera turned on mid-block marks the block, and an older helper that never says leaves it off', () => {
+  const collector = new FocusCollector()
+  const start = Date.now() - 8000
+  collector.push(sample({ ts: new Date(start).toISOString(), camera: false, title: 'standup' }))
+  collector.push(sample({ ts: new Date(start + 4000).toISOString(), camera: true, title: 'standup' }))
+  const onCall = db.prepare('select camera from blocks order by id desc limit 1').get() as { camera: number }
+  assert.equal(onCall.camera, 1, 'max over the block: the call had video in it')
+
+  const older = sample({ ts: new Date().toISOString(), title: 'no camera field' }) as Record<string, unknown>
+  delete older.camera
+  collector.push(older as any)
+  const silent = db.prepare('select camera from blocks order by id desc limit 1').get() as { camera: number }
+  assert.equal(silent.camera, 0)
 })

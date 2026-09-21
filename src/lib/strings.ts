@@ -45,7 +45,8 @@ export type Strings = {
     writing: string; reading: string; mixed: string; handsNote: string; noKeyboard: string
     whatCameOut: string; commits: string; aiRequests: string; nothingRecorded: string
     signals: string; visits: string; sites: string; shortcuts: string
-    charactersTypedIn: string; sound: string; somethingPlaying: string; call: string; screens: string
+    charactersTypedIn: string; sound: string; somethingPlaying: string; call: string; withCamera: string; screens: string
+    meetings: string; onCall: string; noCall: string
     missingAccessibility: string; missingAccessibilityText: string; openAccessibility: string
     others: string
   }
@@ -106,6 +107,7 @@ export type Strings = {
     region: string; regionNote: string; regionGlobal: string; regionEu: string
     caption: string; captionNote: string
     wideTools: string; wideToolsNote: string; wideToolsOn: string
+    calendar: string; calendarNote: string; calendarWaiting: string; calendarGranted: string; calendarDenied: string
     save: string; saved: string; saving: string; test: string; working: string; failed: string
     agents: string; agentsNote: string; agentsOn: string; agentsOff: string
     agentsApprove: string; agentsWhere: string
@@ -166,7 +168,7 @@ const pt: Strings = {
     nothingRecorded: 'Nada registrado.',
     signals: 'sinais', visits: 'visitas de navegador', sites: 'sites', shortcuts: 'atalhos',
     charactersTypedIn: 'caracteres digitados em', sound: 'som', somethingPlaying: 'com algo tocando',
-    call: 'microfone aberto — chamada', screens: 'telas',
+    call: 'microfone aberto — chamada', withCamera: 'com a câmera ligada', meetings: 'reuniões do calendário', onCall: 'na chamada', noCall: 'sem microfone aberto', screens: 'telas',
     missingAccessibility: 'Falta a permissão de Acessibilidade.',
     missingAccessibilityText: 'Sem ela eu vejo qual aplicativo está na frente, mas não o título da janela — então não dá para saber em que você estava trabalhando, só onde.',
     openAccessibility: 'abrir os Ajustes de Acessibilidade',
@@ -263,6 +265,7 @@ const pt: Strings = {
     region: 'região da chave', regionNote: 'chave de projeto europeu não fala com o servidor global — e só a voz reclama', regionGlobal: 'global', regionEu: 'Europa',
     caption: 'legenda no núcleo flutuante', captionNote: 'escrever na tela o que ouviu e o que respondeu — desligue para deixar só a esfera',
     wideTools: 'ferramentas ampliadas', wideToolsNote: 'desligado, ele responde só do que foi medido aqui e nada sai da máquina', wideToolsOn: 'ligado: ele pode ler arquivos, rodar comandos e buscar na web sem perguntar, e usa os seus servidores MCP',
+    calendar: 'reuniões do calendário', calendarNote: 'desligado, nada do Calendário é lido e nenhuma permissão é pedida. Ligado, o ajudante pede acesso uma vez e traz nome e horário das reuniões; desligar apaga o que veio', calendarWaiting: 'ligado — o ajudante pede a permissão em até dez minutos', calendarGranted: 'ligado: nome e horário das reuniões, lidos neste Mac; desligar apaga o que veio', calendarDenied: 'o macOS negou o acesso — autorize o Hippocampus Focus em Ajustes do Sistema → Privacidade e Segurança → Calendários',
     save: 'salvar', saved: 'salvo', saving: 'salvando…', test: 'testar', working: 'funcionando', failed: 'falhou',
     agents: 'medir sozinho, desde o login',
     agentsNote: 'o coletor, o leitor de janela e a escuta sobem com o Mac e voltam se caírem',
@@ -328,7 +331,7 @@ const en: Strings = {
     nothingRecorded: 'Nothing recorded.',
     signals: 'signals', visits: 'browser visits', sites: 'sites', shortcuts: 'shortcuts',
     charactersTypedIn: 'characters typed across', sound: 'sound', somethingPlaying: 'with something playing',
-    call: 'microphone open — a call', screens: 'screens',
+    call: 'microphone open — a call', withCamera: 'with the camera on', meetings: 'meetings on the calendar', onCall: 'on the call', noCall: 'no microphone open', screens: 'screens',
     missingAccessibility: 'Accessibility permission is missing.',
     missingAccessibilityText: 'Without it I see which app is in front, but not the window title — so there is no way to know what you were working on, only where.',
     openAccessibility: 'open the Accessibility settings',
@@ -425,6 +428,7 @@ const en: Strings = {
     region: 'key region', regionNote: 'a European project key cannot talk to the global server — and only the voice complains', regionGlobal: 'global', regionEu: 'Europe',
     caption: 'caption on the floating core', captionNote: 'write what it heard and what it answered — turn it off to leave just the sphere',
     wideTools: 'wider tools', wideToolsNote: 'off, it answers only from what was measured here and nothing leaves the machine', wideToolsOn: 'on: it can read files, run commands and search the web without asking, and it uses your MCP servers',
+    calendar: 'calendar meetings', calendarNote: 'off, nothing in Calendar is read and no permission is asked. On, the helper asks once and brings meeting names and times; turning it off deletes what came', calendarWaiting: 'on — the helper asks for permission within ten minutes', calendarGranted: 'on: meeting names and times, read on this Mac; turning it off deletes what came', calendarDenied: 'macOS denied access — allow Hippocampus Focus in System Settings → Privacy & Security → Calendars',
     save: 'save', saved: 'saved', saving: 'saving…', test: 'test', working: 'working', failed: 'failed',
     agents: 'measure on its own, from login',
     agentsNote: 'the collector, the window reader and the listener start with the Mac and come back if they fall',
@@ -490,7 +494,7 @@ const es: Strings = {
     nothingRecorded: 'Nada registrado.',
     signals: 'señales', visits: 'visitas de navegador', sites: 'sitios', shortcuts: 'atajos',
     charactersTypedIn: 'caracteres escritos en', sound: 'sonido', somethingPlaying: 'con algo sonando',
-    call: 'micrófono abierto — llamada', screens: 'pantallas',
+    call: 'micrófono abierto — llamada', withCamera: 'con la cámara encendida', meetings: 'reuniones del calendario', onCall: 'en la llamada', noCall: 'sin micrófono abierto', screens: 'pantallas',
     missingAccessibility: 'Falta el permiso de accesibilidad.',
     missingAccessibilityText: 'Sin él veo qué aplicación está delante, pero no el título de la ventana — así que no hay forma de saber en qué trabajabas, solo dónde.',
     openAccessibility: 'abrir los ajustes de Accesibilidad',
@@ -587,6 +591,7 @@ const es: Strings = {
     region: 'región de la clave', regionNote: 'una clave de proyecto europeo no habla con el servidor global — y solo la voz se queja', regionGlobal: 'global', regionEu: 'Europa',
     caption: 'subtítulo en el núcleo flotante', captionNote: 'escribir lo que oyó y lo que respondió — desactívalo para dejar solo la esfera',
     wideTools: 'herramientas ampliadas', wideToolsNote: 'desactivado, responde solo con lo medido aquí y nada sale de la máquina', wideToolsOn: 'activado: puede leer archivos, ejecutar comandos y buscar en la web sin preguntar, y usa tus servidores MCP',
+    calendar: 'reuniones del calendario', calendarNote: 'apagado, no se lee nada del Calendario ni se pide permiso. Encendido, el ayudante pide acceso una vez y trae nombre y hora de las reuniones; apagarlo borra lo que llegó', calendarWaiting: 'encendido — el ayudante pide el permiso en menos de diez minutos', calendarGranted: 'encendido: nombre y hora de las reuniones, leídos en este Mac; apagarlo borra lo que llegó', calendarDenied: 'macOS negó el acceso — autoriza Hippocampus Focus en Ajustes del Sistema → Privacidad y seguridad → Calendarios',
     save: 'guardar', saved: 'guardado', saving: 'guardando…', test: 'probar', working: 'funciona', failed: 'falló',
     agents: 'medir solo, desde el inicio de sesión',
     agentsNote: 'el recolector, el lector de ventanas y la escucha arrancan con el Mac y vuelven si se caen',
@@ -652,7 +657,7 @@ const fr: Strings = {
     nothingRecorded: 'Rien d’enregistré.',
     signals: 'signaux', visits: 'visites de navigateur', sites: 'sites', shortcuts: 'raccourcis',
     charactersTypedIn: 'caractères tapés dans', sound: 'son', somethingPlaying: 'avec quelque chose qui jouait',
-    call: 'micro ouvert — un appel', screens: 'écrans',
+    call: 'micro ouvert — un appel', withCamera: 'caméra allumée', meetings: 'réunions du calendrier', onCall: 'en appel', noCall: 'aucun micro ouvert', screens: 'écrans',
     missingAccessibility: 'La permission d’accessibilité manque.',
     missingAccessibilityText: 'Sans elle je vois quelle application est au premier plan, mais pas le titre de la fenêtre — impossible donc de savoir sur quoi tu travaillais, seulement où.',
     openAccessibility: 'ouvrir les réglages d’Accessibilité',
@@ -749,6 +754,7 @@ const fr: Strings = {
     region: 'région de la clé', regionNote: 'une clé de projet européen ne parle pas au serveur global — et seule la voix s’en plaint', regionGlobal: 'global', regionEu: 'Europe',
     caption: 'légende sur le noyau flottant', captionNote: 'écrire ce qu’il a entendu et ce qu’il a répondu — désactive pour ne laisser que la sphère',
     wideTools: 'outils élargis', wideToolsNote: 'désactivé, il répond seulement avec ce qui a été mesuré ici et rien ne sort de la machine', wideToolsOn: 'activé : il peut lire des fichiers, lancer des commandes et chercher sur le web sans demander, et il utilise tes serveurs MCP',
+    calendar: 'réunions du calendrier', calendarNote: 'désactivé, rien n’est lu dans Calendrier et aucune autorisation n’est demandée. Activé, l’assistant demande l’accès une fois et apporte le nom et l’heure des réunions ; le désactiver efface ce qui est venu', calendarWaiting: 'activé — l’assistant demande l’autorisation d’ici dix minutes', calendarGranted: 'activé : nom et heure des réunions, lus sur ce Mac ; le désactiver efface ce qui est venu', calendarDenied: 'macOS a refusé l’accès — autorise Hippocampus Focus dans Réglages Système → Confidentialité et sécurité → Calendriers',
     save: 'enregistrer', saved: 'enregistré', saving: 'enregistrement…', test: 'tester', working: 'fonctionne', failed: 'a échoué',
     agents: 'mesurer tout seul, dès l’ouverture de session',
     agentsNote: 'le collecteur, le lecteur de fenêtre et l’écoute démarrent avec le Mac et reviennent s’ils tombent',
@@ -814,7 +820,7 @@ const de: Strings = {
     nothingRecorded: 'Nichts aufgezeichnet.',
     signals: 'Signale', visits: 'Browser-Aufrufe', sites: 'Seiten', shortcuts: 'Kürzel',
     charactersTypedIn: 'Zeichen getippt in', sound: 'Ton', somethingPlaying: 'mit etwas, das lief',
-    call: 'Mikrofon offen — ein Anruf', screens: 'Bildschirme',
+    call: 'Mikrofon offen — ein Anruf', withCamera: 'mit Kamera an', meetings: 'Termine aus dem Kalender', onCall: 'im Anruf', noCall: 'kein Mikrofon offen', screens: 'Bildschirme',
     missingAccessibility: 'Die Berechtigung für Bedienungshilfen fehlt.',
     missingAccessibilityText: 'Ohne sie sehe ich, welche App vorn ist, aber nicht den Fenstertitel — es lässt sich also nicht sagen, woran du gearbeitet hast, nur wo.',
     openAccessibility: 'die Bedienungshilfen-Einstellungen öffnen',
@@ -911,6 +917,7 @@ const de: Strings = {
     region: 'Region des Schlüssels', regionNote: 'ein europäischer Projektschlüssel spricht nicht mit dem globalen Server — und nur die Stimme beschwert sich', regionGlobal: 'global', regionEu: 'Europa',
     caption: 'Untertitel am schwebenden Kern', captionNote: 'schreiben, was er gehört und geantwortet hat — aus lässt nur die Kugel stehen',
     wideTools: 'erweiterte Werkzeuge', wideToolsNote: 'aus antwortet er nur aus dem hier Gemessenen, und nichts verlässt den Rechner', wideToolsOn: 'an: er darf Dateien lesen, Befehle ausführen und im Web suchen, ohne zu fragen, und nutzt deine MCP-Server',
+    calendar: 'Kalendertermine', calendarNote: 'aus, wird nichts aus dem Kalender gelesen und keine Berechtigung erfragt. An, fragt der Helfer einmal und bringt Namen und Zeiten der Termine; ausschalten löscht, was kam', calendarWaiting: 'an — der Helfer fragt innerhalb von zehn Minuten nach der Berechtigung', calendarGranted: 'an: Namen und Zeiten der Termine, auf diesem Mac gelesen; ausschalten löscht, was kam', calendarDenied: 'macOS hat den Zugriff verweigert — erlaube Hippocampus Focus in Systemeinstellungen → Datenschutz & Sicherheit → Kalender',
     save: 'speichern', saved: 'gespeichert', saving: 'speichert…', test: 'testen', working: 'funktioniert', failed: 'fehlgeschlagen',
     agents: 'von der Anmeldung an selbst messen',
     agentsNote: 'Sammler, Fensterleser und Mithören starten mit dem Mac und kommen zurück, wenn sie ausfallen',

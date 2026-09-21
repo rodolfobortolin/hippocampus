@@ -39,6 +39,7 @@ export type Day = {
   lastAt: number | null
   /** Time at the machine, from macOS's record of input. */
   presence: { seconds: number; stretches: number }
+  meetings: Meeting[]
   apps: Slice[]
   categories: Slice[]
   projects: Slice[]
@@ -53,7 +54,8 @@ export type Day = {
   input: { keys: number; clicks: number; scroll: number }
   inputPerApp: { app: string; keys: number; clicks: number; scroll: number }[]
   screens: Slice[]
-  soundtrack: { seconds: number; inCall: number }
+  /** inCall: the microphone open; onCamera: the part of it with a camera on too. */
+  soundtrack: { seconds: number; inCall: number; onCamera: number }
   media: Slice[]
   aiTurns: { project: string; prompt: string; tools: string; ts: number }[]
   stored: { narrative: string; recap: string; built_at: number } | null
@@ -92,6 +94,9 @@ export type Settings = {
   caption: boolean
   /** Whether the conversation may reach beyond this app's own database. */
   wideTools: boolean
+  calendar: boolean
+  /** '' until the helper has asked; then 'granted' or 'denied'. */
+  calendarStatus: string
   liveVoices: string[]
   /** False when there is no OpenAI key, which is what the live voice needs. */
   liveAvailable: boolean
@@ -130,6 +135,8 @@ export type PeriodSummary = {
 export type WritingKind = 'ai' | 'chat' | 'mail' | 'search' | 'code' | 'web' | 'other'
 
 // The pieces of work are shaped in the core; the screen only reads them.
+export type { Meeting } from '../../core/sources/calendar.ts'
+import type { Meeting } from '../../core/sources/calendar.ts'
 export type { Item, Org, Touch, WorkItems } from '../../core/items.ts'
 export type { PageKind } from '../../core/pages.ts'
 import type { Item, Touch, WorkItems } from '../../core/items.ts'

@@ -28,6 +28,9 @@ export type Dossier = {
   sites: string
   shortcuts: string
   typed: string
+  meetings: string
+  onCall: (duration: string) => string
+  noCall: string
 }
 
 export const DOSSIER: Record<Language, Dossier> = {
@@ -50,6 +53,7 @@ export const DOSSIER: Record<Language, Dossier> = {
     windows: 'Janelas onde mais ficou:', commits: 'Commits:',
     requests: (n) => `Pedidos a agentes (${n}):`,
     sites: 'Sites mais visitados:', shortcuts: 'Atalhos:', typed: 'Amostras do que digitou:',
+    meetings: 'Reuniões no calendário:', onCall: (t) => `${t} com microfone aberto`, noCall: 'sem microfone aberto durante',
   },
 
   'en-US': {
@@ -71,6 +75,7 @@ export const DOSSIER: Record<Language, Dossier> = {
     windows: 'Windows they stayed in most:', commits: 'Commits:',
     requests: (n) => `Agent requests (${n}):`,
     sites: 'Most visited sites:', shortcuts: 'Shortcuts:', typed: 'Samples of what they typed:',
+    meetings: 'Meetings on the calendar:', onCall: (t) => `${t} with a microphone open`, noCall: 'no microphone open during it',
   },
 
   'es-ES': {
@@ -92,6 +97,7 @@ export const DOSSIER: Record<Language, Dossier> = {
     windows: 'Ventanas donde más estuvo:', commits: 'Commits:',
     requests: (n) => `Peticiones a agentes (${n}):`,
     sites: 'Sitios más visitados:', shortcuts: 'Atajos:', typed: 'Muestras de lo que escribió:',
+    meetings: 'Reuniones en el calendario:', onCall: (t) => `${t} con micrófono abierto`, noCall: 'sin micrófono abierto durante',
   },
 
   'fr-FR': {
@@ -113,6 +119,7 @@ export const DOSSIER: Record<Language, Dossier> = {
     windows: 'Fenêtres où il est resté le plus :', commits: 'Commits :',
     requests: (n) => `Requêtes à des agents (${n}) :`,
     sites: 'Sites les plus visités :', shortcuts: 'Raccourcis :', typed: 'Échantillons de ce qu\'il a tapé :',
+    meetings: 'Réunions au calendrier :', onCall: (t) => `${t} avec un micro ouvert`, noCall: 'aucun micro ouvert pendant',
   },
 
   'de-DE': {
@@ -134,5 +141,6 @@ export const DOSSIER: Record<Language, Dossier> = {
     windows: 'Fenster, in denen er am längsten war:', commits: 'Commits:',
     requests: (n) => `Agenten-Anfragen (${n}):`,
     sites: 'Meistbesuchte Seiten:', shortcuts: 'Kürzel:', typed: 'Proben dessen, was er tippte:',
+    meetings: 'Termine im Kalender:', onCall: (t) => `${t} mit offenem Mikrofon`, noCall: 'kein Mikrofon offen währenddessen',
   },
 }
