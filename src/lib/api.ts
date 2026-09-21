@@ -1,4 +1,15 @@
-const BASE = `http://127.0.0.1:${(globalThis as any).HIPOCAMPO_PORT ?? 7878}`
+/**
+ * Which core to talk to. The installed one, normally; another one when the
+ * page is opened with `?core=7979` — that is how the demo database is shown for
+ * screenshots, without touching the real core or the real data.
+ */
+const PORT = (() => {
+  const asked = Number(new URLSearchParams(globalThis.location?.search ?? '').get('core'))
+  if (Number.isInteger(asked) && asked > 1024 && asked < 65536) return asked
+  return (globalThis as any).HIPPOCAMPUS_PORT ?? 7878
+})()
+
+const BASE = `http://127.0.0.1:${PORT}`
 
 export type Slice = { name: string; seconds: number }
 export type RibbonBlock = {
@@ -141,7 +152,7 @@ export const api = {
   saveSettings: (change: Record<string, unknown>) => get<Settings>('/api/settings', {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(change),
   }),
-  socket: () => new WebSocket(`ws://127.0.0.1:${(globalThis as any).HIPOCAMPO_PORT ?? 7878}/ws`),
+  socket: () => new WebSocket(`ws://127.0.0.1:${PORT}/ws`),
   transcribe: async (audio: Blob): Promise<string> => {
     const response = await fetch(`${BASE}/api/transcribe`, {
       method: 'POST', headers: { 'content-type': 'audio/webm' }, body: audio,
