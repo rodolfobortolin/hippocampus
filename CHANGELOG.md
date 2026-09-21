@@ -6,6 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The app's own window is labelled as looking after the work, instead of
+  "unlabelled".
+
 - What you asked your agents counts in full under "what you wrote", dictated
   requests included; it had been reading only what the typing sampler caught.
 

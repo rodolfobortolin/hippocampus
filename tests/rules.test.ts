@@ -60,3 +60,7 @@ test('with no model at all, the day is still sorted where it is certain', async 
     { key: labelKey({ app: 'Code', title: 'orders.ts — harbor', host: null }), category: 'code', project: 'harbor', deep_work: 0.5, confidence: 1 })
   assert.equal(cachedLabel(labelKey({ app: 'Slack', title: '#ops', host: null }))?.category, 'admin')
 })
+
+test('reading your own day back in this app is looking after the work', () => {
+  assert.deepEqual(localLabel({ app: 'Hippocampus', title: 'Hippocampus' }, []), { category: 'admin', project: null })
+})

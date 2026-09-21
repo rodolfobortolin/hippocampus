@@ -33,7 +33,9 @@ const APPS: Record<Category, string[]> = {
     'adobe illustrator', 'blender', 'final cut pro', 'davinci resolve',
   ],
   writing: ['obsidian', 'bear', 'ulysses', 'pages', 'microsoft word', 'ia writer', 'craft', 'notion'],
-  admin: ['system settings', 'finder', 'activity monitor', 'app store', '1password', 'keychain access', 'installer'],
+  // This app too: reading your own day back is looking after how you work, not
+  // doing it — and jev, asked, filed half an hour of it as "unlabelled".
+  admin: ['system settings', 'finder', 'activity monitor', 'app store', '1password', 'keychain access', 'installer', 'hippocampus'],
   research: [],
 }
 
