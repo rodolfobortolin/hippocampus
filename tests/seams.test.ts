@@ -326,3 +326,4 @@ test('today is labelled while it happens, not only when it closes', () => {
   assert.match(collector, /name: 'labels'[^\n]*classifyDay\(dayOf\(Date\.now\(\) \/ 1000\)/,
     'core/collector.ts should classify the current day on a timer')
 })
+

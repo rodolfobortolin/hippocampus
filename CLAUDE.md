@@ -36,8 +36,22 @@ reintroduces the idea.
 
 ```bash
 npm run build     # types and the interface
-npm test          # CI runs both of these
+npm test          # the same two CI runs, on releases and pull requests
 ```
+
+CI does not run on a push to main, so this is the check a commit gets. The
+runner is Linux, and a test that needs macOS passes here and fails there. Before
+a push that touched tests, run the suite as the runner would:
+
+```bash
+node --experimental-strip-types --disable-warning=ExperimentalWarning \
+  --import 'data:text/javascript,Object.defineProperty(process,"platform",{value:"linux"})' \
+  --test "tests/*.test.ts"
+```
+
+Add `HIPPOCAMPUS_DATA=$(mktemp -d)` in front for the runner's empty database. A
+test that needs macOS skips itself with the reason, `{ skip: process.platform
+!== 'darwin' && '…' }` — skipped where it cannot run, never passed there.
 
 Touched the core? Restart it and check it came back whole:
 
@@ -96,3 +110,45 @@ survives only where it has to: the Keychain service read as a fallback, the
 settings row read in its old shape, the vault marker already sitting in
 people's notes, and the migration map from the old category keys. Everywhere
 else it is gone.
+
+## CI and releases
+
+The pipeline runs on a release tag, on a pull request and by hand — not on
+every push to main. Day-to-day commits are checked locally; running the same
+checks again on each push spends minutes to confirm what is already known.
+
+**Keep the record as you go.** Every change someone using the app would notice
+gets a line under `## Unreleased` in `CHANGELOG.md`, in the same commit that
+makes it. Written for the person using it — "Clicking a cell narrows the charts
+under it" — not for the diff. Refactors, tests and docs do not get a line.
+
+**Cut a release when it is worth one**, and it is Claude's call to make:
+
+- A coherent set of changes has built up — roughly five or more lines under
+  Unreleased that belong together, or one feature big enough to stand alone.
+- A fix for something that loses data, stops the measuring or keeps the app
+  from opening: release it promptly, even alone.
+- About three weeks have passed since the last release and Unreleased has
+  anything worth shipping.
+
+Not for docs, tests or refactors alone. Never with Unreleased empty, never with
+a test failing, never in the middle of a change that is only half done.
+
+**How:**
+
+1. `npm run build && npm test`, and the Linux run above.
+2. Pick the version. Before 1.0: a new feature bumps the minor (0.2.0), fixes
+   alone bump the patch (0.1.1). `package.json` is the only place it is written
+   — `core/version.ts` reads it.
+3. Move the Unreleased lines under `## vX.Y.Z — YYYY-MM-DD`, leave Unreleased
+   with "Nothing yet.", and commit that as `Release vX.Y.Z`.
+4. Tag `vX.Y.Z` and push the commit and the tag. That starts the one CI run.
+5. Watch it: `gh run watch <id> --exit-status`. Red means no release — fix it
+   first.
+6. Green: `gh release create vX.Y.Z --title vX.Y.Z --notes-file <that section>`.
+7. Attach a build only if it is notarized (`npm run notarize` succeeded).
+   Without notarization macOS refuses to open it on any other Mac, so a download
+   would be a trap; say in the notes that it has to be built from source.
+
+Then tell Rodolfo it went out, with the link — a release is public.
+

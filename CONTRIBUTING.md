@@ -104,7 +104,7 @@ applied once, in `skysight.ts`, and came back in four other files.
 
 ```bash
 npm run build     # typecheck plus the interface build
-npm test          # CI runs exactly these two
+npm test          # CI runs exactly these two on your pull request
 ```
 
 Twelve tests so far, in `testes/`. More are welcome, especially around

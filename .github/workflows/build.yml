@@ -3,12 +3,24 @@
 # Accessibility, CoreAudio and NSWorkspace, and none of that exists on a runner
 # — pretending it does would give a green that is worth nothing. Tests that
 # need the Mac say so and are skipped here, not quietly passed.
+#
+# When it runs, and when it does not:
+#
+# - Not on every push to main. Day-to-day commits are checked locally before
+#   they go out (see CLAUDE.md, "Before saying it is done"); running the same
+#   checks again on every push spends minutes to confirm what is already known.
+# - On a release tag (v1.2.3). A release is a promise that this state works, so
+#   it is checked once, on a clean machine, before the release is published.
+# - On a pull request. That is someone else's code arriving, which nobody has
+#   run yet; our own commits do not go through pull requests.
+# - By hand, from the Actions tab, whenever it is worth asking.
 name: build
 
 on:
   push:
-    branches: [main]
+    tags: ['v*']
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
