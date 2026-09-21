@@ -299,21 +299,30 @@ went through secret redaction before being written.
 ## Structure
 
 ```
-native/focus.swift    helper sampling focus, window, URL and idleness
-native/ouvido.swift   the wake word, recognised on-device
+native/focus.swift     helper sampling focus, window, URL, idleness, microphone
+                       and camera — and the calendar, when asked for
+native/listener.swift  the wake word, recognised on-device
+native/agents.swift    registers the helpers as login items
 core/
-  collector.ts        the loop: sample, harvest, close the day
-  db.ts               SQLite schema
-  sources/            focus, Computer History, browsers, Claude Code, git, shell
-  jev.ts              per-window classification, memoised
-  rollup.ts           closes the day and asks for the narrative
-  agent.ts            the chat, with tools over the database
-  server.ts           local API on 127.0.0.1
-  ajustes.ts          settings, and the keys in the Keychain
-  idiomas.ts          the five languages, for everything the core writes
-  limite.ts           no single source may stall the collector
-app/main.cjs          the window, the tray icon and the floating core
-src/                  the interface (React + hand-written SVG)
+  collector.ts         the loop: sample, harvest, close the day
+  db.ts                SQLite schema and its migrations
+  sources/             focus, Computer History, browsers, Claude Code, Codex,
+                       git and its reflog, shell, the power log, the calendar
+  pages.ts             a URL read into a piece of work, and whose it is
+  items.ts             pieces of work gathered across every source
+  timesheet.ts         the optional weekly draft by client and line
+  prompts.ts           what a person typed, out of an agent's log
+  jev.ts               per-window classification, memoised
+  metrics.ts           the day and the period, in numbers
+  rollup.ts            closes the day and asks for the narrative
+  agent.ts             the chat, with tools over the database
+  server.ts            local API on 127.0.0.1
+  settings.ts          settings, and the keys in the Keychain
+  languages.ts         the five languages, for everything the core writes
+  guard.ts             no single source may stall the collector
+app/main.cjs           the window, the tray icon and the floating core
+src/                   the interface (React + hand-written SVG)
+site/                  the project's website
 ```
 
 ## A note on the language of the code

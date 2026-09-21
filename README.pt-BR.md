@@ -218,16 +218,28 @@ o que já está guardado passa pela redação de segredos antes de ser gravado.
 ## Estrutura
 
 ```
-native/focus.swift    helper que amostra foco, janela, URL e ociosidade
+native/focus.swift     helper que amostra foco, janela, URL, ociosidade, microfone
+                       e câmera — e o calendário, quando pedido
+native/listener.swift  a palavra de ativação, reconhecida no próprio Mac
+native/agents.swift    registra os helpers como itens de início
 core/
-  collector.ts        o laço: amostra, colhe, fecha o dia
-  db.ts               esquema SQLite
-  sources/            foco, Computer History, navegadores, Claude Code, git, shell
-  jev.ts              classificação por janela, memorizada
-  rollup.ts           fecha o dia e pede a narrativa
-  agent.ts            a conversa, com ferramentas sobre o banco
-  server.ts           API local em 127.0.0.1
-  limite.ts           nenhuma coleta pode travar o coletor
-app/main.cjs          a janela e o ícone da barra
-src/                  a interface (React + SVG à mão)
+  collector.ts         o laço: amostra, colhe, fecha o dia
+  db.ts                esquema SQLite e suas migrações
+  sources/             foco, Computer History, navegadores, Claude Code, Codex,
+                       git e seu reflog, shell, o registro de energia, o calendário
+  pages.ts             uma URL lida como peça de trabalho, e de quem ela é
+  items.ts             as peças de trabalho juntadas de todas as fontes
+  timesheet.ts         o rascunho semanal opcional por cliente e linha
+  prompts.ts           o que uma pessoa digitou, dentro do log de um agente
+  jev.ts               classificação por janela, memorizada
+  metrics.ts           o dia e o período, em números
+  rollup.ts            fecha o dia e pede a narrativa
+  agent.ts             a conversa, com ferramentas sobre o banco
+  server.ts            API local em 127.0.0.1
+  settings.ts          ajustes, e as chaves no Chaveiro
+  languages.ts         os cinco idiomas, para tudo que o núcleo escreve
+  guard.ts             nenhuma coleta pode travar o coletor
+app/main.cjs           a janela, o ícone da barra e o núcleo flutuante
+src/                   a interface (React + SVG à mão)
+site/                  o site do projeto
 ```
