@@ -6,6 +6,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Today says what your typing was — a prompt, a message, code — which until now
+  only the month could tell you.
 - The ranges in Work no longer squeeze: "7 days" stopped breaking over two
   lines when the subtitle was long, and a client called "acme" is no longer
   drawn as "a…".

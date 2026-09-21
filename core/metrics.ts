@@ -179,6 +179,10 @@ export function dayReport(day: string) {
         where day = ? and kind = 'shortcut' and detail <> '' group by detail order by n desc limit 10`, day),
     clicks: one<any>(`select count(*) n from events where day = ? and kind in ('click','drag')`, day)?.n ?? 0,
     typing: one<any>(`select coalesce(sum(chars),0) chars, count(*) samples from typing where day = ?`, day),
+    // What the typing was: a prompt, a message, an e-mail, code. The same
+    // reading the month gets — a day deserves it too, and it is the one thing
+    // the day's screen could not show.
+    written: writtenByKind(day, day, '', []),
     commits: all<any>(
       `select repo, subject, ts, insertions, deletions from commits where day = ? order by ts`, day),
     hosts: all<any>(

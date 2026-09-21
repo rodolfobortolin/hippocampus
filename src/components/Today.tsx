@@ -294,6 +294,26 @@ export function Today({ status }: { status: Status | null }) {
                 </div>
               )}
 
+              {/* What the typing was. The month has this reading in Rhythm;
+                  the day had the total and not what it was made of. */}
+              {(data.written ?? []).length > 0 && (
+                <>
+                  <h3 style={{ marginTop: 22 }}>{t.rhythm.written}</h3>
+                  <div className="rows">
+                    {(data.written ?? []).map((row) => (
+                      <div key={row.kind} className="row">
+                        <span className="name">{t.rhythm.writing[row.kind]}</span>
+                        <span className="value">{number(row.chars)}</span>
+                        <span className="track"><i style={{
+                          width: `${(row.chars / (data.written ?? [])[0].chars) * 100}%`,
+                          background: 'var(--writing)', boxShadow: '0 0 9px var(--writing)', opacity: 0.8,
+                        }} /></span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
               {(data.soundtrack.seconds > 60 || data.soundtrack.inCall > 60) && (
                 <>
                   <h3 style={{ marginTop: 22 }}>{t.today.sound}</h3>

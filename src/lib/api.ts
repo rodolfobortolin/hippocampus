@@ -48,6 +48,8 @@ export type Day = {
   shortcuts: { name: string; n: number }[]
   clicks: number
   typing: { chars: number; samples: number }
+  /** What the typing was: a prompt, a message, an e-mail, code. */
+  written: { kind: WritingKind; chars: number }[]
   commits: { repo: string; subject: string; ts: number; insertions: number; deletions: number }[]
   hosts: { name: string; n: number }[]
   visits: number
