@@ -127,6 +127,7 @@ the sidebar, without blocking the rest.
 | --- | --- | --- |
 | **Accessibility** | window title and tab URL | you see *which app*, not *what* you were working on |
 | **Access to other apps' data** | Chrome/Arc history and Computer History | loses visited sites and the fine-grained keyboard events |
+| **Calendars** — only if you turn it on | meeting names and times | calls stay "microphone open", unnamed |
 
 ```bash
 npm run permission
@@ -161,7 +162,9 @@ permission` re-grants when that happens.
 | Chrome · Arc · Brave · Edge | visited sites | every 10min |
 | Claude Code sessions | what you asked and which tools ran | every 10min |
 | `~/.zsh_history` | commands | every 15min |
-| Repositories under `~/Documents/GitHub` | commits, lines added and cut | every 30min |
+| Repositories under `~/Documents/GitHub` | commits, lines added and cut, and each branch switch from the reflog | every 30min |
+| The macOS power log (`pmset`) | when you sat down and when you left, even with the app closed | every hour |
+| macOS Calendar — off until you turn it on | meeting names and times, from yesterday to tomorrow | every 10min |
 
 Time becomes a **block**: a continuous stretch in the same app and the same
 window. The block is written when it starts and extended on every sample, so a
@@ -169,9 +172,16 @@ crash costs at most one sample. Past two minutes idle it becomes an idle block,
 which does not count as active time.
 
 Every block also carries **keys, clicks and scroll** — the system counters,
-which cost no permission at all — and whether the **microphone was in use**. The
-first separates reading from writing; the second detects a call without having
-to recognise Zoom, Teams or Meet by process name.
+which cost no permission at all — and whether a **microphone or camera was in
+use**. The first separates reading from writing; the second detects a call, and
+a video call, without having to recognise Zoom, Teams or Meet by process name.
+Neither reads a sound or a frame: the system is only asked whether the device
+is running.
+
+Agent logs record as "user" a good deal no one typed — background tasks
+announcing themselves, the output of `/model`, plugin lists. Only what a person
+wrote is kept as a request; the words inside a voice delegation or after an
+attached image are kept too.
 
 Contiguous blocks of the same project become an **episode**, which is the unit
 you can actually search. Four seconds in Chrome match no question at all, but
@@ -201,6 +211,27 @@ Computer History is a cache that OpenAI itself deletes within hours. Hippocampus
 harvests it before it disappears and archives it compressed in `archive/` —
 which is how it can reconstruct days from before it was installed
 (`npx tsx core/backfill.ts`).
+
+## Pieces of work
+
+The app knows which app you were in; the identifiers that cross between sources
+say what you were working on. A tab's address is read into a piece of work —
+a Jira ticket, a Confluence page, a pull request, a document, a video — and
+whose it is: the Jira or Confluence subdomain, the GitHub owner. The same
+ticket key in a tab, a question to Claude Code and a commit message becomes one
+line. The branch a repository sat on joins in what names nothing: a commit, a
+question, the agent's minutes or a stretch in the editor on
+`feature/sup-12-login` count for SUP-12.
+
+The **Work** tab shows it by client and by piece, with every moment that
+touched one of them a click away. It shows only the axis your data has: someone
+with no clients sees no clients box. Email is "email", never its subject.
+
+For whoever bills by the hour there is a **timesheet draft**, off until you
+turn it on: the week's measured focus by client and line, the agent's time
+apart, and the time with no client stated plainly. It is a record to check,
+never a judgement — for anyone who does not bill by the hour a timesheet reads
+as surveillance, which is why it is not on by default.
 
 ## The core, on call
 

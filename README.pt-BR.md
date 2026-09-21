@@ -73,6 +73,7 @@ como *aguardando permissão* na barra lateral, sem travar o resto.
 | --- | --- | --- |
 | **Acessibilidade** | título da janela e URL da aba | você vê *qual app*, não *em que* estava trabalhando |
 | **Acesso a dados de outros apps** | histórico do Chrome/Arc e o Computer History | perde sites visitados e os eventos finos de teclado |
+| **Calendários** — só se você ligar | nome e horário das reuniões | a chamada continua "microfone aberto", sem nome |
 
 ```bash
 npm run permission
@@ -106,7 +107,9 @@ reconcede quando isso acontecer.
 | Chrome · Arc · Brave · Edge | sites visitados | a cada 10min |
 | Sessões do Claude Code | o que você pediu e as ferramentas usadas | a cada 10min |
 | `~/.zsh_history` | comandos | a cada 15min |
-| Repositórios em `~/Documents/GitHub` | commits, linhas somadas e cortadas | a cada 30min |
+| Repositórios em `~/Documents/GitHub` | commits, linhas somadas e cortadas, e cada troca de branch pelo reflog | a cada 30min |
+| O registro de energia do macOS (`pmset`) | quando você sentou e quando saiu, mesmo com o app fechado | a cada hora |
+| Calendário do macOS — desligado até você ligar | nome e horário das reuniões, de ontem a amanhã | a cada 10min |
 
 O tempo vira **bloco**: um trecho contínuo no mesmo app e na mesma janela. O bloco
 é gravado quando começa e estendido a cada amostra, então uma queda custa no
@@ -114,9 +117,16 @@ máximo uma amostra. Acima de dois minutos parado vira bloco ocioso, que não
 conta como tempo ativo.
 
 Cada bloco carrega também **teclas, cliques e rolagem** — os contadores do
-sistema, que não custam permissão nenhuma — e se o **microfone esteve em uso**.
-O primeiro separa ler de escrever; o segundo detecta chamada sem depender de
-reconhecer Zoom, Teams ou Meet pelo nome do processo.
+sistema, que não custam permissão nenhuma — e se **microfone ou câmera
+estiveram em uso**. O primeiro separa ler de escrever; o segundo detecta chamada,
+e chamada com vídeo, sem depender de reconhecer Zoom, Teams ou Meet pelo nome do
+processo. Nenhum dos dois lê som ou imagem: só se pergunta ao sistema se o
+dispositivo está rodando.
+
+Os logs dos agentes registram como "usuário" muita coisa que ninguém digitou —
+tarefas em segundo plano se anunciando, a saída do `/model`, listas de plugins.
+Só o que uma pessoa escreveu fica como pedido; as palavras dentro de uma
+delegação por voz ou depois de uma imagem anexada também ficam.
 
 Blocos contíguos do mesmo projeto viram **episódio**, que é a unidade que dá
 para procurar: quatro segundos no Chrome não casam com pergunta nenhuma, mas
@@ -142,6 +152,27 @@ O Computer History é um cache que a própria OpenAI apaga em poucas horas. O
 Hippocampus colhe antes de sumir e arquiva em `archive/` compactado — é por isso
 que ele consegue reconstruir dias anteriores ao dia em que foi instalado
 (`npx tsx core/backfill.ts`).
+
+## Peças de trabalho
+
+O app sabe em que app você estava; os identificadores que atravessam as fontes
+dizem em que você estava trabalhando. O endereço de uma aba vira uma peça de
+trabalho — ticket do Jira, página do Confluence, pull request, documento,
+vídeo — e de quem ela é: o subdomínio do Jira ou do Confluence, o dono no
+GitHub. A mesma chave de ticket numa aba, num pedido ao Claude Code e numa
+mensagem de commit vira uma linha só. O branch em que o repositório estava junta
+o que não cita nada: um commit, um pedido, os minutos do agente ou um trecho no
+editor em `feature/sup-12-login` contam para o SUP-12.
+
+A aba **Trabalho** mostra isso por cliente e por peça, com todos os momentos que
+tocaram cada uma a um clique. Ela mostra só o eixo que os seus dados têm: quem
+não tem clientes não vê caixa de clientes. E-mail é "e-mail", nunca o assunto.
+
+Para quem cobra por hora existe um **rascunho de apontamento**, desligado até
+você ligar: o foco medido da semana por cliente e linha, o tempo do agente à
+parte, e o tempo sem cliente dito com todas as letras. É um registro para
+conferir, nunca uma avaliação — para quem não cobra por hora, apontamento soa
+como vigilância, e é por isso que ele não vem ligado.
 
 ## Os dois modelos, e por que dois
 
