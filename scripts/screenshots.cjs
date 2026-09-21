@@ -36,7 +36,30 @@ const click = (win, label) => win.webContents.executeJavaScript(`
   })()
 `)
 
+/**
+ * Refuses to photograph anything but the demo.
+ *
+ * The core it points at is whatever answers on that port, and a core started
+ * by hand inherits the repository's `.env` — which names the real vault. A run
+ * like that photographed a screen listing real client names, one step away
+ * from a public page. The demo's person is Alex; anyone else and this stops.
+ */
+async function demoOnly() {
+  const response = await fetch(`http://127.0.0.1:${PORT}/api/status`).catch(() => null)
+  if (!response || !response.ok) {
+    console.error(`No core answering on ${PORT}. Start scripts/demo-core.ts first.`)
+    process.exit(1)
+  }
+  const status = await response.json()
+  if (status.user !== 'Alex' || status.language !== 'en-US') {
+    console.error(`The core on ${PORT} is not the demo (it answers as "${status.user}", ${status.language}).`)
+    console.error('Start it with: HIPPOCAMPUS_DATA=/tmp/hippocampus-demo HIPPOCAMPUS_PORT=7979 node --experimental-strip-types scripts/demo-core.ts')
+    process.exit(1)
+  }
+}
+
 app.whenReady().then(async () => {
+  await demoOnly()
   fs.mkdirSync(OUT, { recursive: true })
   // Sharper than the screen it runs on. Off every display a window renders at
   // 1x, which is soft on a Retina screen; so the window is made 2560 pixels
