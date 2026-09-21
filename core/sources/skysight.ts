@@ -44,28 +44,44 @@ export function skysightAvailable(): boolean {
  * tomorrow, and it stays worth checking.
  */
 const DENIED = 'skysight.denied'
+const PROBED = 'skysight.probed'
+
+/**
+ * How long a "no" is taken at its word before the folder is touched again.
+ *
+ * macOS remembers a decision against the app's signature, so a rebuilt app is
+ * a new app and it asks once more. During development that is every launch,
+ * which is how someone ends up clicking the same dialog all day. Six hours
+ * bounds it: the answer survives restarts, and if macOS really did forget, the
+ * question comes back once, not on every start.
+ */
+const PATIENCE = 6 * 60 * 60 * 1000
 
 /** Forgets the refusal, so it is tried again once permission is given. */
 export function retryDeniedSkysight(): void {
   setMeta(DENIED, '')
+  setMeta(PROBED, '')
 }
 
 export async function checkSkysight(): Promise<boolean> {
-  if (getMeta(DENIED, '') === 'yes') {
+  const refusedAt = Number(getMeta(DENIED, '0'))
+  if (refusedAt && Date.now() - refusedAt < PATIENCE) {
     available = false
     return false
   }
   try {
     await fs.access(segmentsDir)
     available = true
+    setMeta(DENIED, '0')
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code
     if (code === 'EPERM' || code === 'EACCES') {
-      setMeta(DENIED, 'yes')
-      console.error('[skysight] macOS refused the folder — not asking again until you allow it')
+      setMeta(DENIED, String(Date.now()))
+      console.error('[skysight] macOS refused the folder — leaving it alone for six hours')
     }
     available = false
   }
+  setMeta(PROBED, String(Date.now()))
   return available
 }
 

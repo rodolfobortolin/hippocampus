@@ -1,9 +1,30 @@
 import { useEffect, useRef, useState } from 'react'
 
-/** Long enough that reopening the window does not replay it, short enough that
- *  the first launch of a working day still gets the opening. */
+/**
+ * Once per launch of the app, not once per window.
+ *
+ * The shell stamps when the process started. This app lives in the menu bar:
+ * the window is closed and opened again all day, and the page cannot tell that
+ * apart from a fresh start — so it asks. Same stamp, already seen, no opening.
+ *
+ * In a plain browser there is no shell to ask, so it falls back to a quiet
+ * hour: long enough that a reload does not replay it, short enough that the
+ * first visit of a working day still gets the opening.
+ */
 const QUIET_FOR = 60 * 60 * 1000
 const LAST_SEEN = 'hippocampus.intro'
+
+const launchedAt = (globalThis as any).hippocampus?.launchedAt as string | undefined
+
+function firstTimeThisLaunch(): boolean {
+  try {
+    if (launchedAt) return localStorage.getItem(LAST_SEEN) !== launchedAt
+    return Date.now() - Number(localStorage.getItem(LAST_SEEN) ?? 0) > QUIET_FOR
+  } catch {
+    // Private window, blocked storage: show it rather than swallow it.
+    return true
+  }
+}
 
 /**
  * The opening: a synapse firing that resolves into the seahorse.
@@ -15,20 +36,15 @@ const LAST_SEEN = 'hippocampus.intro'
  * mounted underneath, so the four seconds cost nothing but the look of them.
  */
 export function Intro() {
-  const [playing, setPlaying] = useState(() => {
-    try {
-      return Date.now() - Number(localStorage.getItem(LAST_SEEN) ?? 0) > QUIET_FOR
-    } catch {
-      // Private window, blocked storage: show it rather than swallow it.
-      return true
-    }
-  })
+  const [playing, setPlaying] = useState(firstTimeThisLaunch)
   const [leaving, setLeaving] = useState(false)
   const video = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     if (!playing) return
-    try { localStorage.setItem(LAST_SEEN, String(Date.now())) } catch { /* fine without it */ }
+    try {
+      localStorage.setItem(LAST_SEEN, launchedAt || String(Date.now()))
+    } catch { /* fine without it */ }
 
     const leave = () => setLeaving(true)
     // The opening is decoration. Whatever happens — a codec that will not

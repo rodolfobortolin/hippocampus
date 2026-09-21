@@ -41,6 +41,10 @@ export function Chat({ status }: { status: Status | null }) {
     onLevel: setExternalLevel,
   })
   const liveOn = live.phase !== 'off'
+  // The socket handler is installed once, so this has to be a ref rather than
+  // the value it closed over on the first render.
+  const liveRef = useRef(false)
+  liveRef.current = liveOn || settings?.voiceMode === 'live'
   // Listening records and transcribes; its level is the one from your microphone.
   const listening = useListening((utterance) => { askedByVoice.current = true; send(utterance) }, t.common)
   const isListening = listening.state === 'listening'
@@ -86,7 +90,9 @@ export function Chat({ status }: { status: Status | null }) {
         setThinking(false)
         setTool('')
         const text = data.text || answerRef.current
-        if (text && (askedByVoice.current || alwaysAloud)) speakAnswer.current(text)
+        // The live session says the answer itself; reading it out here as well
+        // puts two voices on the same sentence.
+        if (text && !liveRef.current && (askedByVoice.current || alwaysAloud)) speakAnswer.current(text)
         else setState('idle')
         askedByVoice.current = false
       }

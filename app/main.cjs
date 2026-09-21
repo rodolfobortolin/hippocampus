@@ -16,6 +16,10 @@ const PORT = Number(process.env.HIPPOCAMPUS_PORT || 7878)
 const ADDRESS = DEV ? 'http://localhost:5179' : `http://127.0.0.1:${PORT}`
 
 const PRELOAD = path.join(__dirname, 'preload.cjs')
+// Stamped once, when the process starts. The page uses it to tell a fresh
+// launch from a window being shown again — it cannot tell them apart on its
+// own, because this app lives in the menu bar and the window comes and goes.
+process.env.HIPPOCAMPUS_LAUNCH = String(Date.now())
 // The agent registrar only exists in the packaged app; running from source,
 // the agents still come from `npm run install:agent`.
 const REGISTRAR = path.join(process.resourcesPath ?? '', '..', 'MacOS', 'hippocampus-agents')

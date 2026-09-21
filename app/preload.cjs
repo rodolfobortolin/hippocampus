@@ -7,6 +7,9 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('hippocampus', {
+  /** When this run of the app started. The opening plays once per launch. */
+  launchedAt: process.env.HIPPOCAMPUS_LAUNCH ?? '',
+
   /** Opens the system folder picker. Null when the person backs out. */
   chooseFolder: () => ipcRenderer.invoke('choose-folder'),
 

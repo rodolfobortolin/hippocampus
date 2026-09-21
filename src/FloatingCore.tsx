@@ -49,6 +49,10 @@ export function FloatingCore() {
   })
   const liveOn = live.phase !== 'off'
   const liveWanted = settings?.voiceMode === 'live'
+  // The socket handler is installed once; a plain variable there would be the
+  // one from the first render, when the settings had not arrived yet.
+  const liveRef = useRef(false)
+  liveRef.current = liveOn || liveWanted
 
   const { connected, send } = useSocket(api.socket, (data) => {
     if (data.type === 'thinking') { setState('thinking'); setAnswer('') }
@@ -64,7 +68,10 @@ export function FloatingCore() {
     if (data.type === 'end') {
       const text = data.text || answerRef.current
       setAnswer(text)
-      speakAnswer.current(text)
+      // In live mode the session is the voice: it already received this answer
+      // from the core and says it in its own words. Reading it out here too
+      // means two voices on the same sentence, a beat apart.
+      if (!liveRef.current) speakAnswer.current(text)
     }
     if (data.type === 'wake') wake()
     if (data.type === 'live-answer') void live.accept(String(data.sdp))
