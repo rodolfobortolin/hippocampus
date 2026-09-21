@@ -25,9 +25,12 @@ function arc(cx: number, cy: number, outer: number, inner: number, de: number, t
 }
 
 /** The category donut. The hole in the middle carries the total. */
-export function Donut({ slices, total }: { slices: Slice[]; total: number }) {
+export function Donut({ slices, total, pick = null }: { slices: Slice[]; total: number; pick?: string | null }) {
   const { t, category } = useLanguage()
-  const [hovered, setSobre] = useState<number | null>(null)
+  const [pointed, setSobre] = useState<number | null>(null)
+  // What the pointer is on wins; otherwise the category picked under the ribbon.
+  const picked = pick ? slices.findIndex((slice) => slice.name === pick) : -1
+  const hovered = pointed ?? (picked >= 0 ? picked : null)
   if (!total) return <p className="empty">{t.common.noTime}</p>
 
   let accumulated = 0
@@ -89,9 +92,15 @@ export function Donut({ slices, total }: { slices: Slice[]; total: number }) {
  * lit and the rest fade to a trace, so the shape of the day is still there to
  * place them in — hiding the rest would leave bands floating in an empty hour.
  */
-export function Ribbon({ blocks, day, dayStart = 4, only = null, onClear }: {
+export function Ribbon({ blocks, day, dayStart = 4, only = null, onlySeconds, onClear }: {
   blocks: RibbonBlock[]; day: string; dayStart?: number
   only?: string | null
+  /**
+   * The picked category's whole time. The ribbon only draws stretches long
+   * enough to see, so adding up its own bands said 3h13 beside a donut that
+   * said 3h31 for the same category.
+   */
+  onlySeconds?: number
   onClear?: () => void
 }) {
   const { t, category } = useLanguage()
@@ -123,7 +132,7 @@ export function Ribbon({ blocks, day, dayStart = 4, only = null, onClear }: {
           <span className="ribbon-only appear">
             <i style={{ background: colour(only) }} />
             <b>{category(only)}</b>
-            <span>{duration(pickedSeconds)} · {plural(picked.length, t.counts.stretch)}</span>
+            <span>{duration(onlySeconds ?? pickedSeconds)} · {plural(picked.length, t.counts.stretch)}</span>
             {onClear && <button type="button" onClick={onClear}>{t.today.ribbonAll}</button>}
           </span>
         ) : (

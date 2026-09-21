@@ -31,12 +31,12 @@ export function Today({ status }: { status: Status | null }) {
 
   useEffect(() => {
     let alive = true
-    const load = () => api.day(day).then((d) => alive && setData(d)).catch((e) => alive && setError(e.message))
+    const load = () => api.day(day, only).then((d) => alive && setData(d)).catch((e) => alive && setError(e.message))
     load()
-    // Enquanto é today, a canvas follow o que está sendo medido now.
+    // While it is today, the screen follows what is being measured now.
     const timer = day === todayString() ? setInterval(load, 20_000) : null
     return () => { alive = false; if (timer) clearInterval(timer) }
-  }, [day])
+  }, [day, only])
 
   if (error) return <p className="empty">{t.status.noCore} {error}</p>
   if (!data) return <p className="empty">{t.today.loading}</p>
@@ -45,6 +45,11 @@ export function Today({ status }: { status: Status | null }) {
   const active = hours(data.activeSeconds)
   const noData = data.activeSeconds < 60
   const topCategory = data.categories[0]
+  // The panels made of the same windows as the ribbon follow its legend; the
+  // others describe the whole day and say nothing about a category.
+  const below = data.narrowed ?? data
+  const belowTotal = data.narrowed?.seconds ?? data.activeSeconds
+  const tag = data.narrowed ? <em className="only-tag">{t.today.onlyOf(category(data.narrowed.category))}</em> : null
 
   return (
     <>
@@ -150,7 +155,8 @@ export function Today({ status }: { status: Status | null }) {
                 {data.timelineHidden > 0 && ` · ${number(data.timelineHidden)} ${t.today.tooShort}`}
               </em>
             </h3>
-            <Ribbon blocks={data.timeline} day={day} only={only} onClear={() => setOnly(null)} />
+            <Ribbon blocks={data.timeline} day={day} only={only} onlySeconds={data.narrowed?.seconds}
+              onClear={() => setOnly(null)} />
             {/* The legend is the filter: one category at a time, and the same
                 one again shows the whole day. */}
             <div className={`legend ${only ? 'picking' : ''}`}>
@@ -171,28 +177,28 @@ export function Today({ status }: { status: Status | null }) {
             </div>
             <div className="panel">
               <h3>{t.today.byCategory}</h3>
-              <Donut slices={data.categories} total={data.activeSeconds} />
+              <Donut slices={data.categories} total={data.activeSeconds} pick={only} />
             </div>
           </div>
 
           <div className="grid g32">
             <div className="panel">
-              <h3>{t.today.whereTimeWent}</h3>
-              <Bars items={topSlices(data.apps)} total={data.activeSeconds} tone="var(--ember)" />
+              <h3>{t.today.whereTimeWent}{tag}</h3>
+              <Bars items={topSlices(below.apps)} total={belowTotal} tone="var(--ember)" />
             </div>
             <div className="panel">
-              <h3>{t.today.projects} <em>{plural(data.projects.length, t.counts.project)}</em></h3>
-              {data.projects.length
-                ? <Bars items={data.projects} total={data.activeSeconds} tone="var(--water)" />
+              <h3>{t.today.projects} {tag ?? <em>{plural(below.projects.length, t.counts.project)}</em>}</h3>
+              {below.projects.length
+                ? <Bars items={below.projects} total={belowTotal} tone="var(--water)" />
                 : <p className="empty">{t.today.noProject}</p>}
             </div>
           </div>
 
           <div className="grid g2">
             <div className="panel">
-              <h3>{t.today.windows}</h3>
+              <h3>{t.today.windows}{tag}</h3>
               <div className="rows">
-                {data.windows.slice(0, 8).map((janela, i) => (
+                {below.windows.slice(0, 8).map((janela, i) => (
                   <div key={i} className="row">
                     <span className="name" title={janela.title}>
                       <span style={{ color: 'var(--text-dim)' }}>{janela.app}</span> · {janela.title}
@@ -200,7 +206,7 @@ export function Today({ status }: { status: Status | null }) {
                     <span className="value">{duration(janela.seconds)}</span>
                   </div>
                 ))}
-                {!data.windows.length && <p className="empty">{t.today.noTitles}</p>}
+                {!below.windows.length && <p className="empty">{t.today.noTitles}</p>}
               </div>
             </div>
           </div>
@@ -209,13 +215,14 @@ export function Today({ status }: { status: Status | null }) {
             <h3>
               {t.today.hands}
               <em>
-                {number(data.input.keys)} {t.today.keys} ·{' '}
-                {number(data.input.clicks)} {t.today.clicks} ·{' '}
-                {number(data.input.scroll)} {t.today.scroll}
+                {tag && <>{t.today.onlyOf(category(data.narrowed!.category))} · </>}
+                {number(below.input.keys)} {t.today.keys} ·{' '}
+                {number(below.input.clicks)} {t.today.clicks} ·{' '}
+                {number(below.input.scroll)} {t.today.scroll}
               </em>
             </h3>
             <div className="rows">
-              {data.inputPerApp.map((linha) => {
+              {below.inputPerApp.map((linha) => {
                 const total = linha.keys + linha.clicks + linha.scroll
                 const writing = total ? linha.keys / total : 0
                 return (
@@ -234,7 +241,7 @@ export function Today({ status }: { status: Status | null }) {
                   </div>
                 )
               })}
-              {!data.inputPerApp.length && <p className="empty">{t.today.noKeyboard}</p>}
+              {!below.inputPerApp.length && <p className="empty">{t.today.noKeyboard}</p>}
             </div>
             <div className="note">{t.today.handsNote}</div>
           </div>

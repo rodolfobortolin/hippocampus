@@ -894,3 +894,8 @@ button.piece-line:hover { background: var(--panel-high); }
 @media (prefers-reduced-motion: reduce) {
   .trend-tip { animation: none; }
 }
+
+/* A panel narrowed by the ribbon's legend says so in its own heading, in the
+   picked category's warmth: the panels beside it that are not narrowed must
+   not be mistaken for it. */
+.panel h3 em.only-tag { color: var(--gold); margin-left: 8px; }

@@ -8,7 +8,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 - The categories under the day's ribbon filter it: pick one and only its
   stretches stay lit, with how long they added up to; the same one again, or
-  "show all", brings the whole day back.
+  "show all", brings the whole day back. The panels made of the same windows
+  follow it — where the time went, the projects, the windows, the hands — and
+  say so in their heading; the donut lights the picked category.
 - The app's own window is labelled as looking after the work, instead of
   "unlabelled".
 

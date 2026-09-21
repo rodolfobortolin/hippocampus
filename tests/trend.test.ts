@@ -7,7 +7,7 @@ import path from 'node:path'
 process.env.HIPPOCAMPUS_DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'hippocampus-trend-'))
 
 const { db } = await import('../core/db.ts')
-const { rangeReport, dayReport } = await import('../core/metrics.ts')
+const { rangeReport, dayReport, narrowDay } = await import('../core/metrics.ts')
 const { labelKey } = await import('../core/jev.ts')
 
 /**
@@ -99,4 +99,27 @@ test('what was asked of an agent counts in full, typed or dictated', () => {
   }
   const written = dayReport('2026-09-23').written
   assert.deepEqual(written.find((row) => row.kind === 'ai'), { kind: 'ai', chars: 15 + 300 + 14 })
+})
+
+test('a category picked under the ribbon narrows what is made of the same windows', () => {
+  labelled('Code', 'harbor', 'code')
+  labelled('Slack', null, 'communication')
+  const put = (hour: number, app: string, keys: number) => db.prepare(
+    `insert into blocks (day, started_at, ended_at, seconds, app, bundle, title, idle, keys, clicks, scroll)
+     values (?, ?, ?, 600, ?, ?, ?, 0, ?, 3, 0)`,
+  ).run('2026-09-24', at('2026-09-24', hour), at('2026-09-24', hour) + 600, app, `com.${app}`, `${app} window`, keys)
+  put(9, 'Code', 400)
+  put(10, 'Slack', 90)
+  put(11, 'Code', 200)
+
+  const code = narrowDay('2026-09-24', 'code')
+  assert.equal(code.seconds, 1200)
+  assert.deepEqual(code.apps.map((a) => a.name), ['Code'])
+  assert.deepEqual(code.projects, [{ name: 'harbor', seconds: 1200 }])
+  assert.deepEqual(code.windows.map((w) => w.app), ['Code'])
+  assert.deepEqual(code.input, { keys: 600, clicks: 6, scroll: 0 })
+
+  const talk = narrowDay('2026-09-24', 'communication')
+  assert.deepEqual(talk.apps.map((a) => a.name), ['Slack'])
+  assert.deepEqual(talk.projects, [], 'a window with no project adds none')
 })

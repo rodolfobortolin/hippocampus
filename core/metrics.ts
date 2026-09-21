@@ -61,7 +61,10 @@ function delegatedSeconds(start: number, end: number, ativos: Set<number>): numb
   return total
 }
 
-export function dayReport(day: string) {
+const sortSlices = (map: Map<string, number>): Slice[] =>
+  [...map].map(([name, seconds]) => ({ name, seconds })).sort((a, b) => b.seconds - a.seconds)
+
+export function dayReport(day: string, only: string | null = null) {
   const blocks = all<any>(
     `select id, started_at, ended_at, seconds, app, bundle, title, url, host, idle
        from blocks where day = ? order by started_at`, day)
@@ -139,8 +142,6 @@ export function dayReport(day: string) {
     })
   }
 
-  const sortSlices = (map: Map<string, number>): Slice[] =>
-    [...map].map(([name, seconds]) => ({ name, seconds })).sort((a, b) => b.seconds - a.seconds)
 
   const bounds = one<any>(
     `select min(started_at) first_at, max(ended_at) last_at from blocks where day = ? and idle = 0`, day)
@@ -177,6 +178,8 @@ export function dayReport(day: string) {
     // Under 20s a stretch does not reach a pixel on the ribbon; it drops out of
     // the drawing, but the count stays visible so the day never looks tidier
     // than it was.
+    // The panels made of windows, over the category picked under the ribbon.
+    narrowed: only ? narrowDay(day, only) : null,
     timeline: timeline.filter((b) => b.end - b.start >= 20),
     timelineHidden: timeline.filter((b) => b.end - b.start < 20).length,
     shortcuts: all<any>(
@@ -227,6 +230,61 @@ export function dayReport(day: string) {
 }
 
 export type DayReport = ReturnType<typeof dayReport>
+
+/**
+ * The day again, over the windows of one category only — what the panels under
+ * the ribbon show when a category is picked in its legend.
+ *
+ * Only what is made of the same windows the ribbon draws: where the time went,
+ * the projects, the windows themselves, the hands. The commits, the requests,
+ * the sites and the sound have no category of their own, so they are not
+ * narrowed, and narrowing them by some guess would show a number that is not
+ * what it says.
+ */
+export function narrowDay(day: string, category: string) {
+  const blocks = all<any>(
+    `select app, title, host, seconds, keys, clicks, scroll from blocks
+      where day = ? and idle = 0 order by started_at`, day)
+    .filter((block) => (labelOf(block)?.category ?? 'unlabelled') === category)
+
+  const apps = new Map<string, number>()
+  const projects = new Map<string, number>()
+  const windows = new Map<string, { app: string; seconds: number }>()
+  const hands = new Map<string, { keys: number; clicks: number; scroll: number }>()
+  const input = { keys: 0, clicks: 0, scroll: 0 }
+  let seconds = 0
+  for (const block of blocks) {
+    seconds += block.seconds
+    apps.set(block.app, (apps.get(block.app) ?? 0) + block.seconds)
+    const project = labelOf(block)?.project
+    if (project) projects.set(project, (projects.get(project) ?? 0) + block.seconds)
+    if (block.title) {
+      const key = `${block.app}|${block.title}`
+      const seen = windows.get(key) ?? { app: block.app, seconds: 0 }
+      seen.seconds += block.seconds
+      windows.set(key, seen)
+    }
+    const hand = hands.get(block.app) ?? { keys: 0, clicks: 0, scroll: 0 }
+    for (const kind of ['keys', 'clicks', 'scroll'] as const) {
+      hand[kind] += block[kind] ?? 0
+      input[kind] += block[kind] ?? 0
+    }
+    hands.set(block.app, hand)
+  }
+
+  return {
+    category, seconds,
+    apps: sortSlices(apps).slice(0, 14),
+    projects: sortSlices(projects).slice(0, 10),
+    windows: [...windows].map(([key, value]) => ({
+      title: key.split('|').slice(1).join('|'), app: value.app, seconds: value.seconds,
+    })).sort((a, b) => b.seconds - a.seconds).slice(0, 12),
+    input,
+    inputPerApp: [...hands].map(([app, hand]) => ({ app, ...hand }))
+      .filter((hand) => hand.keys + hand.clicks + hand.scroll > 20)
+      .sort((a, b) => (b.keys + b.clicks) - (a.keys + a.clicks)).slice(0, 8),
+  }
+}
 
 /** Totals per day over a range, for the trend and the listing. */
 export function rangeReport(from: string, to: string) {

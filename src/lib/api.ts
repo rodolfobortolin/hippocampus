@@ -61,6 +61,14 @@ export type Day = {
   media: Slice[]
   aiTurns: { project: string; prompt: string; tools: string; ts: number }[]
   stored: { narrative: string; recap: string; built_at: number } | null
+  /** The panels made of windows, over one category — null with none picked. */
+  narrowed: {
+    category: string; seconds: number
+    apps: Slice[]; projects: Slice[]
+    windows: { title: string; app: string; seconds: number }[]
+    input: { keys: number; clicks: number; scroll: number }
+    inputPerApp: { app: string; keys: number; clicks: number; scroll: number }[]
+  } | null
 }
 
 export type Status = {
@@ -181,7 +189,8 @@ async function get<T>(route: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   status: () => get<Status>('/api/status'),
-  day: (day: string) => get<Day>(`/api/day/${day}`),
+  day: (day: string, only?: string | null) =>
+    get<Day>(`/api/day/${day}${only ? `?only=${encodeURIComponent(only)}` : ''}`),
   period: (from: string, to: string, slot: Slot = {}) => {
     const narrow = [
       slot.weekday != null ? `&weekday=${slot.weekday}` : '',

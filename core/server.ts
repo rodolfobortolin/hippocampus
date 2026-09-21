@@ -133,8 +133,11 @@ export function serve(collector?: Collector): http.Server {
       }
 
       if (route.startsWith('/api/day/')) {
-        const day = route.slice('/api/day/'.length)
-        return json(response, dayReport(day === 'today' ? today() : day))
+        const asked = route.slice('/api/day/'.length)
+        const day = asked === 'today' ? today() : asked
+        // A category picked under the ribbon narrows the panels made of the
+        // same windows; the rest of the day is sent whole, as always.
+        return json(response, dayReport(day, query.get('only')))
       }
 
       if (route === '/api/period') {
