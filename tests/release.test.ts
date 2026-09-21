@@ -49,7 +49,17 @@ test('the website publishes when the site changes, not on every commit', () => {
   assert.match(on, /paths:/, 'site.yml should only run when the files the site is built from change')
   assert.match(on, /'site\/\*\*'/)
   assert.match(on, /workflow_dispatch/, 'site.yml should be runnable by hand')
+  assert.match(on, /release:\s*\n\s*types: \[published\]/, 'site.yml should republish when a release goes out')
   // And what it publishes is what `npm run site:build` writes.
   assert.match(workflow, /path: site\/dist/)
   assert.match(read('site/vite.config.ts'), /outDir: 'dist'/)
+})
+
+test('the website names the version from package.json, never a number of its own', () => {
+  // The button to the release notes once said v0.1.0 for a day after v0.2.0
+  // was out: the number was typed into the page.
+  const page = read('site/index.html')
+  assert.doesNotMatch(page, /v\d+\.\d+\.\d+/, 'site/index.html should say %VERSION%, not a version number')
+  assert.match(page, /releases\/tag\/v%VERSION%/)
+  assert.match(read('site/vite.config.ts'), /replaceAll\('%VERSION%', version\)/)
 })

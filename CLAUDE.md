@@ -146,6 +146,8 @@ a test failing, never in the middle of a change that is only half done.
 5. Watch it: `gh run watch <id> --exit-status`. Red means no release — fix it
    first.
 6. Green: `gh release create vX.Y.Z --title vX.Y.Z --notes-file <that section>`.
+   Publishing it also republishes the website, whose button names the version
+   from package.json — nothing to change on the site by hand.
 7. Attach a build only if it is notarized (`npm run notarize` succeeded).
    Without notarization macOS refuses to open it on any other Mac, so a download
    would be a trap; say in the notes that it has to be built from source.

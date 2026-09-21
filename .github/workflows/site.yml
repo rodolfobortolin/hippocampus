@@ -2,11 +2,14 @@
 # https://rodolfobortolin.github.io/hippocampus/
 #
 # It runs when something the site is built from changes on main — the site
-# itself, and the sphere it borrows from the app — and by hand. Commits to the
-# app alone do not publish anything: the site would come out the same.
+# itself, and the sphere it borrows from the app — when a release is
+# published, since the page names the latest version, and by hand. Commits to
+# the app alone do not publish anything: the site would come out the same.
 name: site
 
 on:
+  release:
+    types: [published]
   push:
     branches: [main]
     paths:
@@ -44,6 +47,10 @@ jobs:
         with:
           path: site/dist
 
+  # A release deploys from its tag, not from main. The github-pages
+  # environment allows both — main, and tags matching v* — in the
+  # repository's environment settings; without the tag rule the release
+  # run is refused.
   deploy:
     needs: build
     runs-on: ubuntu-latest
