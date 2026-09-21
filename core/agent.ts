@@ -9,6 +9,7 @@ import { dayReport, rangeReport, heatmap, onThisDay } from './metrics.ts'
 import { dossier } from './rollup.ts'
 import { searchEpisodes, lastTime, type Episode } from './episodes.ts'
 import { pickModel } from './jev.ts'
+import { workItems, itemDetail, orgName } from './items.ts'
 import { readSettings } from './settings.ts'
 
 const hours = hoursAndMinutes
@@ -142,6 +143,40 @@ const tools = [
       const total = rows.reduce((sum, r) => sum + r.total, 0)
       return say(`Total ${hours(total)} across ${rows.length} windows.\n` +
         rows.map((r) => `- ${r.app} · ${r.title ?? '—'}: ${hours(r.total)} (${r.days} days, ${r.first}–${r.last})`).join('\n'))
+    },
+  },
+  {
+    name: 'work_items',
+    description: 'The pieces of work that took the time in a range, gathered across sources: Jira tickets, Confluence pages, Jira administration, pull requests, documents, designs, videos, email — and per client, meaning the organisation a Jira or Confluence site or a GitHub owner belongs to. Use it for "how much time went to client X", "which tickets did I work on", "how much of my browser is Confluence". Time comes from the focus samples (recent); visits reach months back.',
+    inputSchema: { ...range, client: z.string().optional().describe('only this client or organisation'), kind: z.string().optional().describe('ticket, wiki, admin, pull-request, doc, design, video, mail…') },
+    handler: async ({ from, to, client, kind }: { from: string; to: string; client?: string; kind?: string }) => {
+      const found = workItems(from, to)
+      const wanted = client && orgName(client)
+      const items = found.items.filter((item) =>
+        (!wanted || orgName(item.org ?? '') === wanted)
+        && (!kind || item.kind === kind))
+      if (!items.length) return say('No pieces of work in that range match.')
+      const orgs = found.orgs.slice(0, 8).map((o) =>
+        `- ${o.org} (${o.sites.join(', ')}): ${hours(o.seconds)} focused, ${o.visits} visits, ${o.items} items`)
+      const lines = items.slice(0, 30).map((item) =>
+        `- ${item.kind} ${item.key ?? ''} ${item.label ? `"${item.label}"` : ''} · ${item.site}${item.org ? `/${item.org}` : ''}`
+        + `${item.project ? ` · project ${item.project}` : ''}: ${hours(item.seconds)}, ${item.visits} visits`
+        + `${item.commits ? `, ${item.commits} commits` : ''}${item.prompts ? `, ${item.prompts} prompts` : ''}`)
+      return say([wanted ? '' : `Clients:\n${orgs.join('\n')}\n`, `Items:\n${lines.join('\n')}`].join('\n'))
+    },
+  },
+  {
+    name: 'work_item',
+    description: 'Everything about one piece of work — a ticket key like SUP-123, a pull request like owner/repo#12 — with every moment that touched it in order: the tab, the question to the agent, the commit. Use it for "what have I done on SUP-123", "when did I last touch this ticket".',
+    inputSchema: { key: z.string(), from: z.string().optional(), to: z.string().optional() },
+    handler: async ({ key, from, to }: { key: string; from?: string; to?: string }) => {
+      const { item, touches } = itemDetail(key, from ?? '0000-00-00', to ?? '9999-99-99')
+      if (!item) return say(`Nothing measured names ${key}.`)
+      const lines = touches.slice(-60).map((t) =>
+        `- ${when(t.at)} ${t.source}${t.seconds ? ` ${hours(t.seconds)}` : ''}${t.text ? `: ${t.text.slice(0, 140)}` : ''}`)
+      return say(`${item.kind} ${key}${item.label ? ` "${item.label}"` : ''} · ${item.site}${item.org ? `/${item.org}` : ''}`
+        + `${item.project ? ` · project ${item.project}` : ''}\n`
+        + `${hours(item.seconds)} focused, ${item.visits} visits, ${item.commits} commits, ${item.prompts} prompts\n\n${lines.join('\n')}`)
     },
   },
   {

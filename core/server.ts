@@ -13,6 +13,7 @@ import { claudeAvailable } from './claude.ts'
 import { vaultReady } from './vault.ts'
 import { readSettings, saveSettings, writeKey, keyState, openaiBase, type KeyName } from './settings.ts'
 import { LANGUAGES } from './languages.ts'
+import { workItems, itemDetail } from './items.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
 import { blockedBrowsers, retryDeniedBrowsers } from './sources/browser.ts'
 import { retryDeniedSkysight } from './sources/skysight.ts'
@@ -130,6 +131,17 @@ export function serve(collector?: Collector): http.Server {
           // The same summary, narrowed to the pick, for the charts under the map.
           narrowed: narrowing ? periodSummary(from, to, slot) : null,
         })
+      }
+
+      // Pieces of work across sources: tickets, pages, pull requests, per client.
+      if (route === '/api/items') {
+        const to = query.get('to') ?? today()
+        const from = query.get('from') ?? dayOf(Date.now() / 1000 - 29 * 86_400)
+        return json(response, workItems(from, to))
+      }
+      if (route === '/api/item') {
+        const key = query.get('key') ?? ''
+        return json(response, itemDetail(key, query.get('from') ?? '0000-00-00', query.get('to') ?? '9999-99-99'))
       }
 
       if (route === '/api/days') {
