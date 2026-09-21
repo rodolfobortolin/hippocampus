@@ -189,7 +189,10 @@ const DEFAULTS: Settings = {
   caption: true,
   wideTools: false,
   calendar: false,
-  captures: true,
+  // Off for someone installing it fresh: a stranger's app writing into their
+  // own notes on its first night should have been asked first. The walkthrough
+  // offers it; a choice already stored is kept either way.
+  captures: false,
   views: {},
   timesheet: false,
   codeRoot: config.codeRoot,
@@ -238,7 +241,7 @@ export function readSettings(): Settings {
       caption: data.caption !== false,
       wideTools: data.wideTools === true,
       calendar: data.calendar === true,
-      captures: data.captures !== false,
+      captures: data.captures ?? DEFAULTS.captures,
       views: Object.fromEntries(Object.entries((data.views ?? {}) as Record<string, unknown>)
         .filter(([key, view]) => key.length < 40 && (view === 'bars' || view === 'pie'))) as Record<string, 'bars' | 'pie'>,
       timesheet: data.timesheet === true,

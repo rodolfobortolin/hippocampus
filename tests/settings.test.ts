@@ -137,3 +137,15 @@ test('a panel drawn as a pie is remembered without forgetting the others', () =>
   saveSettings({ views: { 'rhythm.apps': 'radar' as any } })
   assert.equal(readSettings().views['rhythm.apps'], undefined)
 })
+
+test('writing notes on its own is asked for, and a choice already made is kept', () => {
+  // A fresh install: nothing stored, nothing written into anyone's notes.
+  setMeta('settings', '')
+  assert.equal(readSettings().captures, false)
+  // Someone who turned it on keeps it on after an update.
+  setMeta('settings', JSON.stringify({ language: 'en-US', captures: true }))
+  assert.equal(readSettings().captures, true)
+  // And a row from before the switch existed is asked like anyone new.
+  setMeta('settings', JSON.stringify({ language: 'en-US' }))
+  assert.equal(readSettings().captures, false)
+})

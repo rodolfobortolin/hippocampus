@@ -58,7 +58,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   notes — project, knowledge, person, area, inbox — using the folders your
   vault already has, in any of the five languages, and the template it already
   uses. A note that exists gets one more line in its own section. Most days
-  keep one thing or none; a day is never read twice; Settings turns it off.
+  keep one thing or none, and a day is never read twice. It is off until you
+  turn it on, in the walkthrough or in Settings.
 - A Notes tab, to write one yourself: pick the kind, the title (the ones you
   already have are offered), and see where it will be written before it is.
 - Today says what your typing was — a prompt, a message, code — which until now

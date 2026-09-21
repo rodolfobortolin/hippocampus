@@ -229,6 +229,11 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
                   onClick={() => save({ calendar: !settings.calendar })}><i /></button>
               </div>
               <div className="onb-row">
+                <div><b>{t.settings.captures}</b><span>{t.settings.capturesNote}</span></div>
+                <button className={`switch ${settings.captures ? 'active' : ''}`} aria-pressed={settings.captures}
+                  onClick={() => save({ captures: !settings.captures })}><i /></button>
+              </div>
+              <div className="onb-row">
                 <div><b>{t.settings.timesheet}</b><span>{t.settings.timesheetNote}</span></div>
                 <button className={`switch ${settings.timesheet ? 'active' : ''}`} aria-pressed={settings.timesheet}
                   onClick={() => save({ timesheet: !settings.timesheet })}><i /></button>
