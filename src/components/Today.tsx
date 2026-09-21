@@ -66,7 +66,10 @@ export function Today({ status }: { status: Status | null }) {
         </div>
       </div>
 
-      {status && !status.collector.trusted && (
+      {/* Only when the helper has actually said it lacks the permission. While
+          it is still `null` nobody knows yet, and a warning that takes itself
+          back fifteen seconds later teaches people to ignore warnings. */}
+      {status?.collector.trusted === false && (
         <div className="warning">
           <IconAlert />
           <div>

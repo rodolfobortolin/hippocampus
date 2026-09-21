@@ -48,7 +48,8 @@ export type Day = {
 
 export type Status = {
   collector: {
-    running: boolean; trusted: boolean; skysight: boolean
+    /** `null` until the helper has reported; not the same as denied. */
+    running: boolean; trusted: boolean | null; skysight: boolean
     lastSample: { app?: string; title?: string; idle: number; locked: boolean } | null
     startedAt: number; lastRollup: string
     sources: Record<string, string>

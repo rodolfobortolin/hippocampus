@@ -89,7 +89,9 @@ export function App() {
                 <i className={`dot ${status.claude ? 'alive' : ''}`} />claude code
               </div>
               <div className="signal" title={t.today.windows}>
-                <i className={`dot ${status.collector.trusted ? 'alive' : 'warm'}`} />{t.status.accessibility}
+                {/* Unknown is neither lit nor amber: it is simply not saying. */}
+                <i className={`dot ${status.collector.trusted === true ? 'alive'
+                  : status.collector.trusted === false ? 'warm' : ''}`} />{t.status.accessibility}
               </div>
               {Object.entries(status.collector.sources ?? {})
                 .filter(([, state]) => state !== 'ok' && state !== 'nunca')

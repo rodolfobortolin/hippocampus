@@ -81,7 +81,16 @@ export class FocusCollector {
   private previous: Counters | null = null
   private onTrust?: (trusted: boolean) => void
   lastSample: Sample | null = null
-  trusted = false
+  /**
+   * Whether the helper holds Accessibility — `null` until it has said.
+   *
+   * Starting at `false` is not "we do not have it", it is "we have not been
+   * told yet", and the screen cannot tell those apart: it put up a warning
+   * about a missing permission every time the app opened, then took it back
+   * fifteen seconds later when the first sample arrived. A warning that
+   * retracts itself teaches people to ignore warnings.
+   */
+  trusted: boolean | null = null
 
   constructor(options: { onTrust?: (trusted: boolean) => void } = {}) {
     this.onTrust = options.onTrust
