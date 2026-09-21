@@ -93,97 +93,104 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
   let turns = 0
   let budget = ROUND_BUDGET
 
+  // Every session with something new, the most recently written first: when a
+  // round cannot read everything — catching up on a year of logs — today is
+  // right at once and the history fills in over the next rounds.
+  const pending: { file: string; name: string; project: string; size: number; from: number; changed: number }[] = []
   for (const entry of await fs.readdir(root, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
     const dir = path.join(root, entry.name)
     // The folder's name is the project path with slashes swapped for hyphens.
     const project = entry.name.split('-').filter(Boolean).pop() ?? entry.name
-
     for (const name of await fs.readdir(dir)) {
       if (!name.endsWith('.jsonl')) continue
       const file = path.join(dir, name)
-      const size = (await fs.stat(file)).size
+      const stat = await fs.stat(file)
       const from = offsets[file] ?? 0
-      if (size <= from) continue
-      if (budget <= 0) break
-      budget -= size - from
+      if (stat.size > from) pending.push({ file, name, project, size: stat.size, from, changed: stat.mtimeMs })
+    }
+  }
+  pending.sort((a, b) => b.changed - a.changed)
 
-      const handle = await fs.open(file, 'r')
-      const buffer = Buffer.alloc(size - from)
-      try {
-        await handle.read(buffer, 0, buffer.length, from)
-      } finally {
-        await handle.close()
-      }
+  for (const { file, name, project, size, from } of pending) {
+    if (budget <= 0) break
+    budget -= size - from
 
-      const chunk = buffer.toString('utf8')
-      const lastBreak = chunk.lastIndexOf('\n')
-      if (lastBreak < 0) continue
-      offsets[file] = from + Buffer.byteLength(chunk.slice(0, lastBreak + 1), 'utf8')
+    const handle = await fs.open(file, 'r')
+    const buffer = Buffer.alloc(size - from)
+    try {
+      await handle.read(buffer, 0, buffer.length, from)
+    } finally {
+      await handle.close()
+    }
 
-      const session = name.replace('.jsonl', '')
-      // The tools used are grouped under the human request that set them off.
-      let lastPrompt: { id: string; tools: Set<string> } | null = null
-      const state = states[file] ?? { open: false, last: 0 }
-      states[file] = state
-      const lines = chunk.slice(0, lastBreak).split('\n')
+    const chunk = buffer.toString('utf8')
+    const lastBreak = chunk.lastIndexOf('\n')
+    if (lastBreak < 0) continue
+    offsets[file] = from + Buffer.byteLength(chunk.slice(0, lastBreak + 1), 'utf8')
 
-      // Whose session it is, decided before any writing: the check touches the
-      // disk, and nothing may wait on the disk while a transaction is open.
-      const cwdLine = lines.find((line) => line.includes('"cwd":'))
-      let cwd: string | undefined
-      try { cwd = cwdLine ? JSON.parse(cwdLine).cwd : undefined } catch { cwd = undefined }
-      if (await isOwnSession(cwd)) continue
+    const session = name.replace('.jsonl', '')
+    // The tools used are grouped under the human request that set them off.
+    let lastPrompt: { id: string; tools: Set<string> } | null = null
+    const state = states[file] ?? { open: false, last: 0 }
+    states[file] = state
+    const lines = chunk.slice(0, lastBreak).split('\n')
 
-      // One transaction per file: catching up on a year of logs writes
-      // hundreds of thousands of minutes, and one commit each would take ages.
-      db.exec('begin')
-      try {
-        for (const line of lines) {
-          if (!line.trim()) continue
-          let event: any
-          try { event = JSON.parse(line) } catch { continue }
-          const ts = Math.floor(new Date(event.timestamp).getTime() / 1000)
-          if (!Number.isFinite(ts)) continue
-          if (event.type !== 'user' && event.type !== 'assistant') continue
+    // Whose session it is, decided before any writing: the check touches the
+    // disk, and nothing may wait on the disk while a transaction is open.
+    const cwdLine = lines.find((line) => line.includes('"cwd":'))
+    let cwd: string | undefined
+    try { cwd = cwdLine ? JSON.parse(cwdLine).cwd : undefined } catch { cwd = undefined }
+    if (await isOwnSession(cwd)) continue
 
-          // The turn: every minute since the last event, while it is open.
-          const where = event.cwd ? path.basename(event.cwd) : project
-          const minute = Math.floor(ts / 60)
-          if (state.open && state.last && ts - state.last <= LONGEST_STEP) {
-            for (let m = Math.floor(state.last / 60) + 1; m < minute; m++) markMinute.run(m, dayOf(m * 60), where)
-          }
-          if (state.open || event.type === 'assistant') markMinute.run(minute, dayOf(ts), where)
-          state.last = ts
-          if (event.type === 'user') {
-            // Stopped by the person: nothing is being worked on until the next question.
-            state.open = !/^\s*\[Request interrupted/.test(textOf(event.message?.content))
-          } else if (event.message?.stop_reason === 'end_turn') {
-            state.open = false
-          }
+    // One transaction per file: catching up on a year of logs writes
+    // hundreds of thousands of minutes, and one commit each would take ages.
+    db.exec('begin')
+    try {
+      for (const line of lines) {
+        if (!line.trim()) continue
+        let event: any
+        try { event = JSON.parse(line) } catch { continue }
+        const ts = Math.floor(new Date(event.timestamp).getTime() / 1000)
+        if (!Number.isFinite(ts)) continue
+        if (event.type !== 'user' && event.type !== 'assistant') continue
 
-          if (event.type === 'user' && event.origin?.kind === 'human') {
-            const prompt = humanText(redact(textOf(event.message?.content)))
-            if (!prompt) continue
-            const id = `${session}:${event.uuid}`
-            insert.run(id, ts, dayOf(ts), event.cwd ? path.basename(event.cwd) : project, session,
-              prompt.slice(0, 1200), '[]')
-            lastPrompt = { id, tools: new Set() }
-            turns++
-          }
-
-          if (event.type === 'assistant' && lastPrompt) {
-            for (const block of event.message?.content ?? []) {
-              if (block?.type === 'tool_use' && block.name) lastPrompt.tools.add(String(block.name))
-            }
-            updateTools.run(JSON.stringify([...lastPrompt.tools]), lastPrompt.id)
-          }
+        // The turn: every minute since the last event, while it is open.
+        const where = event.cwd ? path.basename(event.cwd) : project
+        const minute = Math.floor(ts / 60)
+        if (state.open && state.last && ts - state.last <= LONGEST_STEP) {
+          for (let m = Math.floor(state.last / 60) + 1; m < minute; m++) markMinute.run(m, dayOf(m * 60), where)
         }
-        db.exec('commit')
-      } catch (error) {
-        db.exec('rollback')
-        throw error
+        if (state.open || event.type === 'assistant') markMinute.run(minute, dayOf(ts), where)
+        state.last = ts
+        if (event.type === 'user') {
+          // Stopped by the person: nothing is being worked on until the next question.
+          state.open = !/^\s*\[Request interrupted/.test(textOf(event.message?.content))
+        } else if (event.message?.stop_reason === 'end_turn') {
+          state.open = false
+        }
+
+        if (event.type === 'user' && event.origin?.kind === 'human') {
+          const prompt = humanText(redact(textOf(event.message?.content)))
+          if (!prompt) continue
+          const id = `${session}:${event.uuid}`
+          insert.run(id, ts, dayOf(ts), event.cwd ? path.basename(event.cwd) : project, session,
+            prompt.slice(0, 1200), '[]')
+          lastPrompt = { id, tools: new Set() }
+          turns++
+        }
+
+        if (event.type === 'assistant' && lastPrompt) {
+          for (const block of event.message?.content ?? []) {
+            if (block?.type === 'tool_use' && block.name) lastPrompt.tools.add(String(block.name))
+          }
+          updateTools.run(JSON.stringify([...lastPrompt.tools]), lastPrompt.id)
+        }
       }
+      db.exec('commit')
+    } catch (error) {
+      db.exec('rollback')
+      throw error
     }
   }
 
