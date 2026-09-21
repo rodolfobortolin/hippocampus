@@ -1,7 +1,7 @@
 {
   "name": "hippocampus",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "funding": {
     "type": "stripe",
     "url": "https://buy.stripe.com/00w9ASatY5phbAFcYlaZi00"

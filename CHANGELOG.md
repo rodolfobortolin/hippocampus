@@ -6,6 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+Nothing yet.
+
+## v0.3.0 — 2026-09-21
+
 - Hippocampus stays free and open source, and asks once: the end of Settings
   and of the website offer to buy its author a lunch, through Stripe.
 - Stripe keys and private keys pasted into a request are no longer stored, and
