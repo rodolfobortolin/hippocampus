@@ -6,6 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+Nothing yet.
+
+## v0.3.1 — 2026-09-21
+
 - Automatic updates work. v0.3.0 left out a file the updater needs, so it
   could find a new version and never download it; a copy of 0.3.0 has to
   download this one by hand, once, and updates itself from then on.
