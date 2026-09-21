@@ -4,18 +4,56 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Hippocampus — your Mac's memory of your day</title>
-  <meta name="description" content="Hippocampus keeps where your time went — all local, every day — and gives it back as charts, a journal and a conversation. It never takes a screenshot.">
+  <!-- Written for the person searching, in the words they would search with:
+       what it is (automatic time tracking), for which machine, and the two
+       things that set it apart — it stays on the Mac and never screenshots. -->
+  <meta name="description" content="Automatic time tracking for Mac that never leaves your Mac: where your time went, what your AI agents did, and a daily journal in Obsidian. Open source. No screenshots, no account.">
+  <link rel="canonical" href="%SITE%">
+  <meta name="author" content="Rodolfo Bortolin">
   <meta name="theme-color" content="#07080a">
-  <meta property="og:title" content="Hippocampus">
-  <meta property="og:description" content="Your Mac already knows where your time went. Hippocampus keeps it — all local, every day.">
-  <meta property="og:url" content="https://rodolfobortolin.github.io/hippocampus/">
-  <!-- Absolute, because a link preview is fetched from somewhere else and has
-       no page to resolve a relative path against. -->
-  <meta property="og:image" content="https://rodolfobortolin.github.io/hippocampus/img/today.webp">
-  <meta property="og:image:width" content="2560">
-  <meta property="og:image:height" content="1378">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+
+  <!-- Link previews. Absolute, because a preview is fetched from somewhere
+       else and has no page to resolve a relative path against; a 1200×630
+       JPEG, because that is the size and format every network still reads. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Hippocampus">
+  <meta property="og:title" content="Hippocampus — your Mac's memory of your day">
+  <meta property="og:description" content="Your Mac already knows where your time went. Hippocampus keeps it — all local, every day — and gives it back as charts, a journal and a conversation.">
+  <meta property="og:url" content="%SITE%">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="%SITE%og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The Today screen of Hippocampus: time at the machine, work delegated to agents, focused work and the day as a ribbon of colours.">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Hippocampus — your Mac's memory of your day">
+  <meta name="twitter:description" content="Automatic, local time tracking for Mac. Open source, no screenshots, no account.">
+  <meta name="twitter:image" content="%SITE%og.jpg">
+
+  <!-- What the page is about, for search engines that read it as data: a free,
+       open-source macOS app. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Hippocampus",
+    "description": "Automatic time tracking for Mac that keeps everything on the Mac: where the time went, what AI agents did, and a daily journal in Obsidian.",
+    "url": "%SITE%",
+    "image": "%SITE%og.jpg",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "macOS",
+    "softwareVersion": "%VERSION%",
+    "license": "https://opensource.org/licenses/MIT",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": { "@type": "Person", "name": "Rodolfo Bortolin" },
+    "sameAs": ["https://github.com/rodolfobortolin/hippocampus"]
+  }
+  </script>
   <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="brand.png">
   <link rel="stylesheet" href="./style.css">
   <!-- Before the first paint: the states that wait for a reveal only exist
        when there is a script to reveal them. Without it, everything shows. -->
