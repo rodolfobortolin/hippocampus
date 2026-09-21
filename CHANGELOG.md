@@ -6,6 +6,13 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+Nothing yet.
+
+## v0.2.0 — 2026-09-21
+
+From which app to which piece of work. Everything below still runs on the Mac
+it measures.
+
 - The line that opens each day in the journal is written in one language again;
   the rename had left it half in English.
 - The same question about your day gets the same number, with the wider tools on
@@ -36,8 +43,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   frame is read and no permission is needed.
 - Calendar meetings, off until you turn them on in Settings: their names and
   times appear on the day beside how much of each had a microphone open.
-  The helper asks macOS once, under its own name; turning it off deletes what
-  came.
+  macOS asks for access once, when you turn it on; turning it off deletes
+  what came.
 - A timesheet draft, off until you turn it on: the week's measured focus by
   client and by ticket, space or project, with the agent's time apart and the
   time with no client stated. In the Work tab, in the conversation, and on
