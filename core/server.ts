@@ -113,9 +113,22 @@ export function serve(collector?: Collector): http.Server {
       if (route === '/api/period') {
         const to = query.get('to') ?? today()
         const from = query.get('from') ?? dayOf(Date.now() / 1000 - 29 * 86_400)
+        // A cell of the heatmap, or a whole row of it. Only the summary is
+        // narrowed: the map itself stays whole, or there would be no other
+        // cell left to pick.
+        const slot = {
+          weekday: slotNumber(query.get('weekday'), 6),
+          hour: slotNumber(query.get('hour'), 23),
+        }
+        const narrowing = slot.weekday != null || slot.hour != null
         return json(response, {
-          from, to,
-          days: rangeReport(from, to), rhythm: heatmap(from, to), summary: periodSummary(from, to),
+          from, to, slot,
+          days: rangeReport(from, to), rhythm: heatmap(from, to),
+          // The whole period, always: the figures at the top describe it and
+          // must not move when a cell is picked.
+          summary: periodSummary(from, to),
+          // The same summary, narrowed to the pick, for the charts under the map.
+          narrowed: narrowing ? periodSummary(from, to, slot) : null,
         })
       }
 
@@ -436,6 +449,13 @@ export function serve(collector?: Collector): http.Server {
     console.log(`[core] http://127.0.0.1:${config.port}`)
   })
   return server
+}
+
+/** A slot coordinate from the query string: a whole number in range, or none. */
+function slotNumber(raw: string | null, max: number): number | null {
+  if (raw === null || raw === '') return null
+  const value = Number(raw)
+  return Number.isInteger(value) && value >= 0 && value <= max ? value : null
 }
 
 /** Attaches the collector to the already-running server, so /api/status can see it. */

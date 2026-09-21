@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { api, type Period } from '../lib/api.ts'
-import { duration, hours, addDays, today as diaDeHoje, number, topSlices, plural } from '../lib/format.ts'
+import { api, type Period, type Slot } from '../lib/api.ts'
+import { duration, hours, addDays, today as todayString, number, topSlices, plural, weekdayNames } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
 import { Heatmap, Trend, Bars, Donut } from './charts.tsx'
 
@@ -12,18 +12,30 @@ export function Rhythm() {
     { days: 90, name: t.rhythm.days90 },
   ]
   const [span, setSpan] = useState(30)
+  const [slot, setSlot] = useState<Slot>({})
   const [data, setData] = useState<Period | null>(null)
 
+  // The previous answer stays on screen until the next one lands, so picking a
+  // cell changes the charts below without the whole page blinking out.
   useEffect(() => {
     let alive = true
-    const to = diaDeHoje()
-    api.period(addDays(to, -(span - 1)), to).then((d) => alive && setData(d))
+    const to = todayString()
+    api.period(addDays(to, -(span - 1)), to, slot).then((d) => alive && setData(d))
     return () => { alive = false }
-  }, [span])
+  }, [span, slot.weekday, slot.hour])
 
   if (!data) return <p className="empty">{t.today.loading}</p>
 
   const { summary } = data
+  // The charts under the map show the pick; the figures at the top never do.
+  const below = data.narrowed ?? summary
+  const picked = slot.weekday != null
+  const WEEKDAYS = weekdayNames()
+  const pickedLabel = picked
+    ? `${WEEKDAYS[slot.weekday!]} ${slot.hour != null
+      ? `${t.common.at} ${String(slot.hour).padStart(2, '0')}${t.common.h}`
+      : `· ${t.rhythm.wholeDay}`}`
+    : ''
   const measured = data.days.filter((d) => d.active > 60)
   const mean = measured.length ? summary.total / measured.length : 0
   const total = hours(summary.total)
@@ -78,11 +90,6 @@ export function Rhythm() {
             </div>
           </div>
 
-          <div className="panel">
-            <h3>{t.rhythm.whenYouWork} <em>{t.rhythm.hourByWeekday}</em></h3>
-            <Heatmap grid={data.rhythm} />
-          </div>
-
           {measured.length >= 3 && (
             <div className="panel">
               <h3>{t.rhythm.trend} <em>{t.rhythm.activeTimePerDay}</em></h3>
@@ -90,33 +97,50 @@ export function Rhythm() {
             </div>
           )}
 
+          <div className="panel">
+            <h3>{t.rhythm.whenYouWork} <em>{t.rhythm.hourByWeekday}</em></h3>
+            <Heatmap grid={data.rhythm} slot={slot} onPick={setSlot} />
+          </div>
+
+          {picked && (
+            <div className="slot-chip appear">
+              <span>{t.rhythm.showingOnly} <b>{pickedLabel}</b></span>
+              <button type="button" onClick={() => setSlot({})}>{t.rhythm.clearFilter}</button>
+            </div>
+          )}
+
+          {picked && !below.total ? (
+            <div className="panel" style={{ padding: '28px 20px', textAlign: 'center' }}>
+              <p style={{ color: 'var(--text-mid)' }}>{t.rhythm.nothingThen}</p>
+            </div>
+          ) : <>
           <div className="grid g32">
             <div className="panel">
               <h3>{t.rhythm.whereTimeWent}</h3>
-              <Bars items={topSlices(summary.apps)} total={summary.total} tone="var(--ember)" />
+              <Bars items={topSlices(below.apps)} total={below.total} tone="var(--ember)" />
             </div>
             <div className="panel">
               <h3>{t.rhythm.byCategory}</h3>
-              <Donut slices={summary.categories} total={summary.total} />
+              <Donut slices={below.categories} total={below.total} />
             </div>
           </div>
 
           <div className="grid g2">
             <div className="panel">
               <h3>{t.rhythm.projects}</h3>
-              {summary.projects.length
-                ? <Bars items={summary.projects} total={summary.total} tone="var(--water)" />
+              {below.projects.length
+                ? <Bars items={below.projects} total={below.total} tone="var(--water)" />
                 : <p className="empty">{t.rhythm.noProject}</p>}
             </div>
 
             <div className="panel">
               <h3>{t.rhythm.signature}</h3>
-              {summary.shortcuts.length ? (
+              {below.shortcuts.length ? (
                 <div className="legend" style={{ marginTop: 0 }}>
-                  {summary.shortcuts.map((atalho) => (
-                    <span key={atalho.name} className="pill" style={{ fontSize: 12.5, padding: '5px 11px' }}>
-                      <b style={{ fontWeight: 500 }}>{atalho.name}</b>
-                      <span style={{ color: 'var(--text-dim)' }}>×{atalho.n}</span>
+                  {below.shortcuts.map((shortcut) => (
+                    <span key={shortcut.name} className="pill" style={{ fontSize: 12.5, padding: '5px 11px' }}>
+                      <b style={{ fontWeight: 500 }}>{shortcut.name}</b>
+                      <span style={{ color: 'var(--text-dim)' }}>×{shortcut.n}</span>
                     </span>
                   ))}
                 </div>
@@ -124,7 +148,7 @@ export function Rhythm() {
 
               <h3 style={{ marginTop: 22 }}>{t.rhythm.sites}</h3>
               <div className="rows">
-                {summary.hosts.slice(0, 7).map((host) => (
+                {below.hosts.slice(0, 7).map((host) => (
                   <div key={host.name} className="row">
                     <span className="name">{host.name}</span>
                     <span className="value">{number(host.n)}</span>
@@ -132,13 +156,14 @@ export function Rhythm() {
                 ))}
               </div>
 
-              {summary.typing.chars > 0 && (
+              {below.typing.chars > 0 && (
                 <div className="note" style={{ marginTop: 16 }}>
-                  {number(summary.typing.chars)} {t.rhythm.characters}
+                  {number(below.typing.chars)} {t.rhythm.characters}
                 </div>
               )}
             </div>
           </div>
+          </>}
         </div>
       )}
     </>

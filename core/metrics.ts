@@ -265,9 +265,45 @@ export function overview() {
 }
 
 /** A whole range aggregated: where the time went over a week, over a month. */
-export function periodSummary(from: string, to: string) {
+/** One weekday, one hour, or both — a cell of the heatmap, or a whole row of it. */
+export type Slot = { weekday?: number | null; hour?: number | null }
+
+/**
+ * Narrows a query to a slot, reading the weekday and hour off a timestamp in
+ * local time.
+ *
+ * The rule has to be the heatmap's own, to the letter: it files each block
+ * under the hour it *started*, on the local clock. Anything else — the day
+ * column, which turns over at four in the morning; the hour a block ended —
+ * and a cell that reads "2h10" would open onto charts that add up to
+ * something else.
+ *
+ * The column is ours, never the caller's, so it goes into the text; the
+ * numbers go in as parameters.
+ */
+function inSlot(ts: string, slot: Slot): [string, number[]] {
+  const parts: string[] = []
+  const args: number[] = []
+  if (slot.weekday != null) {
+    parts.push(` and cast(strftime('%w', ${ts}, 'unixepoch', 'localtime') as integer) = ?`)
+    args.push(slot.weekday)
+  }
+  if (slot.hour != null) {
+    parts.push(` and cast(strftime('%H', ${ts}, 'unixepoch', 'localtime') as integer) = ?`)
+    args.push(slot.hour)
+  }
+  return [parts.join(''), args]
+}
+
+export function periodSummary(from: string, to: string, slot: Slot = {}) {
+  const [blockSlot, blockArgs] = inSlot('started_at', slot)
+  const [tsSlot, tsArgs] = inSlot('ts', slot)
+  // Agent work is counted by the minute, as unix minutes rather than seconds.
+  const [minuteSlot, minuteArgs] = inSlot('minute * 60', slot)
+
   const blocks = all<any>(
-    `select app, title, host, seconds from blocks where day between ? and ? and idle = 0`, from, to)
+    `select app, title, host, seconds from blocks
+      where day between ? and ? and idle = 0${blockSlot}`, from, to, ...blockArgs)
 
   const apps = new Map<string, number>()
   const categories = new Map<string, number>()
@@ -297,19 +333,23 @@ export function periodSummary(from: string, to: string) {
     projects: slices(projects, 10),
     shortcuts: all<any>(
       `select detail as name, count(*) as n from events where kind = 'shortcut' and day between ? and ?
-        and detail <> '' group by detail order by n desc limit 12`, from, to),
+        and detail <> ''${tsSlot} group by detail order by n desc limit 12`, from, to, ...tsArgs),
     hosts: all<any>(
-      `select host as name, count(*) as n from visits where day between ? and ? and host <> ''
-        group by host order by n desc limit 12`, from, to),
+      `select host as name, count(*) as n from visits where day between ? and ? and host <> ''${tsSlot}
+        group by host order by n desc limit 12`, from, to, ...tsArgs),
     typing: one<any>(
-      `select coalesce(sum(chars),0) chars, count(*) samples from typing where day between ? and ?`, from, to),
-    commits: one<any>(`select count(*) n from commits where day between ? and ?`, from, to)?.n ?? 0,
-    aiTurns: one<any>(`select count(*) n from ai_turns where day between ? and ?`, from, to)?.n ?? 0,
+      `select coalesce(sum(chars),0) chars, count(*) samples from typing
+        where day between ? and ?${tsSlot}`, from, to, ...tsArgs),
+    commits: one<any>(
+      `select count(*) n from commits where day between ? and ?${tsSlot}`, from, to, ...tsArgs)?.n ?? 0,
+    aiTurns: one<any>(
+      `select count(*) n from ai_turns where day between ? and ?${tsSlot}`, from, to, ...tsArgs)?.n ?? 0,
     // Agent work by name: this machine uses both Claude Code and Codex, and
     // adding them under one label ("Claude Code requests") tells a lie.
     agents: all<any>(
       `select agent as name, count(*) as minutes from agent_minutes
-        where day between ? and ? group by agent order by minutes desc`, from, to),
+        where day between ? and ?${minuteSlot} group by agent order by minutes desc`,
+      from, to, ...minuteArgs),
   }
 }
 

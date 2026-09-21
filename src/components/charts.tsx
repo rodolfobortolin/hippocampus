@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { colour, duration, weekdayNames, number } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
-import type { RibbonBlock, Slice } from '../lib/api.ts'
+import type { RibbonBlock, Slice, Slot } from '../lib/api.ts'
 
 /** "12 others" is the app's own aggregate, not a project — translated here. */
 function sliceName(name: string, category: (c: string) => string, outros: (n: number) => string): string {
@@ -194,68 +194,132 @@ export function Gauge({ value, seconds }: { value: number; seconds?: number }) {
  * problem, because
  * the scale factor changes with the width of the window.
  */
-export function Heatmap({ grid }: { grid: number[][] }) {
+/**
+ * Hour × weekday, summed over the period.
+ *
+ * With `onPick`, it is also the filter for what sits below it: a cell narrows
+ * to that weekday at that hour, a weekday's name to the whole day, and the same
+ * pick again lets go. The map itself never narrows — it is what you choose
+ * from, so it has to keep every cell on it.
+ */
+export function Heatmap({ grid, slot, onPick }: {
+  grid: number[][]
+  slot?: Slot
+  onPick?: (slot: Slot) => void
+}) {
   const t = useLanguage().t
   const WEEKDAYS = weekdayNames()
-  const [hovered, setSobre] = useState<{ day: number; hour: number } | null>(null)
+  const [hovered, setHovered] = useState<{ day: number; hour: number } | null>(null)
   const largest = Math.max(1, ...grid.flat())
   const cell = 30
   const gap = 5
   const width = 24 * (cell + gap) - gap
   const height = 7 * (cell + gap) - gap
 
+  const weekday = slot?.weekday ?? null
+  const hour = slot?.hour ?? null
+  const picking = weekday != null
+  const chosen = (day: number, h: number) => weekday === day && (hour == null || hour === h)
+
+  const pickCell = (day: number, h: number) => {
+    if (!onPick || !grid[day][h]) return
+    onPick(weekday === day && hour === h ? {} : { weekday: day, hour: h })
+  }
+  const pickDay = (day: number) => {
+    if (!onPick) return
+    onPick(weekday === day && hour == null ? {} : { weekday: day, hour: null })
+  }
+
+  const hh = (h: number) => `${String(h).padStart(2, '0')}${t.common.h}`
+  const rowTotal = (day: number) => grid[day].reduce((sum, seconds) => sum + seconds, 0)
+
   return (
     <div>
-      <div style={{ height: 18, marginBottom: 10, fontSize: 12, color: 'var(--text-mid)' }}>
+      <div style={{ minHeight: 18, marginBottom: 10, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered ? (
           <span className="appear">
-            {WEEKDAYS[hovered.day]} {t.common.at} {String(hovered.hour).padStart(2, '0')}{t.common.h} ·{' '}
+            {WEEKDAYS[hovered.day]} {t.common.at} {hh(hovered.hour)} ·{' '}
             <b style={{ fontWeight: 500 }}>{duration(grid[hovered.day][hovered.hour])}</b> {t.common.inTotal}
           </span>
-        ) : <span style={{ color: 'var(--text-dim)' }}>{t.rhythm.sumOfPeriod}</span>}
+        ) : picking ? (
+          <span className="appear">
+            {WEEKDAYS[weekday]} {hour != null ? `${t.common.at} ${hh(hour)}` : `· ${t.rhythm.wholeDay}`} ·{' '}
+            <b style={{ fontWeight: 500 }}>
+              {duration(hour != null ? grid[weekday][hour] : rowTotal(weekday))}
+            </b> {t.common.inTotal}
+          </span>
+        ) : (
+          <span style={{ color: 'var(--text-dim)' }}>
+            {t.rhythm.sumOfPeriod}
+            {onPick && <span className="heatmap-hint"> — {t.rhythm.filterHint}</span>}
+          </span>
+        )}
       </div>
 
+      {/* Four cells, not two columns: the weekday names share a row with the
+          squares only, and the hour ruler sits in a row of its own. Put the
+          names in a column that also spans the ruler and each name gets a
+          slice of the ruler's height too — the drift grows row by row until
+          "Sat" sits most of a row below Saturday. */}
       <div className="heatmap">
         <div className="heatmap-days">
-          {WEEKDAYS.map((name) => <span key={name}>{name}</span>)}
+          {WEEKDAYS.map((name, day) => onPick ? (
+            <button key={name} type="button"
+              className={weekday === day && hour == null ? 'active' : ''}
+              onClick={() => pickDay(day)}
+              aria-pressed={weekday === day && hour == null}>
+              {name}
+            </button>
+          ) : <span key={name}>{name}</span>)}
         </div>
 
-        <div>
-          <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
-            {grid.map((linha, day) =>
-              linha.map((seconds, hour) => {
-                const intensity = seconds / largest
-                return (
-                  <rect
-                    key={`${day}-${hour}`}
-                    x={hour * (cell + gap)} y={day * (cell + gap)}
-                    width={cell} height={cell} rx={6}
-                    fill="var(--ember)"
-                    opacity={seconds ? 0.13 + intensity * 0.87 : 0.045}
-                    style={{
-                      filter: intensity > 0.62 ? 'drop-shadow(0 0 6px rgba(255,138,61,.5))' : undefined,
-                      transition: 'opacity .15s',
-                    }}
-                    onMouseEnter={() => setSobre({ day, hour })} onMouseLeave={() => setSobre(null)}
-                  />
-                )
-              }),
-            )}
-          </svg>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', display: 'block' }}>
+          {grid.map((row, day) =>
+            row.map((seconds, h) => {
+              const intensity = seconds / largest
+              const lit = seconds ? 0.13 + intensity * 0.87 : 0.045
+              const selected = chosen(day, h)
+              // With something picked, the rest steps back so the choice reads
+              // at a glance; nothing is hidden, only quieter.
+              const opacity = picking && !selected ? lit * 0.4 : lit
+              const clickable = Boolean(onPick && seconds)
+              return (
+                <rect
+                  key={`${day}-${h}`}
+                  x={h * (cell + gap)} y={day * (cell + gap)}
+                  width={cell} height={cell} rx={6}
+                  fill="var(--ember)"
+                  opacity={opacity}
+                  stroke={selected && seconds ? 'var(--gold)' : 'none'}
+                  strokeWidth={selected && seconds ? 2 : 0}
+                  style={{
+                    filter: intensity > 0.62 && (!picking || selected)
+                      ? 'drop-shadow(0 0 6px rgba(255,138,61,.5))' : undefined,
+                    transition: 'opacity .15s',
+                    cursor: clickable ? 'pointer' : 'default',
+                  }}
+                  onMouseEnter={() => setHovered({ day, hour: h })}
+                  onMouseLeave={() => setHovered(null)}
+                  onClick={() => pickCell(day, h)}
+                >
+                  <title>{`${WEEKDAYS[day]} ${hh(h)} · ${duration(seconds)}`}</title>
+                </rect>
+              )
+            }),
+          )}
+        </svg>
 
-          <div className="heatmap-hours">
-            {[0, 6, 12, 18, 23].map((hour) => (
-              <span key={hour}
-                style={{ left: `${((hour + 0.5) / 24) * 100}%` }}>{hour}{t.common.h}</span>
-            ))}
-          </div>
+        <span aria-hidden="true" />
+        <div className="heatmap-hours">
+          {[0, 6, 12, 18, 23].map((h) => (
+            <span key={h} style={{ left: `${((h + 0.5) / 24) * 100}%` }}>{h}{t.common.h}</span>
+          ))}
         </div>
       </div>
     </div>
   )
 }
 
-/** The trend of active time per day. */
 export function Trend({ days }: { days: { day: string; active: number }[] }) {
   const t = useLanguage().t
   const [hovered, setSobre] = useState<number | null>(null)

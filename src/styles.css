@@ -243,13 +243,23 @@ input, textarea { font: inherit; color: inherit; }
 
 /* The heatmap: labels in HTML, grid in SVG. That way the text keeps the
    interface's size and the grid still adapts to the panel's width. */
-.heatmap { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: stretch; }
+.heatmap { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 5px; align-items: stretch; }
 .heatmap-days { display: flex; flex-direction: column; }
-.heatmap-days span {
+.heatmap-days span,
+.heatmap-days button {
   flex: 1; display: flex; align-items: center;
   font-size: 11px; color: var(--text-dim); line-height: 1;
 }
-.heatmap-hours { position: relative; height: 16px; margin-top: 5px; }
+/* A weekday's name is also the way to pick the whole day. */
+.heatmap-days button {
+  padding: 0 6px 0 0; text-align: left; border-radius: 4px;
+  transition: color .15s;
+}
+.heatmap-days button:hover { color: var(--text); }
+.heatmap-days button.active { color: var(--gold); }
+.heatmap-days button:focus-visible { outline: 1px solid var(--border-live); outline-offset: 2px; }
+.heatmap-hint { color: var(--text-dim); opacity: 0.75; }
+.heatmap-hours { position: relative; height: 16px; }
 .heatmap-hours span {
   position: absolute; transform: translateX(-50%);
   font-size: 11px; color: var(--text-dim);
@@ -580,3 +590,22 @@ body[data-mode='floating']::after { display: none; }
 .floating-caption pre { margin: 0; padding: 6px 8px; overflow-x: auto; }
 .floating-caption a { color: var(--water); }
 .floating-caption .table-scroll { display: none; }
+
+/* Says what the charts under the map are narrowed to, and how to let go. It
+   sits between the map and what the map filters, because that is exactly the
+   seam it describes — and it glows the same gold as the picked cell. */
+.slot-chip {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap;
+  padding: 9px 14px; border-radius: 11px;
+  font-size: 12.5px; color: var(--text-mid);
+  border: 1px solid rgba(255, 209, 102, 0.28);
+  background: rgba(255, 209, 102, 0.05);
+  box-shadow: 0 0 22px rgba(255, 209, 102, 0.06);
+}
+.slot-chip b { color: var(--gold); font-weight: 500; }
+.slot-chip button {
+  font-size: 12px; color: var(--text-dim); padding: 4px 10px; border-radius: 8px;
+  border: 1px solid var(--border); transition: color .15s, border-color .15s;
+}
+.slot-chip button:hover { color: var(--text); border-color: var(--border-live); }

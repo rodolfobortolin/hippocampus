@@ -87,19 +87,29 @@ export type Settings = {
   keys: { jev: 'keychain' | 'environment' | 'empty'; openai: 'keychain' | 'environment' | 'empty' }
 }
 
+/** One weekday (0 is Sunday), one hour, or both. */
+export type Slot = { weekday?: number | null; hour?: number | null }
+
 export type Period = {
   from: string; to: string
+  /** What the summary was narrowed to; the map and the days never are. */
+  slot: Slot
   days: { day: string; active: number; idle: number; focusRatio: number | null; hasNarrative: boolean }[]
   rhythm: number[][]
-  summary: {
-    total: number; focusRatio: number; focusSeconds: number
-    apps: Slice[]; categories: Slice[]; projects: Slice[]
-    shortcuts: { name: string; n: number }[]
-    hosts: { name: string; n: number }[]
-    typing: { chars: number; samples: number }
-    commits: number; aiTurns: number
-    agents: { name: string; minutes: number }[]
-  }
+  /** The whole period — what the figures at the top describe. */
+  summary: PeriodSummary
+  /** The same, narrowed to the picked slot; null when nothing is picked. */
+  narrowed: PeriodSummary | null
+}
+
+export type PeriodSummary = {
+  total: number; focusRatio: number; focusSeconds: number
+  apps: Slice[]; categories: Slice[]; projects: Slice[]
+  shortcuts: { name: string; n: number }[]
+  hosts: { name: string; n: number }[]
+  typing: { chars: number; samples: number }
+  commits: number; aiTurns: number
+  agents: { name: string; minutes: number }[]
 }
 
 export type StoredDay = {
@@ -116,7 +126,13 @@ async function get<T>(route: string, options?: RequestInit): Promise<T> {
 export const api = {
   status: () => get<Status>('/api/status'),
   day: (day: string) => get<Day>(`/api/day/${day}`),
-  period: (from: string, to: string) => get<Period>(`/api/period?from=${from}&to=${to}`),
+  period: (from: string, to: string, slot: Slot = {}) => {
+    const narrow = [
+      slot.weekday != null ? `&weekday=${slot.weekday}` : '',
+      slot.hour != null ? `&hour=${slot.hour}` : '',
+    ].join('')
+    return get<Period>(`/api/period?from=${from}&to=${to}${narrow}`)
+  },
   days: () => get<StoredDay[]>('/api/days'),
   close: (day: string, narrate = true) =>
     get<{ narrative: string; recap: string; classified: number }>(

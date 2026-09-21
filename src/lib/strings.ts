@@ -52,6 +52,7 @@ export type Strings = {
     averageFocus: string; averageFocusNote: string
     longestDay: string; output: string; commits: string
     whenYouWork: string; hourByWeekday: string; sumOfPeriod: string; inTotal: string
+    filterHint: string; showingOnly: string; wholeDay: string; clearFilter: string; nothingThen: string
     trend: string; activeTimePerDay: string; averageOf: string; perMeasuredDay: string; needsThreeDays: string
     whereTimeWent: string; byCategory: string; projects: string; noProject: string
     signature: string; noShortcuts: string; sites: string; characters: string
@@ -164,6 +165,7 @@ const pt: Strings = {
     longestDay: 'dia mais longo', output: 'produção', commits: 'commits',
     whenYouWork: 'quando você trabalha', hourByWeekday: 'hora × dia da semana',
     sumOfPeriod: 'soma de todo o período', inTotal: 'no total',
+    filterHint: 'clique numa célula ou num dia para ver só aquele horário abaixo', showingOnly: 'abaixo, só', wholeDay: 'o dia todo', clearFilter: 'ver o período todo', nothingThen: 'Nada medido nesse horário.',
     trend: 'tendência', activeTimePerDay: 'tempo ativo por dia', averageOf: 'média de',
     perMeasuredDay: 'por dia medido', needsThreeDays: 'Precisa de pelo menos três dias medidos para a tendência.',
     whereTimeWent: 'onde o tempo foi no período', byCategory: 'por categoria',
@@ -302,6 +304,7 @@ const en: Strings = {
     longestDay: 'longest day', output: 'output', commits: 'commits',
     whenYouWork: 'when you work', hourByWeekday: 'hour × weekday',
     sumOfPeriod: 'sum of the whole period', inTotal: 'in total',
+    filterHint: 'click a cell or a day to see only that slot below', showingOnly: 'below, only', wholeDay: 'all day', clearFilter: 'show the whole period', nothingThen: 'Nothing was measured in that slot.',
     trend: 'trend', activeTimePerDay: 'active time per day', averageOf: 'average of',
     perMeasuredDay: 'per measured day', needsThreeDays: 'Needs at least three measured days for a trend.',
     whereTimeWent: 'where the time went in the period', byCategory: 'by category',
@@ -440,6 +443,7 @@ const es: Strings = {
     longestDay: 'día más largo', output: 'producción', commits: 'commits',
     whenYouWork: 'cuándo trabajas', hourByWeekday: 'hora × día de la semana',
     sumOfPeriod: 'suma de todo el periodo', inTotal: 'en total',
+    filterHint: 'haz clic en una celda o en un día para ver solo esa franja abajo', showingOnly: 'abajo, solo', wholeDay: 'todo el día', clearFilter: 'ver todo el periodo', nothingThen: 'Nada medido en esa franja.',
     trend: 'tendencia', activeTimePerDay: 'tiempo activo por día', averageOf: 'media de',
     perMeasuredDay: 'por día medido', needsThreeDays: 'Necesita al menos tres días medidos para la tendencia.',
     whereTimeWent: 'dónde fue el tiempo en el periodo', byCategory: 'por categoría',
@@ -578,6 +582,7 @@ const fr: Strings = {
     longestDay: 'journée la plus longue', output: 'production', commits: 'commits',
     whenYouWork: 'quand tu travailles', hourByWeekday: 'heure × jour de la semaine',
     sumOfPeriod: 'somme de toute la période', inTotal: 'au total',
+    filterHint: 'clique sur une case ou un jour pour ne voir que ce créneau en dessous', showingOnly: 'en dessous, seulement', wholeDay: 'toute la journée', clearFilter: 'voir toute la période', nothingThen: 'Rien de mesuré sur ce créneau.',
     trend: 'tendance', activeTimePerDay: 'temps actif par jour', averageOf: 'moyenne de',
     perMeasuredDay: 'par jour mesuré', needsThreeDays: 'Il faut au moins trois jours mesurés pour une tendance.',
     whereTimeWent: 'où est passé le temps sur la période', byCategory: 'par catégorie',
@@ -716,6 +721,7 @@ const de: Strings = {
     longestDay: 'längster Tag', output: 'Ausstoß', commits: 'Commits',
     whenYouWork: 'wann du arbeitest', hourByWeekday: 'Stunde × Wochentag',
     sumOfPeriod: 'Summe des ganzen Zeitraums', inTotal: 'insgesamt',
+    filterHint: 'klick auf ein Feld oder einen Tag, um darunter nur diese Zeit zu sehen', showingOnly: 'darunter nur', wholeDay: 'den ganzen Tag', clearFilter: 'ganzen Zeitraum zeigen', nothingThen: 'In dieser Zeit wurde nichts gemessen.',
     trend: 'Tendenz', activeTimePerDay: 'aktive Zeit pro Tag', averageOf: 'Durchschnitt von',
     perMeasuredDay: 'pro gemessenem Tag', needsThreeDays: 'Für eine Tendenz braucht es mindestens drei gemessene Tage.',
     whereTimeWent: 'wohin die Zeit im Zeitraum ging', byCategory: 'nach Kategorie',
