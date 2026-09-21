@@ -1,6 +1,8 @@
-# O que dá para verificar sem um Mac: que os tipos fecham e que a interface
-# compila. O coletor depende de Acessibilidade, CoreAudio e NSWorkspace, e nada
-# disso existe num runner — fingir que existe daria um verde que não vale nada.
+# What can be checked without a Mac: that the types close, that the interface
+# builds, and the tests that do not need macOS. The collector depends on
+# Accessibility, CoreAudio and NSWorkspace, and none of that exists on a runner
+# — pretending it does would give a green that is worth nothing. Tests that
+# need the Mac say so and are skipped here, not quietly passed.
 name: build
 
 on:

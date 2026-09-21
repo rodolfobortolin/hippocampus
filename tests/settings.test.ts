@@ -48,7 +48,14 @@ test('the new shape wins over the old one', () => {
   assert.equal(settings.language, 'fr-FR')
 })
 
-test('a key longer than 128 characters comes back whole', async () => {
+// The Keychain exists only on macOS, and the CI runner is Linux. Skipped there
+// rather than passed: a green result for something that never ran would be a
+// claim nobody checked.
+const onMac = process.platform === 'darwin'
+
+test('a key longer than 128 characters comes back whole', {
+  skip: onMac ? false : 'the Keychain exists only on macOS',
+}, async () => {
   // `security ... -w` with no value prompts for the password on stdin and cuts
   // it at 128 characters, silently, exit code zero. An OpenAI service-account
   // key is 167, so every one of them was stored truncated and refused by
