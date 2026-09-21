@@ -855,3 +855,25 @@ button.piece-line:hover { background: var(--panel-high); }
 .kept .of { color: var(--text-dim); font-size: 11.5px; letter-spacing: 0.03em; text-transform: uppercase; }
 .kept .title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kept .fresh { color: var(--gold); font-size: 11px; }
+
+/* The number on the point. A line chart makes you trace a value back to an
+   axis that is not even drawn here, so the reading comes to the point itself.
+   At the ends it leans inward, or it would hang off the panel. */
+.trend { position: relative; }
+.trend-tip {
+  position: absolute; z-index: 2; pointer-events: none;
+  transform: translate(-50%, calc(-100% - 12px));
+  display: grid; gap: 1px; padding: 6px 10px; border-radius: 9px;
+  background: rgba(16, 17, 21, 0.92); border: 1px solid var(--border-live);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  white-space: nowrap; text-align: center;
+  animation: tip-in 0.12s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.trend-tip b { font-size: 13px; font-weight: 600; color: var(--gold); font-variant-numeric: tabular-nums; }
+.trend-tip span { font-size: 11px; color: var(--text-dim); }
+.trend-tip.start { transform: translate(-12%, calc(-100% - 12px)); }
+.trend-tip.end { transform: translate(-88%, calc(-100% - 12px)); }
+@keyframes tip-in { from { opacity: 0; translate: 0 5px; } }
+@media (prefers-reduced-motion: reduce) {
+  .trend-tip { animation: none; }
+}

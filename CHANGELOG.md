@@ -10,7 +10,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   time, work delegated to agents, app switches or commits, each per day. Under
   the title, where it is going — "rising 18%, the second half of the period
   runs at 25 switches a day" — measured over the days you actually worked, so
-  a fortnight away does not read as a collapse.
+  a fortnight away does not read as a collapse. Each point says its own number
+  on hover, over the point itself, with the date under it.
 
 - Notes that outlive the day. At the close of the day the app reads what you
   asked your agents for and writes the few durable things into your own vault

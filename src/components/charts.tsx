@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { colour, duration, weekdayNames, number } from '../lib/format.ts'
+import { colour, duration, weekdayNames, number, shortDate } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
 import type { RibbonBlock, Slice, Slot } from '../lib/api.ts'
 
@@ -348,16 +348,15 @@ export function Trend({ days, value, format, floor = 3600 }: {
   const points = days.map((d, i) => `${x(i)},${y(value(d))}`).join(' ')
   const mean = days.reduce((sum, d) => sum + value(d), 0) / days.length
 
+  // The tip sits over the point, so a number never has to be read by tracing a
+  // line back to an axis. At the ends it leans inward instead of hanging off
+  // the panel.
+  const side = hovered == null ? '' : hovered <= 1 ? 'start' : hovered >= days.length - 2 ? 'end' : ''
+
   return (
-    <div>
-      <div style={{ height: 18, marginBottom: 6, fontSize: 12, color: 'var(--text-mid)' }}>
-        {hovered != null ? (
-          <span className="appear">
-            {days[hovered].day} · <b style={{ fontWeight: 500 }}>{format(value(days[hovered]))}</b>
-          </span>
-        ) : (
-          <span style={{ color: 'var(--text-dim)' }}>{t.common.averageOf} {format(mean)} {t.common.perDay}</span>
-        )}
+    <div className="trend">
+      <div style={{ height: 18, marginBottom: 6, fontSize: 12, color: 'var(--text-dim)' }}>
+        {t.common.averageOf} {format(mean)} {t.common.perDay}
       </div>
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: height }}>
         <defs>
@@ -378,10 +377,23 @@ export function Trend({ days, value, format, floor = 3600 }: {
             onMouseEnter={() => setSobre(i)} onMouseLeave={() => setSobre(null)} />
         ))}
         {hovered != null && (
-          <circle cx={x(hovered)} cy={y(value(days[hovered]))} r="3.5" fill="var(--gold)"
-            style={{ filter: 'drop-shadow(0 0 6px var(--gold))' }} />
+          <>
+            <line x1={x(hovered)} y1={y(value(days[hovered]))} x2={x(hovered)} y2={height}
+              stroke="rgba(255,209,102,.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <circle cx={x(hovered)} cy={y(value(days[hovered]))} r="3.5" fill="var(--gold)"
+              style={{ filter: 'drop-shadow(0 0 6px var(--gold))' }} />
+          </>
         )}
       </svg>
+      {hovered != null && (
+        <div className={`trend-tip ${side}`} style={{
+          left: `${(x(hovered) / width) * 100}%`,
+          top: `${(y(value(days[hovered])) / height) * 100}%`,
+        }}>
+          <b>{format(value(days[hovered]))}</b>
+          <span>{shortDate(days[hovered].day)}</span>
+        </div>
+      )}
     </div>
   )
 }
