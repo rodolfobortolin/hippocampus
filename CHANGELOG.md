@@ -6,11 +6,20 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Notes that outlive the day. At the close of the day the app reads what you
+  asked your agents for and writes the few durable things into your own vault
+  notes — project, knowledge, person, area, inbox — using the folders your
+  vault already has, in any of the five languages, and the template it already
+  uses. A note that exists gets one more line in its own section. Most days
+  keep one thing or none; a day is never read twice; Settings turns it off.
+- A Notes tab, to write one yourself: pick the kind, the title (the ones you
+  already have are offered), and see where it will be written before it is.
 - Today says what your typing was — a prompt, a message, code — which until now
   only the month could tell you.
 - The ranges in Work no longer squeeze: "7 days" stopped breaking over two
   lines when the subtitle was long, and a client called "acme" is no longer
   drawn as "a…".
+
 - The section in the vault keeps its heading above the markers, so other tools
   that read a note by its headings — an Obsidian plugin, a script — no longer
   write inside our block and lose what they wrote. Notes written the old way

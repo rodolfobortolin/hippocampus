@@ -126,6 +126,8 @@ const PROMPTS: Record<string, string[]> = {
 const SHORTCUTS = ['⌘C', '⌘V', '⌘S', '⌘Z', '⌘T', '⌘W', '⌘⇧P', '⌘P', '⌘F', '⌘Tab', '⌘K', '⌘Return']
 
 const today = dayOf(Date.now() / 1000)
+// The last day that closed: what the curator would have read overnight.
+const yesterday = dayOf(Date.now() / 1000 - 86_400)
 const toTs = (day: string, hour: number, minute = 0) =>
   Math.floor(new Date(`${day}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`).getTime() / 1000)
 const addDays = (day: string, n: number) =>
@@ -297,11 +299,46 @@ for (const [key, title, fromBack, toBack] of TICKETS) {
   }
 }
 
+// A small vault of Alex's own notes, and what the close of a day kept in it.
+// The Notes screen is half the person's writing and half the app's, so a
+// screenshot of it needs both — and both have to be invented, like everything
+// else here.
+const fs = await import('node:fs')
+const vault = path.join(target, 'vault')
+const writeNote = (folder: string, name: string, text: string) => {
+  fs.mkdirSync(path.join(vault, folder), { recursive: true })
+  fs.writeFileSync(path.join(vault, folder, `${name}.md`), text)
+}
+
+writeNote('90 Templates', 'Project',
+  '---\ntype: project\ncreated: {{date}}\n---\n\n# {{title}}\n\n## History\n\n## Links\n')
+writeNote('90 Templates', 'Knowledge',
+  '---\ntype: knowledge\ncreated: {{date}}\n---\n\n# {{title}}\n\n## Summary\n\n## Details\n')
+writeNote('20 Projects', 'Harbor',
+  `---\ntype: project\nclient: acme\n---\n\n# Harbor\n\n## History\n\n- **${yesterday}** — the orders endpoint went to cursor pagination, with the old offset param kept for one release\n\n## Links\n\n- [[Acme]]\n`)
+writeNote('20 Projects', 'Atlas', '---\ntype: project\nclient: acme\n---\n\n# Atlas\n\n## History\n\n## Links\n')
+writeNote('20 Projects', 'Ledger', '---\ntype: project\nclient: globex\n---\n\n# Ledger\n\n## History\n\n## Links\n')
+writeNote('40 Knowledge', 'Cursor pagination on a table that keeps changing',
+  `---\ntype: knowledge\ncreated: ${yesterday}\n---\n\n# Cursor pagination on a table that keeps changing\n\n## Summary\n\nSorting by created_at alone skips rows when two land in the same millisecond; the cursor has to carry the id as a tiebreaker.\n\n## Details\n`)
+writeNote('50 People', 'Priya',
+  `---\ntype: person\n---\n\n# Priya\n\n## Interactions\n\n- **${yesterday}** — agreed the offset param stays until the mobile app ships its next release\n`)
+
+const keep = db.prepare(
+  'insert or ignore into captures (day, kind, title, file, created, at) values (?, ?, ?, ?, ?, ?)')
+for (const [kind, folder, title, created] of [
+  ['project', '20 Projects', 'Harbor', 0],
+  ['knowledge', '40 Knowledge', 'Cursor pagination on a table that keeps changing', 1],
+  ['person', '50 People', 'Priya', 1],
+] as [string, string, string, number][]) {
+  keep.run(yesterday, kind, title, path.join(vault, folder, `${title}.md`), created, Date.now() / 1000 | 0)
+}
+
 // The settings the screenshots are taken with.
 setMeta('settings', JSON.stringify({
-  language: 'en-US', name: 'Alex', vault: '', journalFolder: 'Journal', dayStartHour: 4,
+  language: 'en-US', name: 'Alex', vault, journalFolder: 'Journal', dayStartHour: 4,
   keepTyping: true, voice: 'onyx', shortcut: 'CommandOrControl+Shift+Space', voiceMode: 'push',
   liveVoice: 'marin', region: 'global', caption: true, wideTools: false,
+  calendar: false, captures: true, timesheet: false, onboarded: true,
 }))
 
 console.log(`demo data: ${blocks} windows over three weeks, ending ${today}, in ${target}`)

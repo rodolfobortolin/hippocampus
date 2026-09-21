@@ -116,6 +116,12 @@ app.whenReady().then(async () => {
   win.webContents.sendInputEvent({ type: 'mouseMove', x: 20, y: 700 })
   await shoot(win, 'work')
 
+  // The notes: the composer at the top, and under it what the close of the
+  // last day kept on its own. The demo vault is written by demo-data.ts.
+  await click(win, 'Notes')
+  await wait(2500)
+  await shoot(win, 'notes')
+
   await click(win, 'Journal')
   await wait(2000)
   await shoot(win, 'journal')

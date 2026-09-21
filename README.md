@@ -278,6 +278,17 @@ Code for the text and writes it into `YYYY-MM-DD.md` in your vault, inside its
 own markers — whatever else wrote in that same note stays intact. The vault
 folder and the journal subfolder are both set in Settings.
 
+Then it reads the day once more, for what outlives it. The prompts you wrote
+that day go to Claude Code, which answers with the few things worth keeping —
+a project that moved, a problem understood, what someone is waiting for — and
+each one is written into your own notes: `20 Projects`, `40 Knowledge`,
+`50 People`, `30 Areas`, `00 Inbox`, or whatever those folders are already
+called in your vault, in any of the five languages. A note that exists gets one
+more line in the section it already has; a note that does not is born from your
+vault's template. Most days keep one thing or none, a day already read is never
+read twice, and the switch in Settings turns the whole thing off. The Notes tab
+shows what was kept and takes anything you want to write yourself.
+
 If the machine was asleep at the turn, the day joins a queue and is closed on
 the next boot. By hand:
 
