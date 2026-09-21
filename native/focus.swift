@@ -26,6 +26,12 @@ let args = CommandLine.arguments
 let target: URL? = args.firstIndex(of: "--post").flatMap { i in
     i + 1 < args.count ? URL(string: args[i + 1]) : nil
 }
+/// Where the core answers, for the calendar. With `--post` it is the host the
+/// samples go to; when the core started this helper itself and reads its
+/// stdout, the core passes its address with `--core`.
+let coreBase: URL? = target ?? args.firstIndex(of: "--core").flatMap { i in
+    i + 1 < args.count ? URL(string: args[i + 1]) : nil
+}
 let interval = args.firstIndex(of: "--interval").flatMap { i -> Double? in
     i + 1 < args.count ? Double(args[i + 1]) : nil
 } ?? 4.0
@@ -488,10 +494,10 @@ func sample() {
 /// Meeting names, from the macOS Calendar — only once the person turns it on.
 ///
 /// The core says whether it is wanted and for which window; this helper does
-/// the asking and the reading, because the permission belongs to whoever
-/// asks. Launched by launchd, the prompt names Hippocampus Focus. Asked from
-/// a process the core started, it would name node, and granting it would open
-/// every calendar to every Node script on the machine.
+/// the asking and the reading. Launched by launchd, the prompt names
+/// Hippocampus Focus. Started by the app's own core, macOS attributes it to
+/// the app, and the prompt names Hippocampus — which is why the app's
+/// Info.plist carries the calendar sentence too.
 ///
 /// Nothing is read until the core says "wanted": no prompt appears for someone
 /// who never turned the switch on.
@@ -531,7 +537,7 @@ func sendEvents(_ url: URL, from: Date, to: Date) {
 }
 
 func syncCalendar() {
-    guard let target, var parts = URLComponents(url: target, resolvingAgainstBaseURL: false) else { return }
+    guard let coreBase, var parts = URLComponents(url: coreBase, resolvingAgainstBaseURL: false) else { return }
     parts.path = "/api/calendar"
     guard let url = parts.url else { return }
     URLSession.shared.dataTask(with: url) { data, _, _ in
@@ -565,7 +571,7 @@ func syncCalendar() {
 sample()
 let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in sample() }
 // The calendar changes slowly; every ten minutes, and once shortly after start.
-if target != nil {
+if coreBase != nil {
     DispatchQueue.main.asyncAfter(deadline: .now() + 20) { syncCalendar() }
     let calendarTimer = Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { _ in syncCalendar() }
     RunLoop.main.add(calendarTimer, forMode: .common)

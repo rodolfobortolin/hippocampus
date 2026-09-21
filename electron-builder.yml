@@ -80,3 +80,10 @@ mac:
       know which soundtrack you work to.
     NSSystemAdministrationUsageDescription: >-
       Hippocampus installs an agent that measures your day while you work.
+    # Asked only after the Calendar switch is turned on in Settings.
+    NSCalendarsFullAccessUsageDescription: >-
+      Hippocampus reads the names and times of your meetings to name the calls
+      it already measures. Nothing leaves this machine.
+    NSCalendarsUsageDescription: >-
+      Hippocampus reads the names and times of your meetings to name the calls
+      it already measures. Nothing leaves this machine.

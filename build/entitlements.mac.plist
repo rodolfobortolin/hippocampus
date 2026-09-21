@@ -28,6 +28,13 @@
   <key>com.apple.security.device.audio-input</key>
   <true/>
 
+  <!-- Meeting names, only once the Calendar switch is turned on. The focus
+       helper reads them, and when the app's own core started it, macOS
+       attributes the access to the app — which under the hardened runtime
+       needs this, or the request is refused without a dialog. -->
+  <key>com.apple.security.personal-information.calendars</key>
+  <true/>
+
   <!-- Asking Spotify, Music and the browser what is playing. -->
   <key>com.apple.security.automation.apple-events</key>
   <true/>

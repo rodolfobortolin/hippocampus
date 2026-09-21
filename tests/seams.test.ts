@@ -350,6 +350,15 @@ test('the calendar the helper reads is the one the core asks for and keeps', () 
     assert.match(helper, new RegExp(`"${field}":`), `the helper sends "${field}"`)
     assert.match(server, new RegExp(`body\\.${field}\\b`), `the core reads body.${field}`)
   }
+  // The helper finds the core either way it was started: by launchd with
+  // --post, or by the core itself, which passes --core.
+  assert.match(helper, /args\.firstIndex\(of: "--core"\)/)
+  assert.match(read('core/sources/focus.ts'), /'--core', `http:\/\/127\.0\.0\.1:\$\{config\.port\}`/)
+  // Whoever macOS attributes the request to says why it asks, and may ask.
+  for (const plist of ['native/Info.plist', 'electron-builder.yml']) {
+    assert.match(read(plist), /NSCalendarsFullAccessUsageDescription/, `${plist} carries the calendar sentence`)
+  }
+  assert.match(read('build/entitlements.mac.plist'), /com\.apple\.security\.personal-information\.calendars/)
   // And the permission is asked only when the core says it is wanted.
   assert.match(helper, /ask\["wanted"\] as\? Bool == true/)
   assert.match(read('core/settings.ts'), /calendar: false,/, 'off until asked for')

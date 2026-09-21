@@ -123,7 +123,9 @@ export class FocusCollector {
       console.error('[focus] helper nativo ausente — rode `npm run build:native`')
       return
     }
-    this.child = spawn(paths.native, ['--interval', String(config.sampleInterval)], {
+    // The samples come back on stdout; the calendar, when it is turned on, is
+    // read by the helper and sent to the core, so it needs the address.
+    this.child = spawn(paths.native, ['--interval', String(config.sampleInterval), '--core', `http://127.0.0.1:${config.port}`], {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     this.child.stdout?.on('data', (chunk) => this.consume(String(chunk)))
