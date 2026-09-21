@@ -6,6 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The timesheet draft shows a day or a week, stepped back and forth with
+  arrows, instead of three buttons where "previous week" looked like the week
+  on screen. Lines under a minute are left out, and a note says how many.
 - Where the time went, the projects and what you wrote can be drawn as a pie:
   the toggle is in each panel's heading, and the choice is remembered.
 - What came out of your hands lists every request of the day and reaches the

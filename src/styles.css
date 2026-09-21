@@ -919,3 +919,8 @@ button.piece-line:hover { background: var(--panel-high); }
 .view-toggle button:hover { color: var(--text); }
 .view-toggle button[aria-pressed='true'] { color: var(--gold); background: var(--panel-high); }
 .view-toggle button:focus-visible { outline: 1px solid var(--border-live); outline-offset: 1px; }
+
+/* The timesheet's controls: which unit, then back and forth in it. Two small
+   groups, so the unit reads as a choice and the arrows as movement. */
+.sheet-controls { display: inline-flex; gap: 8px; align-items: center; }
+.sheet-controls .nav button { text-transform: none; letter-spacing: 0; font-weight: 400; }

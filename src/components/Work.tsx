@@ -235,36 +235,68 @@ const hm = (seconds: number) => {
 }
 
 /**
- * The week as a draft timesheet: a row per client and per line under it, a
- * column per day, the total, and the agent's time apart. It is laid out to be
- * checked and copied, not admired — and the time with no client sits at the
- * bottom, in plain sight.
+ * A draft timesheet: a row per client and per line under it, the total, and
+ * the agent's time apart. It is laid out to be checked and copied, not
+ * admired — and the time with no client sits at the bottom, in plain sight.
+ *
+ * A day or a week — weeks start on Monday, the way timesheets are filled in —
+ * stepped back and forth with arrows. It used to offer "previous week", "this
+ * week" and "next week" as three buttons, and with the current week showing
+ * the only lit one was "previous week": it read as the week on screen.
+ *
+ * A line under a minute is left out, and the note under the table says how
+ * many: a draft with "0:00" against five GitHub pages glanced at is noise to
+ * paste around, but hiding them silently would make the day look tidier than
+ * it was.
  */
 function WeekSheet({ t }: { t: Strings }) {
+  const [unit, setUnit] = useState<'day' | 'week'>('week')
   const [offset, setOffset] = useState(0)
   const [sheet, setSheet] = useState<Timesheet | null>(null)
   const today = todayString()
-  // Weeks start on Monday, the way timesheets are filled in.
   const weekday = new Date(`${today}T12:00:00`).getDay()
   const monday = addDays(today, -((weekday + 6) % 7) + 7 * offset)
-  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+  const from = unit === 'day' ? addDays(today, offset) : monday
+  const days = unit === 'day' ? [from] : Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+  const last = days[days.length - 1]
   const names = weekdayNames()
 
   useEffect(() => {
     let alive = true
-    api.timesheet(monday, days[6] > today ? today : days[6]).then((d) => alive && setSheet(d))
+    setSheet(null)
+    api.timesheet(from, last > today ? today : last).then((d) => alive && setSheet(d))
     return () => { alive = false }
-  }, [monday])
+  }, [from, last])
 
-  const empty = sheet && !sheet.clients.length && !sheet.unassigned
+  // Picking a unit goes to the present in it: the day is today, the week this one.
+  const choose = (next: 'day' | 'week') => { setUnit(next); setOffset(0) }
+  const label = unit === 'day'
+    ? `${offset === 0 ? `${t.today.today} · ` : ''}${longDate(from)}`
+    : `${offset === 0 ? `${t.work.thisWeek} · ` : ''}${shortDate(days[0])} – ${shortDate(days[6])}`
+
+  const MINUTE = 60
+  const kept = (line: { seconds: number; agentSeconds: number }) => line.seconds >= MINUTE || line.agentSeconds >= MINUTE
+  const clients = (sheet?.clients ?? [])
+    .map((client) => ({ ...client, lines: client.lines.filter(kept) }))
+    .filter((client) => client.lines.length || kept(client))
+  const hidden = (sheet?.clients ?? []).reduce((sum, client) => sum + client.lines.filter((line) => !kept(line)).length, 0)
+  const empty = sheet && !clients.length && sheet.unassigned < MINUTE
+  const perDay = unit === 'week'
+
   return (
     <div className="panel">
       <h3>
-        <span>{t.work.timesheet} <em>{shortDate(days[0])} – {shortDate(days[6])}</em></span>
-        <span className="nav">
-          <button type="button" onClick={() => setOffset(offset - 1)}>{t.work.previousWeek}</button>
-          <button type="button" disabled={offset === 0} onClick={() => setOffset(0)}>{t.work.thisWeek}</button>
-          <button type="button" disabled={offset >= 0} onClick={() => setOffset(offset + 1)}>{t.work.nextWeek}</button>
+        <span>{t.work.timesheet} <em>{label}</em></span>
+        <span className="sheet-controls">
+          <span className="nav">
+            <button type="button" className={unit === 'day' ? 'active' : ''} onClick={() => choose('day')}>{t.work.sheetDay}</button>
+            <button type="button" className={unit === 'week' ? 'active' : ''} onClick={() => choose('week')}>{t.work.sheetWeek}</button>
+          </span>
+          <span className="nav">
+            <button type="button" aria-label={t.work.earlier} title={t.work.earlier} onClick={() => setOffset((at) => at - 1)}>‹</button>
+            <button type="button" aria-label={t.work.later} title={t.work.later} disabled={offset >= 0}
+              onClick={() => setOffset((at) => Math.min(0, at + 1))}>›</button>
+          </span>
         </span>
       </h3>
       <p className="note" style={{ marginTop: -6, marginBottom: 14 }}>{t.work.timesheetNote}</p>
@@ -274,17 +306,17 @@ function WeekSheet({ t }: { t: Strings }) {
             <thead>
               <tr>
                 <th />
-                {days.map((day) => <th key={day}>{names[new Date(`${day}T12:00:00`).getDay()]}</th>)}
+                {perDay && days.map((day) => <th key={day}>{names[new Date(`${day}T12:00:00`).getDay()]}</th>)}
                 <th>{t.work.total}</th>
                 <th>{t.work.agentColumn}</th>
               </tr>
             </thead>
             <tbody>
-              {sheet.clients.map((client) => (
+              {clients.map((client) => (
                 <Fragment key={client.org}>
                   <tr className="sheet-client">
                     <td>{client.org}</td>
-                    {days.map((day) => <td key={day}>{client.days[day] ? hm(client.days[day]) : ''}</td>)}
+                    {perDay && days.map((day) => <td key={day}>{client.days[day] ? hm(client.days[day]) : ''}</td>)}
                     <td>{hm(client.seconds)}</td>
                     <td className="sheet-agent">{client.agentSeconds ? hm(client.agentSeconds) : ''}</td>
                   </tr>
@@ -294,7 +326,7 @@ function WeekSheet({ t }: { t: Strings }) {
                         {line.kind === 'ticket' ? <b>{line.what}</b> : line.what}
                         {line.label && <span> {line.label}</span>}
                       </td>
-                      {days.map((day) => <td key={day}>{line.days[day] ? hm(line.days[day]) : ''}</td>)}
+                      {perDay && days.map((day) => <td key={day}>{line.days[day] ? hm(line.days[day]) : ''}</td>)}
                       <td>{hm(line.seconds)}</td>
                       <td className="sheet-agent">{line.agentSeconds ? hm(line.agentSeconds) : ''}</td>
                     </tr>
@@ -304,13 +336,14 @@ function WeekSheet({ t }: { t: Strings }) {
               {sheet.unassigned > 0 && (
                 <tr className="sheet-unassigned">
                   <td>{t.work.unassigned}</td>
-                  {days.map((day) => <td key={day} />)}
+                  {perDay && days.map((day) => <td key={day} />)}
                   <td>{hm(sheet.unassigned)}</td>
                   <td />
                 </tr>
               )}
             </tbody>
           </table>
+          {hidden > 0 && <p className="note">{t.work.hiddenLines(hidden)}</p>}
         </div>
       )}
     </div>

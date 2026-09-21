@@ -82,7 +82,10 @@ export type Strings = {
     browser: string; browserTime: string; browserVisits: string; timeSince: (day: string) => string
     empty: string; emptyNote: string
     kinds: Record<PageKind, string>
-    timesheet: string; timesheetNote: string; thisWeek: string; previousWeek: string; nextWeek: string
+    timesheet: string; timesheetNote: string; thisWeek: string
+    /** The timesheet is a day or a week, stepped back and forth with arrows. */
+    sheetDay: string; sheetWeek: string; earlier: string; later: string
+    hiddenLines: (n: number) => string
     unassigned: string; total: string; agentColumn: string; noTimesheet: string
   }
   /** The first-run walkthrough. */
@@ -274,7 +277,8 @@ const pt: Strings = {
       ai: 'IA', search: 'busca', docs: 'documentação', 'sign-in': 'login', page: 'outras páginas',
     },
     timesheet: 'rascunho de apontamento', timesheetNote: 'foco medido por cliente e peça de trabalho, para conferir; o tempo do agente vem à parte',
-    thisWeek: 'esta semana', previousWeek: 'semana anterior', nextWeek: 'semana seguinte',
+    thisWeek: 'esta semana', sheetDay: 'dia', sheetWeek: 'semana', earlier: 'anterior', later: 'seguinte',
+    hiddenLines: (n) => n === 1 ? '1 linha com menos de um minuto não aparece' : `${n} linhas com menos de um minuto não aparecem`,
     unassigned: 'sem cliente', total: 'total', agentColumn: 'agente', noTimesheet: 'Nenhum foco medido nesta semana.',
   },
   onboarding: {
@@ -536,7 +540,8 @@ const en: Strings = {
       ai: 'AI', search: 'search', docs: 'docs', 'sign-in': 'sign-in', page: 'other pages',
     },
     timesheet: 'timesheet draft', timesheetNote: 'measured focus by client and piece of work, to check; the agent\'s time is apart',
-    thisWeek: 'this week', previousWeek: 'previous week', nextWeek: 'next week',
+    thisWeek: 'this week', sheetDay: 'day', sheetWeek: 'week', earlier: 'earlier', later: 'later',
+    hiddenLines: (n) => n === 1 ? '1 line under a minute is left out' : `${n} lines under a minute are left out`,
     unassigned: 'no client', total: 'total', agentColumn: 'agent', noTimesheet: 'No focus measured this week.',
   },
   onboarding: {
@@ -798,7 +803,8 @@ const es: Strings = {
       ai: 'IA', search: 'búsqueda', docs: 'documentación', 'sign-in': 'inicio de sesión', page: 'otras páginas',
     },
     timesheet: 'borrador de horas', timesheetNote: 'foco medido por cliente y pieza de trabajo, para revisar; el tiempo del agente va aparte',
-    thisWeek: 'esta semana', previousWeek: 'semana anterior', nextWeek: 'semana siguiente',
+    thisWeek: 'esta semana', sheetDay: 'día', sheetWeek: 'semana', earlier: 'anterior', later: 'siguiente',
+    hiddenLines: (n) => n === 1 ? '1 línea de menos de un minuto no aparece' : `${n} líneas de menos de un minuto no aparecen`,
     unassigned: 'sin cliente', total: 'total', agentColumn: 'agente', noTimesheet: 'Ningún foco medido esta semana.',
   },
   onboarding: {
@@ -1060,7 +1066,8 @@ const fr: Strings = {
       ai: 'IA', search: 'recherche', docs: 'documentation', 'sign-in': 'connexion', page: 'autres pages',
     },
     timesheet: 'brouillon de feuille de temps', timesheetNote: 'temps au premier plan par client et élément de travail, à vérifier ; le temps de l’agent est à part',
-    thisWeek: 'cette semaine', previousWeek: 'semaine précédente', nextWeek: 'semaine suivante',
+    thisWeek: 'cette semaine', sheetDay: 'jour', sheetWeek: 'semaine', earlier: 'précédent', later: 'suivant',
+    hiddenLines: (n) => n === 1 ? '1 ligne de moins d’une minute n’apparaît pas' : `${n} lignes de moins d’une minute n’apparaissent pas`,
     unassigned: 'sans client', total: 'total', agentColumn: 'agent', noTimesheet: 'Aucun temps mesuré cette semaine.',
   },
   onboarding: {
@@ -1322,7 +1329,8 @@ const de: Strings = {
       ai: 'KI', search: 'Suche', docs: 'Doku', 'sign-in': 'Anmeldung', page: 'andere Seiten',
     },
     timesheet: 'Entwurf der Zeiterfassung', timesheetNote: 'gemessener Fokus nach Kunde und Arbeitselement, zum Prüfen; die Zeit des Agenten steht getrennt',
-    thisWeek: 'diese Woche', previousWeek: 'vorige Woche', nextWeek: 'nächste Woche',
+    thisWeek: 'diese Woche', sheetDay: 'Tag', sheetWeek: 'Woche', earlier: 'früher', later: 'später',
+    hiddenLines: (n) => n === 1 ? '1 Zeile unter einer Minute wird nicht gezeigt' : `${n} Zeilen unter einer Minute werden nicht gezeigt`,
     unassigned: 'ohne Kunde', total: 'gesamt', agentColumn: 'Agent', noTimesheet: 'Diese Woche kein Fokus gemessen.',
   },
   onboarding: {
