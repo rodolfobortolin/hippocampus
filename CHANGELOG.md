@@ -6,6 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- A project switch counts leaving one piece of work for another. Going from
+  the editor to the assistant and back, on the same work, counted twice; a
+  day that read 357 project switches had 67.
+
 - Agent work goes to the repository the agent edited, not to the folder the
   session was opened in: a day spent editing one project from a session
   opened in another no longer credits the wrong one. A session opened in the

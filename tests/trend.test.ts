@@ -7,7 +7,8 @@ import path from 'node:path'
 process.env.HIPPOCAMPUS_DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'hippocampus-trend-'))
 
 const { db } = await import('../core/db.ts')
-const { rangeReport } = await import('../core/metrics.ts')
+const { rangeReport, dayReport } = await import('../core/metrics.ts')
+const { labelKey } = await import('../core/jev.ts')
 
 /**
  * The trend draws one reading per day and lets the person pick which. Each of
@@ -66,4 +67,24 @@ test('switches never cross the boundary between two days', () => {
   block('2026-09-21', 9, 'Slack')
   const days = rangeReport('2026-09-20', '2026-09-21')
   assert.deepEqual(days.map((d) => d.switches), [0, 0])
+})
+
+function labelled(app: string, project: string | null, category = 'code') {
+  db.prepare(
+    `insert or replace into labels (key, app, sample_title, category, project, deep_work, confidence, model, created_at)
+     values (?, ?, ?, ?, ?, 1, 0.9, 'test', 0)`,
+  ).run(labelKey({ app, title: `${app} window`, host: null }), app, `${app} window`, category, project)
+}
+
+test('going through a window with no project is not a project switch', () => {
+  labelled('Code', 'harbor')
+  labelled('Claude', null, 'ai')
+  labelled('Zed', 'atlas')
+  // Editor, assistant, editor, assistant, editor — all on harbor — then atlas.
+  for (const [hour, app] of [[9, 'Code'], [10, 'Claude'], [11, 'Code'], [12, 'Claude'], [13, 'Code'], [14, 'Zed']] as [number, string][]) {
+    block('2026-09-22', hour, app)
+  }
+  const day = dayReport('2026-09-22')
+  assert.equal(day.switches, 5, 'every change of app is still a switch')
+  assert.equal(day.switchesProject, 1, 'only harbor → atlas left one piece of work for another')
 })

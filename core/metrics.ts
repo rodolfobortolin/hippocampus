@@ -101,18 +101,23 @@ export function dayReport(day: string) {
   // The first block is not a switch — starting work is not switching. Beyond
   // the total, this separates the cheap switch (same project) from the costly
   // one (changes project), which is the only one that maps to attention residue.
+  //
+  // A project switch is a move from one project to another, carried across the
+  // windows that belong to none. Comparing each window with the one just
+  // before it counted "editor → Claude → editor", on the same work, as two
+  // project switches: on 21 September, 333 of the 357 counted had a window
+  // with no project on one side, and 24 were real. The costly switch is
+  // leaving one piece of work for another, whatever sits in between.
   let switches = 0
   let switchesProject = 0
   let previous: string | null = null
-  let previousProject: string | null | undefined
+  let lastProject: string | null = null
   for (const block of active) {
     const project = labelOf(block)?.project ?? null
-    if (previous !== null && block.app !== previous) {
-      switches++
-      if (previousProject !== undefined && project !== previousProject) switchesProject++
-    }
+    if (previous !== null && block.app !== previous) switches++
+    if (project && lastProject && project !== lastProject) switchesProject++
     previous = block.app
-    previousProject = project
+    if (project) lastProject = project
   }
 
   // The day's ribbon: short blocks become noise, so neighbours of the same app merge.
