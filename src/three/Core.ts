@@ -25,10 +25,9 @@ const LOOKS: Record<CoreState, Visual> = {
  *
  * The composer returns black where there is nothing, and opaque black draws a
  * rectangle. Blending in screen mode solves it over a dark panel, but washes
- * everything out
- * numa janela flutuante por cima do desktop claro. Aqui o alfa sai da
- * luminance: dark becomes transparent, lit becomes solid, and the core floats
- * hovered qualquer fundo.
+ * everything out in a floating window over a light desktop. Here the alpha
+ * comes from luminance: dark becomes transparent, lit becomes solid, and the
+ * core floats over any background.
  */
 const ALPHA_FROM_BRIGHTNESS = {
   uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
@@ -72,26 +71,26 @@ export class Core {
   private readonly composer: EffectComposer
   private readonly bloom: UnrealBloomPass
   private readonly plasma: THREE.ShaderMaterial
-  private readonly esfera: THREE.Mesh
-  private readonly aneis: THREE.Mesh[] = []
-  private readonly poeira: THREE.Points
+  private readonly sphere: THREE.Mesh
+  private readonly rings: THREE.Mesh[] = []
+  private readonly dust: THREE.Points
   private readonly clock = new THREE.Clock()
-  private readonly compacto: boolean
+  private readonly compact: boolean
 
   private state: CoreState = 'idle'
   private level = 0
-  private nivelSuave = 0
-  private energiaSuave = LOOKS.idle.energia
-  private giroSuave = LOOKS.idle.giro
-  private clarao = 0
+  private smoothLevel = 0
+  private smoothEnergy = LOOKS.idle.energia
+  private smoothSpin = LOOKS.idle.giro
+  private flash = 0
   private phase = 0
   private frame = 0
-  private morto = false
+  private disposed = false
 
-  private readonly corA = new THREE.Color(LOOKS.idle.a)
-  private readonly corB = new THREE.Color(LOOKS.idle.b)
-  private readonly alvoA = new THREE.Color(LOOKS.idle.a)
-  private readonly alvoB = new THREE.Color(LOOKS.idle.b)
+  private readonly colorA = new THREE.Color(LOOKS.idle.a)
+  private readonly colorB = new THREE.Color(LOOKS.idle.b)
+  private readonly targetA = new THREE.Color(LOOKS.idle.a)
+  private readonly targetB = new THREE.Color(LOOKS.idle.b)
 
   /**
    * `compact` is the miniature core beside the composer.
@@ -107,11 +106,11 @@ export class Core {
    */
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    opcoes: { compacto?: boolean; poeira?: boolean } | boolean = {},
+    options: { compact?: boolean; dust?: boolean } | boolean = {},
   ) {
-    const { compacto = false, poeira = true } =
-      typeof opcoes === 'boolean' ? { compacto: opcoes, poeira: !opcoes } : opcoes
-    this.compacto = compacto
+    const { compact = false, dust = true } =
+      typeof options === 'boolean' ? { compact: options, dust: !options } : options
+    this.compact = compact
     this.renderer = new THREE.WebGLRenderer({
       canvas: canvas, antialias: true, alpha: true, premultipliedAlpha: false,
     })
@@ -122,7 +121,7 @@ export class Core {
     // The camera sits far enough back for the rings (diameter 3.9) to fit
     // inteiros no frame; encostados na borda eles viram um corte reto.
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100)
-    this.camera.position.set(0, 0, compacto ? 5.2 : 6.6)
+    this.camera.position.set(0, 0, compact ? 5.2 : 6.6)
 
     this.plasma = new THREE.ShaderMaterial({
       uniforms: {
@@ -130,8 +129,8 @@ export class Core {
         uEnergia: { value: 0.2 },
         uNivel: { value: 0 },
         uClarao: { value: 0 },
-        uCorA: { value: this.corA },
-        uCorB: { value: this.corB },
+        uCorA: { value: this.colorA },
+        uCorB: { value: this.colorB },
       },
       vertexShader: /* glsl */ `
         uniform float uFase; uniform float uEnergia; uniform float uNivel;
@@ -177,14 +176,14 @@ export class Core {
         }`,
     })
 
-    this.esfera = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1, compacto ? 24 : 48), this.plasma)
+    this.sphere = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1, compact ? 24 : 48), this.plasma)
     // Smaller inside the frame: room left over for the halo to die before the edge.
-    if (compacto) this.esfera.scale.setScalar(0.62)
-    this.scene.add(this.esfera)
+    if (compact) this.sphere.scale.setScalar(0.62)
+    this.scene.add(this.sphere)
 
     // Two rings tilted on different axes: they give the spin some depth.
-    for (const [index, radius] of (compacto ? [] : [1.55, 1.95]).entries()) {
+    for (const [index, radius] of (compact ? [] : [1.55, 1.95]).entries()) {
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(radius, 0.006, 8, 220),
         new THREE.MeshBasicMaterial({
@@ -195,61 +194,61 @@ export class Core {
         }),
       )
       ring.rotation.set(index === 0 ? 1.15 : -0.5, index === 0 ? 0.3 : 0.9, 0)
-      this.aneis.push(ring)
+      this.rings.push(ring)
       this.scene.add(ring)
     }
 
     // Dust around it: without it the core looks cut out and pasted on.
-    const total = compacto || !poeira ? 0 : 420
+    const total = compact || !dust ? 0 : 420
     const positions = new Float32Array(total * 3)
     for (let i = 0; i < total; i++) {
       const radius = 2.2 + Math.random() * 1.2
       const theta = Math.random() * Math.PI * 2
-      const fi = Math.acos(2 * Math.random() - 1)
-      positions[i * 3] = radius * Math.sin(fi) * Math.cos(theta)
-      positions[i * 3 + 1] = radius * Math.sin(fi) * Math.sin(theta) * 0.6
-      positions[i * 3 + 2] = radius * Math.cos(fi)
+      const phi = Math.acos(2 * Math.random() - 1)
+      positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta)
+      positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta) * 0.6
+      positions[i * 3 + 2] = radius * Math.cos(phi)
     }
     const geometry = new THREE.BufferGeometry()
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    this.poeira = new THREE.Points(geometry, new THREE.PointsMaterial({
+    this.dust = new THREE.Points(geometry, new THREE.PointsMaterial({
       color: new THREE.Color('#ffd9a8'), size: 0.018, transparent: true,
       opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false,
     }))
-    this.scene.add(this.poeira)
+    this.scene.add(this.dust)
 
     this.composer = new EffectComposer(this.renderer)
     this.composer.addPass(new RenderPass(this.scene, this.camera))
     this.bloom = new UnrealBloomPass(
-      new THREE.Vector2(1, 1), compacto ? 0.62 : 0.85, compacto ? 0.55 : 0.75, 0.2)
+      new THREE.Vector2(1, 1), compact ? 0.62 : 0.85, compact ? 0.55 : 0.75, 0.2)
     this.composer.addPass(this.bloom)
-    const alfa = new ShaderPass(ALPHA_FROM_BRIGHTNESS)
-    alfa.renderToScreen = true
-    this.composer.addPass(alfa)
+    const alphaPass = new ShaderPass(ALPHA_FROM_BRIGHTNESS)
+    alphaPass.renderToScreen = true
+    this.composer.addPass(alphaPass)
 
-    this.redimensiona()
-    this.desenha()
+    this.resize()
+    this.draw()
   }
 
   setState(state: CoreState): void {
     if (state === this.state) return
     this.state = state
     const visual = LOOKS[state]
-    this.alvoA.set(visual.a)
-    this.alvoB.set(visual.b)
-    this.clarao = Math.max(this.clarao, 0.35)
+    this.targetA.set(visual.a)
+    this.targetB.set(visual.b)
+    this.flash = Math.max(this.flash, 0.35)
   }
 
   /** 0 to 1: the volume of whoever is speaking now. */
-  setNivel(level: number): void {
+  setLevel(level: number): void {
     this.level = THREE.MathUtils.clamp(level, 0, 1)
   }
 
-  pulso(forca = 1): void {
-    this.clarao = Math.max(this.clarao, forca)
+  pulse(strength = 1): void {
+    this.flash = Math.max(this.flash, strength)
   }
 
-  redimensiona(): void {
+  resize(): void {
     const width = this.canvas.clientWidth || 1
     const height = this.canvas.clientHeight || 1
     this.camera.aspect = width / height
@@ -259,60 +258,60 @@ export class Core {
     this.bloom.setSize(width, height)
   }
 
-  private desenha = (): void => {
-    if (this.morto) return
-    this.frame = requestAnimationFrame(this.desenha)
+  private draw = (): void => {
+    if (this.disposed) return
+    this.frame = requestAnimationFrame(this.draw)
     const dt = Math.min(this.clock.getDelta(), 0.05)
     const visual = LOOKS[this.state]
 
-    this.nivelSuave = damp(this.nivelSuave, this.level, 14, dt)
-    this.energiaSuave = damp(this.energiaSuave, visual.energia, 3.2, dt)
-    this.giroSuave = damp(this.giroSuave, visual.giro, 2.6, dt)
-    this.clarao = damp(this.clarao, 0, 3.4, dt)
-    this.corA.lerp(this.alvoA, 1 - Math.exp(-3 * dt))
-    this.corB.lerp(this.alvoB, 1 - Math.exp(-3 * dt))
+    this.smoothLevel = damp(this.smoothLevel, this.level, 14, dt)
+    this.smoothEnergy = damp(this.smoothEnergy, visual.energia, 3.2, dt)
+    this.smoothSpin = damp(this.smoothSpin, visual.giro, 2.6, dt)
+    this.flash = damp(this.flash, 0, 3.4, dt)
+    this.colorA.lerp(this.targetA, 1 - Math.exp(-3 * dt))
+    this.colorB.lerp(this.targetB, 1 - Math.exp(-3 * dt))
 
     // The baseline breathing never goes away: idle, it is still alive.
-    this.phase += dt * (0.45 + this.giroSuave * 0.32 + this.nivelSuave * 1.1)
+    this.phase += dt * (0.45 + this.smoothSpin * 0.32 + this.smoothLevel * 1.1)
     this.plasma.uniforms.uFase.value = this.phase
-    this.plasma.uniforms.uEnergia.value = this.energiaSuave
-    this.plasma.uniforms.uNivel.value = this.nivelSuave
-    this.plasma.uniforms.uClarao.value = this.clarao
+    this.plasma.uniforms.uEnergia.value = this.smoothEnergy
+    this.plasma.uniforms.uNivel.value = this.smoothLevel
+    this.plasma.uniforms.uClarao.value = this.flash
 
-    const base = this.compacto ? 0.62 : 1
-    const scale = base * (1 + this.nivelSuave * 0.14 + Math.sin(this.phase * 0.9) * 0.012)
-    this.esfera.scale.setScalar(scale)
-    this.esfera.rotation.y += dt * 0.12 * this.giroSuave
+    const base = this.compact ? 0.62 : 1
+    const scale = base * (1 + this.smoothLevel * 0.14 + Math.sin(this.phase * 0.9) * 0.012)
+    this.sphere.scale.setScalar(scale)
+    this.sphere.rotation.y += dt * 0.12 * this.smoothSpin
 
-    for (const [index, ring] of this.aneis.entries()) {
+    for (const [index, ring] of this.rings.entries()) {
       const direction = index === 0 ? 1 : -1
-      ring.rotation.z += dt * 0.22 * this.giroSuave * direction
+      ring.rotation.z += dt * 0.22 * this.smoothSpin * direction
       ring.rotation.x += dt * 0.05 * direction
-      ring.scale.setScalar(1 + this.nivelSuave * 0.09)
+      ring.scale.setScalar(1 + this.smoothLevel * 0.09)
       const material = ring.material as THREE.MeshBasicMaterial
-      material.color.copy(this.corB)
-      material.opacity = (index === 0 ? 0.5 : 0.28) + this.nivelSuave * 0.35
+      material.color.copy(this.colorB)
+      material.opacity = (index === 0 ? 0.5 : 0.28) + this.smoothLevel * 0.35
     }
 
-    this.poeira.rotation.y -= dt * 0.03 * this.giroSuave
-    this.bloom.strength = (this.compacto ? 0.5 : 0.72)
-      + this.energiaSuave * (this.compacto ? 0.3 : 0.5)
-      + this.nivelSuave * (this.compacto ? 0.3 : 0.55)
+    this.dust.rotation.y -= dt * 0.03 * this.smoothSpin
+    this.bloom.strength = (this.compact ? 0.5 : 0.72)
+      + this.smoothEnergy * (this.compact ? 0.3 : 0.5)
+      + this.smoothLevel * (this.compact ? 0.3 : 0.55)
 
     this.composer.render()
   }
 
   dispose(): void {
-    this.morto = true
+    this.disposed = true
     cancelAnimationFrame(this.frame)
-    this.esfera.geometry.dispose()
+    this.sphere.geometry.dispose()
     this.plasma.dispose()
-    for (const ring of this.aneis) {
+    for (const ring of this.rings) {
       ring.geometry.dispose()
       ;(ring.material as THREE.Material).dispose()
     }
-    this.poeira.geometry.dispose()
-    ;(this.poeira.material as THREE.Material).dispose()
+    this.dust.geometry.dispose()
+    ;(this.dust.material as THREE.Material).dispose()
     this.composer.dispose()
     this.renderer.dispose()
   }

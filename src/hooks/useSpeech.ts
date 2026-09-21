@@ -13,7 +13,7 @@ import { SPEECH_RATE } from '../lib/format.ts'
  */
 const LIMIT = 900
 
-export function useSpeech(opcoes: {
+export function useSpeech(options: {
   hasOwnVoice: boolean
   /** The language of the system voice, when the app's own voice is unavailable. */
   language?: string
@@ -25,8 +25,8 @@ export function useSpeech(opcoes: {
   onPulse?: () => void
 }) {
   const current = useRef<HTMLAudioElement | null>(null)
-  const ref = useRef(opcoes)
-  ref.current = opcoes
+  const ref = useRef(options)
+  ref.current = options
 
   const stop = useCallback(() => {
     if (current.current) {

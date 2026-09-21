@@ -15,8 +15,8 @@ const caption = document.getElementById('core-state')
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches
 
 if (canvas) {
-  const core = new Core(canvas, { compacto: false, poeira: true })
-  new ResizeObserver(() => core.redimensiona()).observe(canvas)
+  const core = new Core(canvas, { compact: false, dust: true })
+  new ResizeObserver(() => core.resize()).observe(canvas)
 
   const WORDS: Record<CoreState, string> = {
     idle: 'click to speak',
@@ -42,7 +42,7 @@ if (canvas) {
     const level = state === 'speaking' ? Math.max(0, Math.sin(t * 7.3) * 0.6 + Math.sin(t * 2.1) * 0.5)
       : state === 'listening' ? Math.max(0, Math.sin(t * 5.1) * 0.35 + Math.sin(t * 1.7) * 0.3)
       : 0
-    core.setNivel(level)
+    core.setLevel(level)
     requestAnimationFrame(voice)
   }
 
@@ -73,7 +73,7 @@ if (canvas) {
   orb?.setAttribute('role', 'button')
   const listen = () => {
     clearTimeout(timer)
-    core.pulso()
+    core.pulse()
     show('listening')
     started = performance.now()
     step = 2
