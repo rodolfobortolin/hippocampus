@@ -6,11 +6,12 @@
  * writes about it in someone else's language is of no use to you.
  */
 export const LANGUAGES = {
-  'pt-BR': { name: 'Português', flag: 'BR', intl: 'pt-BR' },
-  'en-US': { name: 'English', flag: 'US', intl: 'en-US' },
-  'es-ES': { name: 'Español', flag: 'ES', intl: 'es-ES' },
-  'fr-FR': { name: 'Français', flag: 'FR', intl: 'fr-FR' },
-  'de-DE': { name: 'Deutsch', flag: 'DE', intl: 'de-DE' },
+  // Regional indicator pairs, which macOS draws as the flag itself.
+  'pt-BR': { name: 'Português', flag: '\u{1F1E7}\u{1F1F7}', intl: 'pt-BR' },
+  'en-US': { name: 'English', flag: '\u{1F1FA}\u{1F1F8}', intl: 'en-US' },
+  'es-ES': { name: 'Español', flag: '\u{1F1EA}\u{1F1F8}', intl: 'es-ES' },
+  'fr-FR': { name: 'Français', flag: '\u{1F1EB}\u{1F1F7}', intl: 'fr-FR' },
+  'de-DE': { name: 'Deutsch', flag: '\u{1F1E9}\u{1F1EA}', intl: 'de-DE' },
 } as const
 
 export type Language = keyof typeof LANGUAGES

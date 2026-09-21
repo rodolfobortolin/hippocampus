@@ -148,7 +148,9 @@ export function Chat({ status }: { status: Status | null }) {
     }
     // Perguntar de novo cala o que estava sendo spoken.
     voice.stop()
-    setMessages((current) => [...current, { of: 'me', text: clear }])
+    // The core says what it heard, for typed and spoken alike, and every screen
+    // gets it. Adding it here too would put a typed question on screen twice —
+    // and would leave the panel showing only the turns that started in it.
     answerRef.current = ''
     setText('')
   }

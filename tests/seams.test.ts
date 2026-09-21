@@ -36,7 +36,8 @@ const screens = ['src/components/Chat.tsx', 'src/FloatingCore.tsx']
 
 test('every event the screens listen for is one the core sends', () => {
   const server = read('core/server.ts')
-  const sent = new Set([...server.matchAll(/(?:send|broadcast|wake\?\.)\(\{\s*type:\s*'([\w-]+)'/g)].map((m) => m[1]))
+  const sent = new Set([...server.matchAll(
+    /(?:send|broadcast|toThisScreen|wake\?\.)\(\{\s*type:\s*'([\w-]+)'/g)].map((m) => m[1]))
   assert.ok(sent.size > 4, 'the core should send several kinds of event')
 
   for (const file of screens) {
@@ -277,6 +278,24 @@ test('no screen decides how to listen before it knows the mode', () => {
       const around = source.slice(Math.max(0, at - 700), at)
       assert.ok(/liveWanted|liveOn|voiceMode/.test(around),
         `${file} starts the recorder at "${call.trim()}" without checking the voice mode`)
+    }
+  }
+})
+
+test('a permission is only reported missing once the helper has said so', () => {
+  // Starting the flag at false means "not told yet" reads as "denied", so the
+  // app put up a warning about a missing permission every time it opened and
+  // took it back when the first sample landed. A warning that retracts itself
+  // teaches people to ignore warnings.
+  const focus = read('core/sources/focus.ts')
+  assert.ok(/trusted:\s*boolean \| null = null/.test(focus),
+    'core/sources/focus.ts should start `trusted` as null, not false')
+
+  // And the screens have to test against false, never truthiness.
+  for (const file of ['src/components/Today.tsx', 'src/App.tsx']) {
+    for (const [line] of read(file).matchAll(/^.*collector\.trusted.*$/gm)) {
+      assert.ok(/trusted === (true|false)/.test(line),
+        `${file} reads collector.trusted as a boolean at "${line.trim()}" — unknown is not denied`)
     }
   }
 })

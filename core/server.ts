@@ -249,6 +249,18 @@ export function serve(collector?: Collector): http.Server {
     }
   }
   wake = broadcast
+
+  /**
+   * One conversation, however you reached it.
+   *
+   * The session is shared across every open screen on purpose: asking through
+   * the floating core and then opening the panel should show the same thread,
+   * not two halves of one. And because the answer is broadcast rather than
+   * returned to whoever asked, the panel keeps the transcript of a question
+   * that was only ever spoken into the sphere.
+   */
+  let session: string | undefined
+
   sockets.on('connection', (socket, request) => {
     // Only the interface itself talks to the core.
     const origin = request.headers.origin
@@ -257,9 +269,12 @@ export function serve(collector?: Collector): http.Server {
       return
     }
 
-    let session: string | undefined
     let live: LiveVoice | undefined
-    const send = (event: unknown) => socket.readyState === socket.OPEN && socket.send(JSON.stringify(event))
+    // What belongs to the conversation goes to every screen; what belongs to
+    // this particular connection — the WebRTC handshake — goes only here.
+    const send = broadcast
+    const toThisScreen = (event: unknown) =>
+      socket.readyState === socket.OPEN && socket.send(JSON.stringify(event))
 
     /**
      * One question, answered by Claude Code with the local database as its tools.
@@ -271,6 +286,9 @@ export function serve(collector?: Collector): http.Server {
      * there is a transcript to read.
      */
     const answer = async (text: string, speaks: LiveVoice | undefined) => {
+      // Said once, here, whether it was typed or spoken — so the panel does not
+      // have to guess which turns it missed.
+      send({ type: 'heard', text })
       send({ type: 'thinking' })
       try {
         for await (const event of chat(text, session)) {
@@ -281,6 +299,7 @@ export function serve(collector?: Collector): http.Server {
             speaks?.answer(event.text)
           }
           else if (event.type === 'text') send({ type: 'text', text: event.text })
+          else if (event.type === 'session') session = event.id
           else if (event.type === 'tool') {
             send({ type: 'tool', name: event.name })
             // The voice keeps someone company while the lookup runs, without
@@ -309,7 +328,6 @@ export function serve(collector?: Collector): http.Server {
       const session_ = new LiveVoice({
         onRequest: (text) => {
           if (!text) return
-          send({ type: 'heard', text })
           void answer(text, session_)
         },
         onSpoken: (text) => send({ type: 'spoken', text }),
@@ -323,7 +341,10 @@ export function serve(collector?: Collector): http.Server {
       live = session_
       try {
         const opened = await session_.start(sdp, liveInstructions(), readSettings().liveVoice)
-        send({ type: 'live-answer', sdp: opened.sdp })
+        // The handshake belongs to the screen that made the offer, not to the
+        // others: an answer meant for one peer connection is useless anywhere
+        // else and would only confuse a second core that is not connecting.
+        toThisScreen({ type: 'live-answer', sdp: opened.sdp })
         send({ type: 'live', on: true, seconds: 0 })
       } catch (error) {
         live = undefined

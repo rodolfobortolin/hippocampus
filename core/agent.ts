@@ -232,6 +232,8 @@ function persona(): string {
 }
 
 export type AgentEvent =
+  /** Claude Code's own session, so the next question continues this one. */
+  | { type: 'session'; id: string }
   | { type: 'model'; model: string; level: number }
   | { type: 'delta'; text: string }
   | { type: 'text'; text: string }
@@ -265,6 +267,7 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
   })
 
   let final = ''
+  let told = false
   try {
     for await (const message of run as any) {
       // The text arrives in pieces; the complete block that follows would
@@ -287,6 +290,11 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
               ? name.replace('mcp__hippocampus__', '') : '' }
           }
         }
+      }
+      // Every message carries it; the conversation only needs to be told once.
+      if (message.session_id && !told) {
+        told = true
+        yield { type: 'session', id: String(message.session_id) }
       }
       if (message.type === 'result') {
         final = message.subtype === 'success' ? message.result ?? '' : ''
