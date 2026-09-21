@@ -6,6 +6,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Hippocampus stays free and open source, and asks once: the end of Settings
+  and of the website offer to buy its author a lunch, through Stripe.
 - Stripe keys and private keys pasted into a request are no longer stored, and
   any stored before this are taken out of what is kept. They were read at the
   close of the day and could have reached a model, or a note.
