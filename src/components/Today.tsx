@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, type Day, type Status } from '../lib/api.ts'
 import { duration, hours, clock, longDate, addDays, today as todayString, colour, number, topSlices, plural } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
-import { Donut, Ribbon, Gauge, Bars, FocusShape } from './charts.tsx'
+import { Donut, Ribbon, Gauge, Bars, FocusShape, useView, ViewToggle } from './charts.tsx'
 import { IconAlert } from './Icons.tsx'
 
 function Card({ rotulo, children, nota }: { rotulo: string; children: React.ReactNode; nota?: string }) {
@@ -28,6 +28,8 @@ export function Today({ status }: { status: Status | null }) {
   useEffect(() => setOnly(null), [day])
   const [data, setData] = useState<Day | null>(null)
   const [error, setError] = useState('')
+  const [appsView, setAppsView] = useView('today.apps')
+  const [projectsView, setProjectsView] = useView('today.projects')
 
   useEffect(() => {
     let alive = true
@@ -183,14 +185,27 @@ export function Today({ status }: { status: Status | null }) {
 
           <div className="grid g32">
             <div className="panel">
-              <h3>{t.today.whereTimeWent}{tag}</h3>
-              <Bars items={topSlices(below.apps)} total={belowTotal} tone="var(--ember)" />
+              <h3>
+                {t.today.whereTimeWent}
+                <span className="h3-side">{tag}<ViewToggle view={appsView} onChoose={setAppsView} /></span>
+              </h3>
+              {appsView === 'pie'
+                ? <Donut slices={topSlices(below.apps)} total={belowTotal} tone="var(--ember)" />
+                : <Bars items={topSlices(below.apps)} total={belowTotal} tone="var(--ember)" />}
             </div>
             <div className="panel">
-              <h3>{t.today.projects} {tag ?? <em>{plural(below.projects.length, t.counts.project)}</em>}</h3>
-              {below.projects.length
-                ? <Bars items={below.projects} total={belowTotal} tone="var(--water)" />
-                : <p className="empty">{t.today.noProject}</p>}
+              <h3>
+                {t.today.projects}
+                <span className="h3-side">
+                  {tag ?? <em>{plural(below.projects.length, t.counts.project)}</em>}
+                  <ViewToggle view={projectsView} onChoose={setProjectsView} />
+                </span>
+              </h3>
+              {!below.projects.length ? <p className="empty">{t.today.noProject}</p>
+                : projectsView === 'pie'
+                  ? <Donut slices={below.projects} total={below.projects.reduce((sum, p) => sum + p.seconds, 0)}
+                      tone="var(--water)" caption={t.today.projects} />
+                  : <Bars items={below.projects} total={belowTotal} tone="var(--water)" />}
             </div>
           </div>
 

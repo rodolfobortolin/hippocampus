@@ -6,6 +6,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Where the time went, the projects and what you wrote can be drawn as a pie:
+  the toggle is in each panel's heading, and the choice is remembered.
 - What came out of your hands lists every request of the day and reaches the
   bottom of its panel, instead of stopping at twelve and 250 pixels.
 - The categories under the day's ribbon filter it: pick one and only its

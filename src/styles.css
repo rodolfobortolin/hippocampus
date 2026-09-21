@@ -905,3 +905,17 @@ button.piece-line:hover { background: var(--panel-high); }
    list scrolls inside whatever is left, never below 250px. */
 .panel.fill { display: flex; flex-direction: column; }
 .panel.fill .fill-rows { flex: 1 1 0; min-height: 250px; overflow-y: auto; }
+
+/* The right side of a panel's heading: its note, then the view toggle. */
+.h3-side { display: inline-flex; align-items: center; gap: 10px; }
+.view-toggle {
+  display: inline-flex; padding: 2px; gap: 2px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--panel);
+}
+.view-toggle button {
+  display: grid; place-items: center; width: 24px; height: 20px; border-radius: 6px;
+  color: var(--text-dim); transition: color .15s, background .15s;
+}
+.view-toggle button:hover { color: var(--text); }
+.view-toggle button[aria-pressed='true'] { color: var(--gold); background: var(--panel-high); }
+.view-toggle button:focus-visible { outline: 1px solid var(--border-live); outline-offset: 1px; }

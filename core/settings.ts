@@ -81,6 +81,11 @@ export type Settings = {
    */
   captures: boolean
   /**
+   * How each panel is drawn, where it can be drawn two ways — bars or a pie —
+   * keyed by panel ("today.apps"). A panel not named is drawn as bars.
+   */
+  views: Record<string, 'bars' | 'pie'>
+  /**
    * Whether the week's hours are drafted by client and piece of work — for
    * someone who bills by the hour. For anyone else a timesheet reads as
    * surveillance, so it stays off until asked for.
@@ -185,6 +190,7 @@ const DEFAULTS: Settings = {
   wideTools: false,
   calendar: false,
   captures: true,
+  views: {},
   timesheet: false,
   codeRoot: config.codeRoot,
   onboarded: false,
@@ -233,6 +239,8 @@ export function readSettings(): Settings {
       wideTools: data.wideTools === true,
       calendar: data.calendar === true,
       captures: data.captures !== false,
+      views: Object.fromEntries(Object.entries((data.views ?? {}) as Record<string, unknown>)
+        .filter(([key, view]) => key.length < 40 && (view === 'bars' || view === 'pie'))) as Record<string, 'bars' | 'pie'>,
       timesheet: data.timesheet === true,
       codeRoot: String(data.codeRoot ?? '').trim() || DEFAULTS.codeRoot,
       onboarded: data.onboarded === true,
@@ -262,7 +270,11 @@ export function applySettings(settings: Settings = readSettings()): Settings {
 }
 
 export function saveSettings(input: Partial<Settings>): Settings {
-  const next: Settings = { ...readSettings(), ...input }
+  const current = readSettings()
+  // The views arrive one panel at a time and are merged, never replaced: two
+  // quick clicks on two panels sent two maps built from the same stale copy,
+  // and the second write erased the first choice.
+  const next: Settings = { ...current, ...input, views: { ...current.views, ...(input.views ?? {}) } }
   // Storing a folder that does not exist would only produce a journal that
   // vanishes.
   if (next.vault && !fs.existsSync(next.vault)) next.vault = readSettings().vault

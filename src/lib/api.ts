@@ -120,6 +120,8 @@ export type Settings = {
   timesheet: boolean
   /** Whether the close of the day writes the durable notes by itself. */
   captures: boolean
+  /** How each panel that can be drawn two ways is drawn. */
+  views: Record<string, 'bars' | 'pie'>
   /** The folder the repositories live in. */
   codeRoot: string
   /** Whether the first-run walkthrough was finished or skipped. */

@@ -8,7 +8,7 @@ const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'hippocampus-test-'))
 process.env.HIPPOCAMPUS_DATA = temporary
 
 const { setMeta } = await import('../core/db.ts')
-const { readSettings } = await import('../core/settings.ts')
+const { readSettings, saveSettings } = await import('../core/settings.ts')
 
 after(() => fs.rmSync(temporary, { recursive: true, force: true }))
 
@@ -125,4 +125,15 @@ test('the code folder is a setting, and the collector reads it from there', asyn
   assert.equal(readSettings().codeRoot, temporary)
   assert.equal(readSettings().onboarded, true)
   assert.equal(config.codeRoot, temporary, 'the git harvest walks the folder the person chose')
+})
+
+test('a panel drawn as a pie is remembered without forgetting the others', () => {
+  saveSettings({ views: { 'today.apps': 'pie' } })
+  saveSettings({ views: { 'today.projects': 'pie' } })
+  saveSettings({ views: { 'today.apps': 'bars' } })
+  assert.deepEqual(readSettings().views, { 'today.apps': 'bars', 'today.projects': 'pie' })
+
+  // Anything but the two ways a panel can be drawn is not kept.
+  saveSettings({ views: { 'rhythm.apps': 'radar' as any } })
+  assert.equal(readSettings().views['rhythm.apps'], undefined)
 })

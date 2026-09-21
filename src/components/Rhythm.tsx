@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, type Period, type PeriodSummary, type Slot } from '../lib/api.ts'
 import { duration, hours, addDays, today as todayString, number, topSlices, plural, weekdayNames } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
-import { Heatmap, Trend, Bars, Donut } from './charts.tsx'
+import { Heatmap, Trend, Bars, Donut, useView, ViewToggle } from './charts.tsx'
 
 /** What the trend can draw. The order is the order on screen. */
 const MEASURES = ['active', 'delegated', 'switches', 'commits'] as const
@@ -17,6 +17,9 @@ export function Rhythm() {
   ]
   const [span, setSpan] = useState(30)
   const [measure, setMeasure] = useState<Measure>('active')
+  const [appsView, setAppsView] = useView('rhythm.apps')
+  const [projectsView, setProjectsView] = useView('rhythm.projects')
+  const [writtenView, setWrittenView] = useView('rhythm.written')
   const [slot, setSlot] = useState<Slot>({})
   const [data, setData] = useState<Period | null>(null)
 
@@ -150,8 +153,10 @@ export function Rhythm() {
           ) : <>
           <div className="grid g32">
             <div className="panel">
-              <h3>{t.rhythm.whereTimeWent}</h3>
-              <Bars items={topSlices(below.apps)} total={below.total} tone="var(--ember)" />
+              <h3>{t.rhythm.whereTimeWent}<ViewToggle view={appsView} onChoose={setAppsView} /></h3>
+              {appsView === 'pie'
+                ? <Donut slices={topSlices(below.apps)} total={below.total} tone="var(--ember)" />
+                : <Bars items={topSlices(below.apps)} total={below.total} tone="var(--ember)" />}
             </div>
             <div className="panel">
               <h3>{t.rhythm.byCategory}</h3>
@@ -161,10 +166,12 @@ export function Rhythm() {
 
           <div className="grid g2">
             <div className="panel">
-              <h3>{t.rhythm.projects}</h3>
-              {below.projects.length
-                ? <Bars items={below.projects} total={below.total} tone="var(--water)" />
-                : <p className="empty">{t.rhythm.noProject}</p>}
+              <h3>{t.rhythm.projects}<ViewToggle view={projectsView} onChoose={setProjectsView} /></h3>
+              {!below.projects.length ? <p className="empty">{t.rhythm.noProject}</p>
+                : projectsView === 'pie'
+                  ? <Donut slices={below.projects} total={below.projects.reduce((sum, p) => sum + p.seconds, 0)}
+                      tone="var(--water)" caption={t.rhythm.projects} />
+                  : <Bars items={below.projects} total={below.total} tone="var(--water)" />}
             </div>
 
             <div className="panel">
@@ -201,9 +208,14 @@ export function Rhythm() {
           <div className="grid g2">
             <Hands summary={below} />
             <div className="panel">
-              <h3>{t.rhythm.written}</h3>
+              <h3>{t.rhythm.written}<ViewToggle view={writtenView} onChoose={setWrittenView} /></h3>
               <p className="note" style={{ marginTop: -6, marginBottom: 14 }}>{t.rhythm.writtenNote}</p>
-              {below.written.length ? (
+              {below.written.length && writtenView === 'pie' ? (
+                <Donut
+                  slices={below.written.map((row) => ({ name: t.rhythm.writing[row.kind], seconds: row.chars }))}
+                  total={below.written.reduce((sum, row) => sum + row.chars, 0)}
+                  tone="var(--writing)" format={number} caption={t.common.characters} />
+              ) : below.written.length ? (
                 <div className="rows">
                   {below.written.map((row) => (
                     <div key={row.kind} className="row">

@@ -169,6 +169,10 @@ export type Strings = {
     averageOf: string; perDay: string; others: (n: number) => string
     restOnScreen: string; didNotCatch: string; micDenied: string
     keyRefused: string
+    /** The two ways a panel can be drawn, named on its toggle. */
+    asBars: string; asPie: string
+    /** Short enough for the middle of a donut. */
+    characters: string
   }
 }
 
@@ -428,6 +432,8 @@ const pt: Strings = {
     others: (n) => `outros ${n}`,
     restOnScreen: '… o resto está escrito na tela.', didNotCatch: 'Não entendi o que você falou.',
     keyRefused: 'A OpenAI recusou a chave. Troque em Ajustes → chaves.',
+    asBars: 'ver em barras', asPie: 'ver em pizza',
+    characters: 'caracteres',
     micDenied: 'O microfone foi negado. Autorize em Ajustes → Privacidade e Segurança → Microfone.',
   },
 }
@@ -688,6 +694,8 @@ const en: Strings = {
     others: (n) => `${n} others`,
     restOnScreen: '… the rest is written on screen.', didNotCatch: 'I did not catch that.',
     keyRefused: 'OpenAI refused the key. Replace it in Settings → keys.',
+    asBars: 'show as bars', asPie: 'show as a pie',
+    characters: 'characters',
     micDenied: 'The microphone was denied. Allow it in Settings → Privacy & Security → Microphone.',
   },
 }
@@ -948,6 +956,8 @@ const es: Strings = {
     others: (n) => `otros ${n}`,
     restOnScreen: '… el resto está escrito en la pantalla.', didNotCatch: 'No entendí lo que dijiste.',
     keyRefused: 'OpenAI rechazó la clave. Cámbiala en Ajustes → claves.',
+    asBars: 'ver en barras', asPie: 'ver en tarta',
+    characters: 'caracteres',
     micDenied: 'El micrófono fue denegado. Permítelo en Ajustes → Privacidad y seguridad → Micrófono.',
   },
 }
@@ -1208,6 +1218,8 @@ const fr: Strings = {
     others: (n) => `${n} autres`,
     restOnScreen: '… le reste est écrit à l’écran.', didNotCatch: 'Je n’ai pas compris.',
     keyRefused: 'OpenAI a refusé la clé. Remplace-la dans Réglages → clés.',
+    asBars: 'voir en barres', asPie: 'voir en camembert',
+    characters: 'caractères',
     micDenied: 'Le micro a été refusé. Autorise-le dans Réglages → Confidentialité et sécurité → Microphone.',
   },
 }
@@ -1468,6 +1480,8 @@ const de: Strings = {
     others: (n) => `${n} weitere`,
     restOnScreen: '… der Rest steht auf dem Bildschirm.', didNotCatch: 'Das habe ich nicht verstanden.',
     keyRefused: 'OpenAI hat den Schlüssel abgelehnt. Ersetze ihn in Einstellungen → Schlüssel.',
+    asBars: 'als Balken zeigen', asPie: 'als Torte zeigen',
+    characters: 'Zeichen',
     micDenied: 'Das Mikrofon wurde verweigert. Erlaube es in Einstellungen → Datenschutz & Sicherheit → Mikrofon.',
   },
 }

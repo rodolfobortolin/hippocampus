@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { colour, duration, weekdayNames, number, shortDate, plural } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
 import type { RibbonBlock, Slice, Slot } from '../lib/api.ts'
@@ -25,8 +25,28 @@ function arc(cx: number, cy: number, outer: number, inner: number, de: number, t
 }
 
 /** The category donut. The hole in the middle carries the total. */
-export function Donut({ slices, total, pick = null }: { slices: Slice[]; total: number; pick?: string | null }) {
+/**
+ * A slice's colour in a donut of things that are not categories — apps,
+ * projects. One hue, lighter to darker by rank, in the tone the same panel's
+ * bars use: a palette of different hues would say "green is code" about an
+ * app that has nothing to do with the green of the category donut beside it.
+ */
+function shade(tone: string, index: number): string {
+  return `color-mix(in oklab, ${tone} ${Math.max(26, Math.round(100 * Math.pow(0.78, index)))}%, #121418)`
+}
+
+export function Donut({ slices, total, pick = null, tone, format = duration, caption }: {
+  slices: Slice[]; total: number; pick?: string | null
+  /** Shades of one tone by rank, for slices that are not categories. */
+  tone?: string
+  /** How a value is written; time, by default. */
+  format?: (value: number) => string
+  /** What the total in the middle is of, when it is not active time. */
+  caption?: string
+}) {
   const { t, category } = useLanguage()
+  const fillOf = (slice: Slice, index: number) =>
+    !tone ? colour(slice.name) : /^__outros__/.test(slice.name) ? 'var(--unlabelled)' : shade(tone, index)
   const [pointed, setSobre] = useState<number | null>(null)
   // What the pointer is on wins; otherwise the category picked under the ribbon.
   const picked = pick ? slices.findIndex((slice) => slice.name === pick) : -1
@@ -52,20 +72,19 @@ export function Donut({ slices, total, pick = null }: { slices: Slice[]; total: 
           <path
             key={slice.name}
             d={arc(80, 80, hovered === index ? 74 : 70, 50, de, to)}
-            fill={colour(slice.name)}
+            style={{ fill: fillOf(slice, index), transition: 'opacity .18s, d .18s', cursor: 'default' }}
             opacity={hovered == null || hovered === index ? 0.92 : 0.28}
-            style={{ transition: 'opacity .18s, d .18s', cursor: 'default' }}
             onMouseEnter={() => setSobre(index)}
             onMouseLeave={() => setSobre(null)}
           />
         ))}
         <text x="80" y="76" textAnchor="middle" fill="var(--text)" fontSize="21" fontWeight="300"
           style={{ fontVariantNumeric: 'tabular-nums' }}>
-          {duration(highlighted ? highlighted.seconds : total)}
+          {format(highlighted ? highlighted.seconds : total)}
         </text>
         <text x="80" y="94" textAnchor="middle" fill="var(--text-dim)" fontSize="10.5"
           style={{ letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-          {highlighted ? category(highlighted.name) : t.common.active}
+          {highlighted ? sliceName(highlighted.name, category, t.common.others) : caption ?? t.common.active}
         </text>
       </svg>
 
@@ -74,8 +93,10 @@ export function Donut({ slices, total, pick = null }: { slices: Slice[]; total: 
           <div key={slice.name} className="row"
             onMouseEnter={() => setSobre(index)} onMouseLeave={() => setSobre(null)}>
             <span className="name" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <i style={{ width: 7, height: 7, borderRadius: 2, background: colour(slice.name), flex: 'none' }} />
-              {category(slice.name)}
+              <i style={{ width: 7, height: 7, borderRadius: 2, background: fillOf(slice, index), flex: 'none' }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {sliceName(slice.name, category, t.common.others)}
+              </span>
             </span>
             <span className="value">{Math.round((slice.seconds / total) * 100)}%</span>
           </div>
@@ -434,7 +455,10 @@ export function Trend({ days, value, format, floor = 3600 }: {
 }
 
 /** A list with a proportional bar — apps, projects, windows. */
-export function Bars({ items, total, tone }: { items: Slice[]; total: number; tone?: string }) {
+export function Bars({ items, total, tone, format = duration }: {
+  items: Slice[]; total: number; tone?: string
+  format?: (value: number) => string
+}) {
   const { t, category } = useLanguage()
   if (!items.length) return <p className="empty">{t.common.nothingHere}</p>
   const largest = Math.max(...items.map((i) => i.seconds), 1)
@@ -443,7 +467,7 @@ export function Bars({ items, total, tone }: { items: Slice[]; total: number; to
       {items.map((item) => (
         <div key={item.name} className="row">
           <span className="name">{sliceName(item.name, category, t.common.others)}</span>
-          <span className="value">{duration(item.seconds)}</span>
+          <span className="value">{format(item.seconds)}</span>
           <span className="track">
             <i style={{
               width: `${(item.seconds / largest) * 100}%`,
@@ -530,5 +554,50 @@ export function FocusShape({ bands, median, largest }: {
         })}
       </svg>
     </div>
+  )
+}
+
+export type View = 'bars' | 'pie'
+
+/**
+ * How a panel is drawn — as bars or as a pie — remembered per panel.
+ *
+ * Kept in the app's settings, in the database, not in the page's storage: the
+ * interface in development and the packaged app are different origins, and a
+ * preference that holds in one and not the other reads as forgotten.
+ */
+export function useView(id: string): [View, (view: View) => void] {
+  const { settings, save } = useLanguage()
+  const saved: View = settings?.views?.[id] === 'pie' ? 'pie' : 'bars'
+  const [view, setView] = useState<View>(saved)
+  useEffect(() => setView(saved), [saved])
+  const choose = (next: View) => {
+    // Drawn at once; the write follows.
+    setView(next)
+    // Only this panel's choice travels; the core merges it with the rest.
+    void save({ views: { [id]: next } })
+  }
+  return [view, choose]
+}
+
+/** Two small buttons in a panel's heading: bars, or a pie. */
+export function ViewToggle({ view, onChoose }: { view: View; onChoose: (view: View) => void }) {
+  const t = useLanguage().t
+  return (
+    <span className="view-toggle" role="group">
+      <button type="button" aria-pressed={view === 'bars'} title={t.common.asBars} aria-label={t.common.asBars}
+        onClick={() => onChoose('bars')}>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <path d="M2.5 4h11M2.5 8h7M2.5 12h9" />
+        </svg>
+      </button>
+      <button type="button" aria-pressed={view === 'pie'} title={t.common.asPie} aria-label={t.common.asPie}
+        onClick={() => onChoose('pie')}>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+          <circle cx="8" cy="8" r="5.6" />
+          <path d="M8 2.4V8h5.6" />
+        </svg>
+      </button>
+    </span>
   )
 }
