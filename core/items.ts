@@ -27,8 +27,10 @@ export type Item = {
   org?: string
   key?: string
   label?: string
-  /** Time with it in front, from the focus samples. */
+  /** Time with it in front, from the focus samples — in a tab, or in a window its title or branch ties to it. */
   seconds: number
+  /** The part of that time spent on the page itself, in a browser tab. */
+  browserSeconds: number
   /** Time an agent spent working on it, with or without you at the machine. */
   agentSeconds: number
   /** Times it was opened, from the browser history. */
@@ -77,7 +79,7 @@ function blank(page: Page, at: number): Item {
     id: idOf(page), kind: page.kind, site: page.site, org: page.org,
     key: SPECIFIC.has(page.kind) || page.kind === 'admin' ? page.key : undefined,
     label: SPECIFIC.has(page.kind) ? page.label : undefined,
-    seconds: 0, agentSeconds: 0, visits: 0, commits: 0, prompts: 0, firstAt: at, lastAt: at,
+    seconds: 0, browserSeconds: 0, agentSeconds: 0, visits: 0, commits: 0, prompts: 0, firstAt: at, lastAt: at,
   }
 }
 
@@ -208,6 +210,7 @@ function gather(from: string, to: string, only?: string): Gathered {
     if (NOISE.has(page.kind)) continue
     const item = touch(page, block.started_at)
     item.seconds += block.seconds
+    item.browserSeconds += block.seconds
     note(item, { at: block.started_at, source: 'window', seconds: block.seconds, text: block.title ?? undefined })
   }
 
@@ -309,8 +312,10 @@ export function workItems(from: string, to: string): WorkItems {
   const orgs = new Map<string, Org>()
   const kinds = new Map<PageKind, { kind: PageKind; seconds: number; visits: number }>()
   for (const item of list) {
+    // The browser's own time: an editor stretch on a ticket's branch is the
+    // ticket's, but it was not spent on a page.
     const k = kinds.get(item.kind) ?? { kind: item.kind, seconds: 0, visits: 0 }
-    k.seconds += item.seconds; k.visits += item.visits; kinds.set(item.kind, k)
+    k.seconds += item.browserSeconds; k.visits += item.visits; kinds.set(item.kind, k)
     if (!item.org) continue
     const id = orgName(item.org)
     const o = orgs.get(id) ?? { org: item.org, sites: [], items: 0, seconds: 0, agentSeconds: 0, visits: 0, commits: 0, prompts: 0 }

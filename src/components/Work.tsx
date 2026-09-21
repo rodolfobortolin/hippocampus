@@ -90,7 +90,8 @@ export function Work() {
     const kinds = new Map<PageKind, { seconds: number; visits: number; n: number }>()
     for (const item of ofClient) {
       const k = kinds.get(item.kind) ?? { seconds: 0, visits: 0, n: 0 }
-      k.seconds += item.seconds; k.visits += item.visits; k.n++
+      // The browser panel counts the page's own time, not the editor's on its branch.
+      k.seconds += item.browserSeconds; k.visits += item.visits; k.n++
       kinds.set(item.kind, k)
     }
     const pieces = ofClient.filter((item) => !ACTIVITY.has(item.kind)).length

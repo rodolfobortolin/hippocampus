@@ -182,3 +182,12 @@ test('a ticket only ever seen in a focused tab still teaches its client to the c
   assert.equal(sup12[0].org, 'acme')
   assert.equal(sup12[0].commits, 1)
 })
+
+test('the browser\'s time by kind is the pages\' own, not the editor\'s on a branch', () => {
+  onBranch('feature/sup-77-retry')
+  const { items, kinds } = workItems(DAY, DAY)
+  const sup77 = items.find((item) => item.key === 'SUP-77')
+  assert.equal(sup77?.seconds, 300)
+  assert.equal(sup77?.browserSeconds, 0, 'the editor stretch was not on a page')
+  assert.equal(kinds.find((kind) => kind.kind === 'ticket')?.seconds, 900, 'only SUP-12\'s two tabs')
+})
