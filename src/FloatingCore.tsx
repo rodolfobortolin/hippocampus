@@ -7,6 +7,7 @@ import { useSocket } from './hooks/useSocket.ts'
 import { useLive } from './hooks/useLive.ts'
 import { useSpeech } from './hooks/useSpeech.ts'
 import { useLanguage } from './lib/language.tsx'
+import { Markdown } from './lib/markdown.tsx'
 
 /** Electron's bridge. In a plain browser it does not exist, and the drag goes with it. */
 const bridge = (globalThis as any).hippocampus as {
@@ -84,7 +85,12 @@ export function FloatingCore() {
       // In live mode the session is the voice: it already received this answer
       // from the core and says it in its own words. Reading it out here too
       // means two voices on the same sentence, a beat apart.
+      // Only the screen that asked reads it out; the others simply stop
+      // thinking. Without this a screen that watched someone else's turn sat
+      // in "thinking" forever, because idle was only ever reached by finishing
+      // a sentence it never started.
       if (!liveRef.current && iAsked(data)) speakAnswer.current(text)
+      else setState('idle')
     }
     if (data.type === 'wake') wake()
     if (data.type === 'live-answer') void live.accept(String(data.sdp))
@@ -139,6 +145,25 @@ export function FloatingCore() {
   }, [settings])
 
   useEffect(() => { api.status().then(setStatus).catch(() => {}) }, [])
+
+  /**
+   * The caption goes away on its own.
+   *
+   * This window sits over whatever you are doing, always on top. An answer
+   * that stays until the next question turns the sphere into a sticky note on
+   * someone's screen — read once, then in the way for the rest of the day.
+   *
+   * The clock only runs when nothing is happening: it is not started while it
+   * is still speaking, still listening or still thinking.
+   */
+  useEffect(() => {
+    if (!answer && !question) return
+    // A live session rests in "listening", which is not busy — only speaking
+    // and thinking are.
+    if (state === 'speaking' || state === 'thinking') return
+    const forget = setTimeout(() => { setAnswer(''); setQuestion('') }, 25_000)
+    return () => clearTimeout(forget)
+  }, [answer, question, state])
 
   // A way out that does not need the tray menu. Whatever is open goes quiet
   // first: dismissing while it is still listening would leave the microphone
@@ -274,7 +299,10 @@ export function FloatingCore() {
       {said ? (
         <div className={`floating-caption ${answer ? 'long' : ''}`}>
           {question && answer && <b>{question}</b>}
-          <p>{said}</p>
+          {/* The model writes markdown whether or not anyone renders it, so a
+              caption that prints it raw shows asterisks around the words it
+              meant to emphasise. */}
+          {answer && said === answer ? <Markdown text={said} /> : <p>{said}</p>}
         </div>
       ) : (
         // The hint carries no panel: it is lit text over the desktop, readable
