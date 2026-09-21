@@ -3,6 +3,13 @@ import { paths } from './config.ts'
 
 export const db = new DatabaseSync(paths.db)
 
+// Wait for a lock instead of failing at once. More than one process opens this
+// file — the collector under launchd, the app's own core, a rollup run by hand
+// — and every one of them writes a little on startup, in the migrations below.
+// Without a timeout the second writer gets "database is locked" immediately,
+// which is how a test run failed one time in six while the collector was busy.
+db.exec('pragma busy_timeout = 5000')
+
 db.exec(`
 pragma journal_mode = wal;
 pragma synchronous = normal;
