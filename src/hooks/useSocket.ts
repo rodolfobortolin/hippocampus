@@ -3,50 +3,75 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 /**
  * The link to the core, which repairs itself.
  *
- * The core restarts — an update, launchd, a crash — and without reconnection the
- * chat dies quietly: the send turns into nothing and whoever is looking has no
- * idea. Here the connection comes back with a growing wait, and the state stays
- * visible so the interface can say it is down instead of swallowing the question.
+ * The core restarts — an update, launchd, a crash — and without reconnection
+ * the chat dies quietly: the send turns into nothing and whoever is looking has
+ * no idea. Here the connection comes back with a growing wait, and the state
+ * stays visible so the interface can say it is down instead of swallowing the
+ * question.
+ *
+ * Exactly one connection at a time, which takes some care. `close()` is not
+ * immediate: a socket closed on the way out fires `onclose` a tick later, by
+ * which point a remount may already have started a new one — and that late
+ * `onclose` would schedule a second. Two connections means every streamed
+ * answer arrives twice, interleaved letter by letter into one unreadable
+ * paragraph. So each attempt carries a number, and a socket that is no longer
+ * the current one is ignored on every callback it has.
  */
-export function useSocket(criar: () => WebSocket, aoReceber: (data: any) => void) {
-  const [connected, setLigado] = useState(false)
+export function useSocket(open: () => WebSocket, onMessage: (data: any) => void) {
+  const [connected, setConnected] = useState(false)
   const socket = useRef<WebSocket | null>(null)
   const attempt = useRef(0)
-  const alive = useRef(true)
-  const receive = useRef(aoReceber)
-  receive.current = aoReceber
+  const generation = useRef(0)
+  const retry = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const receive = useRef(onMessage)
+  receive.current = onMessage
 
   const connect = useCallback(() => {
-    if (!alive.current) return
+    const mine = generation.current
     let ws: WebSocket
     try {
-      ws = criar()
+      ws = open()
     } catch {
-      setLigado(false)
+      setConnected(false)
+      return
+    }
+    // Opened during a generation that has already ended: close it and leave.
+    if (mine !== generation.current) {
+      ws.close()
       return
     }
     socket.current = ws
 
-    ws.onopen = () => { attempt.current = 0; setLigado(true) }
-    ws.onmessage = (evento) => {
-      try { receive.current(JSON.parse(evento.data)) } catch { /* an invalid frame */ }
+    const current = () => mine === generation.current && socket.current === ws
+
+    ws.onopen = () => {
+      if (!current()) return ws.close()
+      attempt.current = 0
+      setConnected(true)
+    }
+    ws.onmessage = (event) => {
+      if (!current()) return
+      try { receive.current(JSON.parse(event.data)) } catch { /* an invalid frame */ }
     }
     ws.onerror = () => ws.close()
     ws.onclose = () => {
-      setLigado(false)
-      if (!alive.current) return
+      if (!current()) return
+      setConnected(false)
       // A growing wait up to 8s: the core usually comes back in a few seconds.
       const wait = Math.min(8000, 400 * 2 ** attempt.current++)
-      setTimeout(connect, wait)
+      retry.current = setTimeout(connect, wait)
     }
-  }, [criar])
+  }, [open])
 
   useEffect(() => {
-    alive.current = true
+    generation.current++
     connect()
     return () => {
-      alive.current = false
+      // Anything still holding this number stops mattering the moment it changes.
+      generation.current++
+      clearTimeout(retry.current)
       socket.current?.close()
+      socket.current = null
     }
   }, [connect])
 
