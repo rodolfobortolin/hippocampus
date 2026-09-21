@@ -1,4 +1,5 @@
 import { db } from './db.ts'
+import { hoursAndMinutes } from './clock.ts'
 import { config, dayOf, today } from './config.ts'
 import { dayReport } from './metrics.ts'
 import { classifyDay } from './jev.ts'
@@ -10,7 +11,7 @@ import { HOW_TO_WRITE, VAULT_HEADING, validLanguage } from './languages.ts'
 import { PERSONAS } from './personas.ts'
 import { DOSSIER } from './dossier.ts'
 
-const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.round((seconds % 3600) / 60)).padStart(2, '0')}`
+const hours = hoursAndMinutes
 const clock = (ts: number | null) => (ts ? new Date(ts * 1000).toTimeString().slice(0, 5) : '—')
 
 /**

@@ -20,12 +20,20 @@ export const colour = (category: string | null | undefined) =>
   COLOURS[category ?? 'unlabelled'] ?? 'var(--unlabelled)'
 
 /** 2h07, 48min, 35s — a unit muda com a grandeza. */
+/**
+ * A span of seconds, the way the screen writes it: `45s`, `12min`, `3h07`.
+ *
+ * Rounded to whole minutes before the hours are split off. The other order
+ * turned 3h59m45s into "3h60", and 59.6 seconds into "60s" and 59.5 minutes
+ * into "60min" at the two boundaries.
+ */
 export function duration(seconds: number): string {
   if (!seconds || seconds < 0) return '0min'
-  if (seconds < 60) return `${Math.round(seconds)}s`
-  if (seconds < 3600) return `${Math.round(seconds / 60)}min`
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.round((seconds % 3600) / 60)
+  if (seconds < 59.5) return `${Math.round(seconds)}s`
+  const total = Math.round(seconds / 60)
+  if (total < 60) return `${total}min`
+  const hours = Math.floor(total / 60)
+  const minutes = total % 60
   return minutes ? `${hours}h${String(minutes).padStart(2, '0')}` : `${hours}h`
 }
 
@@ -99,4 +107,10 @@ export const plural = (n: number, par: readonly [string, string]) => `${number(n
 
 /** How fast the answers are spoken. A synthetic voice reads slowly for someone
  *  who already knows the subject; 1.5× is where it is still followable. */
-export const SPEECH_RATE = Number(localStorage.getItem('hippocampus.speechRate') ?? 1.5)
+// Read once, at import. Storage can be missing or refuse outright — a locked-down
+// browser, or no browser at all when this file is imported by a test — and a
+// speech rate is not worth taking the whole module down over.
+export const SPEECH_RATE = (() => {
+  try { return Number(globalThis.localStorage?.getItem('hippocampus.speechRate') ?? 1.5) || 1.5 }
+  catch { return 1.5 }
+})()

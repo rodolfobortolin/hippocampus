@@ -1,4 +1,5 @@
 import { query, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
+import { hoursAndMinutes } from './clock.ts'
 import { z } from 'zod'
 import { HOW_TO_WRITE, LANGUAGES, validLanguage, type Language } from './languages.ts'
 import { PERSONAS } from './personas.ts'
@@ -10,7 +11,7 @@ import { searchEpisodes, lastTime, type Episode } from './episodes.ts'
 import { pickModel } from './jev.ts'
 import { readSettings } from './settings.ts'
 
-const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.round((seconds % 3600) / 60)).padStart(2, '0')}`
+const hours = hoursAndMinutes
 const say = (value: unknown) => ({
   content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }],
 })
