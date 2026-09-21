@@ -6,6 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- What you asked your agents counts in full under "what you wrote", dictated
+  requests included; it had been reading only what the typing sampler caught.
+
 - A project switch counts leaving one piece of work for another. Going from
   the editor to the assistant and back, on the same work, counted twice; a
   day that read 357 project switches had 67.

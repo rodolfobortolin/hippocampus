@@ -88,3 +88,15 @@ test('going through a window with no project is not a project switch', () => {
   assert.equal(day.switches, 5, 'every change of app is still a switch')
   assert.equal(day.switchesProject, 1, 'only harbor → atlas left one piece of work for another')
 })
+
+test('what was asked of an agent counts in full, typed or dictated', () => {
+  db.prepare('insert into typing (source_id, ts, day, app, chars, text) values (?, ?, ?, ?, ?, ?)')
+    .run('t1', at('2026-09-23', 10), '2026-09-23', 'Claude', 40, null)
+  // Three requests, most of them never typed: dictated.
+  for (const [i, text] of ['fix the heading', 'x'.repeat(300), 'and the tests?'].entries()) {
+    db.prepare('insert into ai_turns (source_id, ts, day, project, session, prompt, tools) values (?, ?, ?, ?, ?, ?, ?)')
+      .run(`p${i}`, at('2026-09-23', 10, i), '2026-09-23', 'harbor', 's', text, '[]')
+  }
+  const written = dayReport('2026-09-23').written
+  assert.deepEqual(written.find((row) => row.kind === 'ai'), { kind: 'ai', chars: 15 + 300 + 14 })
+})

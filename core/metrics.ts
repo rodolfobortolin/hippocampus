@@ -432,6 +432,15 @@ function writtenByKind(from: string, to: string, tsSlot: string, tsArgs: number[
     const kind = writingKind(row.app)
     kinds.set(kind, (kinds.get(kind) ?? 0) + row.chars)
   }
+  // What was asked of an agent is known exactly: the requests themselves. The
+  // typing sampler sees a fraction of it — a prompt dictated by voice is never
+  // typed at all — and on 21 September it had 257 characters where the
+  // requests held 11,604. The larger of the two is the one that is true; the
+  // two are never added, since a typed prompt is in both.
+  const asked = one<{ chars: number }>(
+    `select coalesce(sum(length(prompt)), 0) chars from ai_turns where day between ? and ?${tsSlot}`,
+    from, to, ...tsArgs)?.chars ?? 0
+  kinds.set('ai', Math.max(kinds.get('ai') ?? 0, asked))
   return [...kinds].map(([kind, chars]) => ({ kind, chars })).filter((row) => row.chars > 0).sort((a, b) => b.chars - a.chars)
 }
 
