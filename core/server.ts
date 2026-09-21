@@ -260,6 +260,7 @@ export function serve(collector?: Collector): http.Server {
    * that was only ever spoken into the sphere.
    */
   let session: string | undefined
+  let nextScreen = 0
 
   sockets.on('connection', (socket, request) => {
     // Only the interface itself talks to the core.
@@ -270,11 +271,22 @@ export function serve(collector?: Collector): http.Server {
     }
 
     let live: LiveVoice | undefined
+    /**
+     * Which screen this is, so a broadcast answer can still say who asked.
+     *
+     * Every screen shows the whole conversation, but only one of them should
+     * read it out loud: with two open and no way to tell, the same answer came
+     * out of the panel and the sphere at once, a beat apart.
+     */
+    const screenId = `screen-${++nextScreen}`
+
     // What belongs to the conversation goes to every screen; what belongs to
     // this particular connection — the WebRTC handshake — goes only here.
-    const send = broadcast
     const toThisScreen = (event: unknown) =>
       socket.readyState === socket.OPEN && socket.send(JSON.stringify(event))
+    const send = (event: Record<string, unknown>) => broadcast({ ...event, asker: screenId })
+
+    toThisScreen({ type: 'hello', screen: screenId })
 
     /**
      * One question, answered by Claude Code with the local database as its tools.

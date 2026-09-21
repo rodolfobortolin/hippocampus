@@ -54,6 +54,11 @@ export function FloatingCore() {
   const liveRef = useRef(false)
   liveRef.current = liveOn || liveWanted
 
+  // The core tags every answer with the screen that asked. Every screen shows
+  // the whole conversation; only the one that asked reads it out loud.
+  const myScreen = useRef('')
+  const iAsked = (data: any) => !data.asker || data.asker === myScreen.current
+
   const { connected, send } = useSocket(api.socket, (data) => {
     if (data.type === 'thinking') { setState('thinking'); setAnswer('') }
     if (data.type === 'tool') setState(data.name ? 'tool' : 'thinking')
@@ -65,13 +70,14 @@ export function FloatingCore() {
       answerRef.current = `${answerRef.current}\n${data.text}`.trim()
       setAnswer(answerRef.current)
     }
+    if (data.type === 'hello') myScreen.current = String(data.screen)
     if (data.type === 'end') {
       const text = data.text || answerRef.current
       setAnswer(text)
       // In live mode the session is the voice: it already received this answer
       // from the core and says it in its own words. Reading it out here too
       // means two voices on the same sentence, a beat apart.
-      if (!liveRef.current) speakAnswer.current(text)
+      if (!liveRef.current && iAsked(data)) speakAnswer.current(text)
     }
     if (data.type === 'wake') wake()
     if (data.type === 'live-answer') void live.accept(String(data.sdp))

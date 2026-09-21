@@ -50,6 +50,11 @@ export function Chat({ status }: { status: Status | null }) {
   const isListening = listening.state === 'listening'
   const level = isListening ? listening.level : answerLevel
 
+  // The core tags every answer with the screen that asked. Every screen shows
+  // the whole conversation; only the one that asked reads it out loud.
+  const myScreen = useRef('')
+  const iAsked = (data: any) => !data.asker || data.asker === myScreen.current
+
   const { connected, send: sendToCore } = useSocket(api.socket, (data) => {
       if (data.type === 'thinking') { setThinking(true); setTool(''); setModel(''); setState('thinking') }
       // Which model jev chose for this request. Visible on purpose: automatic
@@ -86,13 +91,16 @@ export function Chat({ status }: { status: Status | null }) {
           return [...current, { of: 'it', text: data.text }]
         })
       }
+      if (data.type === 'hello') myScreen.current = String(data.screen)
       if (data.type === 'end') {
         setThinking(false)
         setTool('')
         const text = data.text || answerRef.current
         // The live session says the answer itself; reading it out here as well
         // puts two voices on the same sentence.
-        if (text && !liveRef.current && (askedByVoice.current || alwaysAloud)) speakAnswer.current(text)
+        if (text && !liveRef.current && iAsked(data) && (askedByVoice.current || alwaysAloud)) {
+          speakAnswer.current(text)
+        }
         else setState('idle')
         askedByVoice.current = false
       }
