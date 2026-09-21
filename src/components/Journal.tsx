@@ -85,8 +85,11 @@ export function Journal({ status }: { status: Status | null }) {
                     {duration(linha.active)}
                   </span>
                   <span style={{ flex: 1, color: 'var(--text-dim)', fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {/* The width decides where the line stops, and the ellipsis
+                        says so. Cut at a fixed length first, it stopped in the
+                        middle of a word with room to spare on a wide window. */}
                     {linha.saved?.narrative
-                      ? linha.saved.narrative.replace(/[*#-]/g, '').trim().slice(0, 110)
+                      ? linha.saved.narrative.replace(/[*#-]/g, '').trim().slice(0, 400)
                       : linha.saved?.top_app ?? t.journal.notWritten}
                   </span>
                 </button>
