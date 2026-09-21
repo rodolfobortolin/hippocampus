@@ -377,3 +377,27 @@ test('the week\'s timesheet and the day\'s section live side by side in one note
   assert.equal(again.match(/## Timesheet draft/g)?.length, 1)
   assert.ok(again.includes('the day, rewritten') && again.includes('| client | 1:00 |') && !again.includes('| client | total |'))
 })
+
+test('what the installed app reads from its own folder is in the package', () => {
+  // electron-builder packages only the folders listed under `files`. A path
+  // read from anywhere else works when running from the source and comes up
+  // empty once installed — which is how the menu bar icon became a hole you
+  // could click but not see.
+  const builder = read('electron-builder.yml')
+  const from = builder.indexOf('\nfiles:')
+  const packaged = new Set([...builder.slice(from, builder.indexOf('\n\n', from)).matchAll(/- (\w+)\/\*\*/g)].map((m) => m[1]))
+  assert.ok(packaged.has('dist'), 'the interface is packaged')
+
+  const shell = read('app/main.cjs').split('\n')
+  for (const [i, line] of shell.entries()) {
+    const folder = line.match(/path\.join\(ROOT, '(\w+)'/)?.[1]
+    if (!folder || packaged.has(folder)) continue
+    const context = shell.slice(Math.max(0, i - 3), i + 1).join('\n')
+    assert.match(context, /app\.isPackaged/, `app/main.cjs reads ${folder}/, which is not packaged, without checking app.isPackaged`)
+  }
+  // The tray image in particular: dist/ once packaged, where Vite copies public/.
+  assert.match(shell.join('\n'), /app\.isPackaged \? 'dist' : 'public', 'trayTemplate\.png'/)
+  for (const file of ['public/trayTemplate.png', 'public/trayTemplate@2x.png']) {
+    assert.ok(fs.existsSync(path.join(root, file)), `${file} is what the tray shows`)
+  }
+})

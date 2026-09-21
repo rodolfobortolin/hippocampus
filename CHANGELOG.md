@@ -6,6 +6,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The menu bar icon shows in the installed app. Since the first release it had
+  been an empty space you could click but not see.
 - The app no longer says that nothing leaves the Mac. The database stays on it;
   answering and writing up the day go through Claude Code and jev with what they
   need, and the chat and Settings now say so.

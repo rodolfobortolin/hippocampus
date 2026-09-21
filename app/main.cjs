@@ -307,9 +307,19 @@ function menuAccelerator() {
 }
 
 function buildTray() {
-  const icon = nativeImage.createFromPath(path.join(ROOT, 'public', 'trayTemplate.png'))
+  // Vite copies public/ into dist/ when it builds, and only dist/ goes into
+  // the package: in the installed app the image lives there. Reading public/
+  // worked in development and left the installed app with an empty image —
+  // a menu bar item that could be clicked and could not be seen.
+  const icon = nativeImage.createFromPath(
+    path.join(ROOT, app.isPackaged ? 'dist' : 'public', 'trayTemplate.png'))
   icon.setTemplateImage(true)
   tray = new Tray(icon)
+  if (icon.isEmpty()) {
+    // Never invisible again: a mark in the menu bar is better than a hole.
+    console.error('[tray] trayTemplate.png not found; showing a text mark instead')
+    tray.setTitle('◉')
+  }
   tray.setToolTip('Hippocampus — measuring')
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open Hippocampus', click: openWindow },
@@ -344,8 +354,10 @@ app.whenReady().then(async () => {
   })
 
   // The Dock icon comes from the .icns, which carries every resolution; the
-  // menu bar one is a monochrome mask, recoloured by the system itself.
-  if (process.platform === 'darwin') {
+  // menu bar one is a monochrome mask, recoloured by the system itself. The
+  // installed app already carries it in its bundle — build/ is not packaged —
+  // so this only matters when running from the source.
+  if (process.platform === 'darwin' && !app.isPackaged) {
     app.dock?.setIcon(nativeImage.createFromPath(path.join(ROOT, 'build', 'icon.icns')))
   }
   // The vault's folder picker. It lives in the main process because only that
