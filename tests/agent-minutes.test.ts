@@ -12,6 +12,10 @@ process.env.HOME = home
 process.env.HIPPOCAMPUS_DATA = data
 
 const { db } = await import('../core/db.ts')
+const { config } = await import('../core/config.ts')
+// The code folder this machine's .env may name is not the one these sessions
+// live in; the test decides it.
+config.codeRoot = path.join(home, 'Documents', 'GitHub')
 const { harvestClaudeSessions } = await import('../core/sources/ai.ts')
 
 const at = (clock: string) => new Date(`2026-09-17T${clock}-03:00`).toISOString()
@@ -23,6 +27,12 @@ const interrupted = (clock: string, cwd: string) =>
   ({ type: 'user', cwd, timestamp: at(clock), message: { content: [{ type: 'text', text: '[Request interrupted by user]' }] } })
 const assistant = (clock: string, stop: 'tool_use' | 'end_turn', cwd: string) =>
   ({ type: 'assistant', cwd, timestamp: at(clock), message: { stop_reason: stop, content: [{ type: 'text', text: '…' }] } })
+const edits = (clock: string, file: string, cwd: string) =>
+  ({ type: 'assistant', cwd, timestamp: at(clock), message: { stop_reason: 'tool_use', content: [
+    { type: 'tool_use', name: 'Edit', input: { file_path: file, old_string: 'a', new_string: 'b' } }] } })
+const reads = (clock: string, file: string, cwd: string) =>
+  ({ type: 'assistant', cwd, timestamp: at(clock), message: { stop_reason: 'tool_use', content: [
+    { type: 'tool_use', name: 'Read', input: { file_path: file } }] } })
 
 function session(folder: string, name: string, events: object[]) {
   const dir = path.join(home, '.claude', 'projects', folder)
@@ -96,4 +106,48 @@ test('the minute a question is asked is the agent’s, even when the answer star
   ])
   await harvestClaudeSessions()
   assert.deepEqual(minutes('quay'), ['17:00', '17:01'])
+})
+
+const code = path.join(home, 'Documents', 'GitHub')
+const prompts = (project: string | null) => (db.prepare(
+  `select prompt from ai_turns where ${project === null ? 'project is null' : 'project = ?'} order by ts`,
+).all(...(project === null ? [] : [project])) as { prompt: string }[]).map((row) => row.prompt)
+
+test('the work belongs to the repository the agent wrote into, not to the folder it was opened in', async () => {
+  // Opened in jarvis, spent the afternoon on hippocampus.
+  const cwd = path.join(code, 'jarvis')
+  session('-Users-x-Documents-GitHub-jarvis', 's5', [
+    human('14:00:00', 'fix the vault heading in hippocampus', cwd),
+    // Reading another project is a reference, not a move.
+    reads('14:00:20', path.join(code, 'speakly', 'README.md'), cwd),
+    edits('14:02:00', path.join(code, 'hippocampus', 'core', 'vault.ts'), cwd),
+    assistant('14:04:00', 'end_turn', cwd),
+    // A later question with no file in it is still about that work.
+    human('14:10:00', 'and the tests?', cwd),
+    assistant('14:11:00', 'end_turn', cwd),
+  ])
+  await harvestClaudeSessions()
+
+  // The minute leading up to the write was spent on what was about to be written.
+  assert.deepEqual(minutes('jarvis'), ['14:00'], 'only the minute before the work moved')
+  assert.deepEqual(minutes('hippocampus'), ['14:01', '14:02', '14:03', '14:04', '14:10', '14:11'])
+  assert.deepEqual(minutes('speakly'), [])
+  assert.deepEqual(prompts('hippocampus'), ['fix the vault heading in hippocampus', 'and the tests?'])
+})
+
+test('a subfolder is its repository, and the home folder is no project', async () => {
+  session('-Users-x-Documents-GitHub-portal-src', 's6', [
+    human('15:00:00', 'why does the build fail', path.join(code, 'portal', 'src')),
+    assistant('15:00:30', 'end_turn', path.join(code, 'portal', 'src')),
+  ])
+  session('-Users-x', 's7', [
+    human('16:00:00', 'what is on my calendar', home),
+    assistant('16:00:30', 'end_turn', home),
+  ])
+  await harvestClaudeSessions()
+
+  assert.deepEqual(prompts('portal'), ['why does the build fail'])
+  assert.deepEqual(prompts('src'), [])
+  assert.deepEqual(prompts(null), ['what is on my calendar'])
+  assert.deepEqual(prompts(path.basename(home)), [])
 })

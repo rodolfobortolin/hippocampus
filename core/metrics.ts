@@ -1,7 +1,7 @@
 import { all, one } from './db.ts'
 import { presenceOf } from './sources/presence.ts'
 import { meetingsOf } from './sources/calendar.ts'
-import { config, dayOf } from './config.ts'
+import { config, dayOf, isPlace } from './config.ts'
 
 export type AppSlice = { app: string; seconds: number; category: string | null }
 export type Slice = { name: string; seconds: number }
@@ -282,7 +282,8 @@ export function knownProjects(): string[] {
     `select project, count(*) n from ai_turns where project is not null group by project order by n desc limit 20`)
     .map((row) => row.project)
   const fromGit = all<any>(`select distinct repo from commits`).map((row) => row.repo)
-  return [...new Set([...fromAi, ...fromGit])].filter(Boolean)
+  // A place is never a project, even in rows written before that was known.
+  return [...new Set([...fromAi, ...fromGit])].filter((name) => name && !isPlace(name))
 }
 
 export function overview() {

@@ -166,3 +166,42 @@ export function dayOf(date: Date | number): string {
 export function today(): string {
   return dayOf(new Date())
 }
+
+/**
+ * The project a path belongs to, or null when it belongs to none.
+ *
+ * Under the code folder, a project is the first folder below it: a session
+ * started in `…/GitHub/portal/src` works on `portal`, not on `src`. Anywhere
+ * else the folder's own name is kept, as before — some people keep their code
+ * somewhere else — unless the folder is one of the places everyone has: the
+ * home folder, the desktop, Documents, Downloads, the code folder itself. A
+ * session opened there was being counted as projects called
+ * "rodolfobortolin", "Desktop" and "GitHub", which then turned up on screen
+ * and in the list of names the window labels are matched against.
+ */
+export function projectOf(where: string | null | undefined): string | null {
+  if (!where) return null
+  const full = path.resolve(where)
+  return repoOf(full) ?? (isPlace(path.basename(full)) || full === path.resolve(config.home) ? null : path.basename(full))
+}
+
+/**
+ * The repository under the code folder that a file sits in, or null. Only
+ * there: outside it, the name of the folder a file is in says nothing — a file
+ * written to /tmp is not a project called "tmp".
+ */
+export function repoOf(file: string | null | undefined): string | null {
+  if (!file) return null
+  const full = path.resolve(file)
+  const root = path.resolve(config.codeRoot)
+  return full.startsWith(root + path.sep) ? full.slice(root.length + 1).split(path.sep)[0] || null : null
+}
+
+/** A folder name that is a place on every Mac, never somebody's project. */
+export function isPlace(name: string | null | undefined): boolean {
+  if (!name) return true
+  const places = [
+    path.basename(config.home), 'Desktop', 'Documents', 'Downloads', path.basename(path.resolve(config.codeRoot)),
+  ].map((place) => place.toLowerCase())
+  return places.includes(name.toLowerCase())
+}

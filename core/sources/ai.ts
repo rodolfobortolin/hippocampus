@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { config, dayOf } from '../config.ts'
+import { config, dayOf, projectOf, repoOf, isPlace } from '../config.ts'
 import { humanText } from '../prompts.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
@@ -10,8 +10,11 @@ import { exists } from '../guard.ts'
 // read is stored per file so a round never reprocesses a gigabyte.
 const root = path.join(config.home, '.claude', 'projects')
 
+// A request read again keeps its row and takes the project read now: that is
+// how the attribution below reaches the requests already stored.
 const insert = db.prepare(
-  `insert or ignore into ai_turns (source_id, ts, day, project, session, prompt, tools) values (?, ?, ?, ?, ?, ?, ?)`,
+  `insert into ai_turns (source_id, ts, day, project, session, prompt, tools) values (?, ?, ?, ?, ?, ?, ?)
+   on conflict(source_id) do update set project = excluded.project`,
 )
 
 /**
@@ -30,14 +33,41 @@ const insert = db.prepare(
  */
 const LONGEST_STEP = 15 * 60
 
-type TurnState = { open: boolean; last: number }
+/**
+ * `project` is the repository the session last wrote into. It outlives the
+ * turn: a session keeps working where it last wrote until it writes somewhere
+ * else, and a question with no file in it is still about that work.
+ */
+type TurnState = { open: boolean; last: number; project?: string | null }
 
 const updateTools = db.prepare('update ai_turns set tools = ? where source_id = ?')
+const updateProject = db.prepare('update ai_turns set project = ? where source_id = ?')
 
 const markMinute = db.prepare(
   `insert into agent_minutes (minute, agent, day, project, events) values (?, 'claude', ?, ?, 1)
-   on conflict(minute, agent) do update set events = events + 1`,
+   on conflict(minute, agent) do update set events = events + 1, project = excluded.project`,
 )
+
+/** The tools that change a file. Reading one is often a reference to another project. */
+const WRITES = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit'])
+
+/**
+ * The repository an assistant message wrote into, if it wrote into one.
+ *
+ * The folder a session was opened in says little: one opened in the jarvis
+ * folder spent a whole day editing hippocampus, and 144 of that day's 217
+ * agent minutes went to a project that had just been retired. The files an
+ * agent changes say where the work is.
+ */
+export function wroteInto(message: any): string | null {
+  for (const block of message?.content ?? []) {
+    if (block?.type !== 'tool_use' || !WRITES.has(block.name)) continue
+    const file = block.input?.file_path ?? block.input?.notebook_path
+    const project = typeof file === 'string' ? repoOf(file) : null
+    if (project) return project
+  }
+  return null
+}
 
 function textOf(content: unknown): string {
   if (typeof content === 'string') return content
@@ -86,6 +116,26 @@ if (getMeta('claude.turns') !== '1') {
   setMeta('claude.turns', '1')
 }
 
+// Once: the project was the name of the folder a session was opened in. Reading
+// the logs again from the start puts each minute and each request under the
+// repository it wrote into; what is read again is updated in place, and what
+// is older than the logs Claude Code keeps stays as it was — nothing is deleted.
+// The window labels had learned the same wrong names from the list of known
+// projects; the places go, and the app's old name becomes its new one.
+if (getMeta('claude.projects') !== '1') {
+  setMeta('claude.offsets', '{}')
+  setMeta('claude.turn-state', '{}')
+  for (const place of ['desktop', 'documents', 'downloads', path.basename(config.home), path.basename(config.codeRoot)]) {
+    db.prepare('update labels set project = null where lower(project) = ?').run(place.toLowerCase())
+    db.prepare('update ai_turns set project = null where lower(project) = ?').run(place.toLowerCase())
+    db.prepare('update agent_minutes set project = null where lower(project) = ?').run(place.toLowerCase())
+  }
+  // Hipocampo is what this app was called; a label that learned that name
+  // means this project.
+  db.prepare(`update labels set project = 'hippocampus' where project = 'hipocampo'`).run()
+  setMeta('claude.projects', '1')
+}
+
 export async function harvestClaudeSessions(): Promise<{ turns: number }> {
   if (!(await exists(root))) return { turns: 0 }
   const offsets = JSON.parse(getMeta('claude.offsets', '{}')) as Record<string, number>
@@ -96,12 +146,14 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
   // Every session with something new, the most recently written first: when a
   // round cannot read everything — catching up on a year of logs — today is
   // right at once and the history fills in over the next rounds.
-  const pending: { file: string; name: string; project: string; size: number; from: number; changed: number }[] = []
+  const pending: { file: string; name: string; project: string | null; size: number; from: number; changed: number }[] = []
   for (const entry of await fs.readdir(root, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
     const dir = path.join(root, entry.name)
     // The folder's name is the project path with slashes swapped for hyphens.
-    const project = entry.name.split('-').filter(Boolean).pop() ?? entry.name
+    // Only a fallback, for an event with no cwd — and never a place.
+    const last = entry.name.split('-').filter(Boolean).pop() ?? entry.name
+    const project = isPlace(last) ? null : last
     for (const name of await fs.readdir(dir)) {
       if (!name.endsWith('.jsonl')) continue
       const file = path.join(dir, name)
@@ -131,7 +183,7 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
 
     const session = name.replace('.jsonl', '')
     // The tools used are grouped under the human request that set them off.
-    let lastPrompt: { id: string; tools: Set<string> } | null = null
+    let lastPrompt: { id: string; tools: Set<string>; project: string | null } | null = null
     const state = states[file] ?? { open: false, last: 0 }
     states[file] = state
     const lines = chunk.slice(0, lastBreak).split('\n')
@@ -155,8 +207,21 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
         if (!Number.isFinite(ts)) continue
         if (event.type !== 'user' && event.type !== 'assistant') continue
 
+        // Where the work is, before any minute is marked: a message that
+        // writes into a repository moves the session there from this minute on.
+        if (event.type === 'assistant') {
+          const wrote = wroteInto(event.message)
+          if (wrote) {
+            state.project = wrote
+            if (lastPrompt && lastPrompt.project !== wrote) {
+              updateProject.run(wrote, lastPrompt.id)
+              lastPrompt.project = wrote
+            }
+          }
+        }
+
         // The turn: every minute since the last event, while it is open.
-        const where = event.cwd ? path.basename(event.cwd) : project
+        const where = state.project ?? (event.cwd ? projectOf(event.cwd) : project)
         const minute = Math.floor(ts / 60)
         if (state.open && state.last && ts - state.last <= LONGEST_STEP) {
           for (let m = Math.floor(state.last / 60) + 1; m < minute; m++) markMinute.run(m, dayOf(m * 60), where)
@@ -178,9 +243,8 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
           const prompt = humanText(redact(textOf(event.message?.content)))
           if (!prompt) continue
           const id = `${session}:${event.uuid}`
-          insert.run(id, ts, dayOf(ts), event.cwd ? path.basename(event.cwd) : project, session,
-            prompt.slice(0, 1200), '[]')
-          lastPrompt = { id, tools: new Set() }
+          insert.run(id, ts, dayOf(ts), where, session, prompt.slice(0, 1200), '[]')
+          lastPrompt = { id, tools: new Set(), project: where }
           turns++
         }
 

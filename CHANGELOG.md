@@ -6,6 +6,13 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Agent work goes to the repository the agent edited, not to the folder the
+  session was opened in: a day spent editing one project from a session
+  opened in another no longer credits the wrong one. A session opened in the
+  home folder or on the desktop is no project at all, so "Desktop", "GitHub"
+  and your user name stop appearing as projects. The last 30 days of Claude
+  Code sessions are recounted once.
+
 - The minute a question is asked counts as the agent's, even when the answer
   only starts in the next one.
 
