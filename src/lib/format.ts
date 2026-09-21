@@ -80,8 +80,12 @@ export function setDayStartHour(hour: number): void {
 }
 
 export function today(): string {
-  const now = new Date()
-  const shifted = new Date(now.getTime() - dayStartHour * 3600_000)
+  return dayOf(Date.now() / 1000)
+}
+
+/** The day an instant belongs to, turning over at the same hour as the core's. */
+export function dayOf(ts: number): string {
+  const shifted = new Date(ts * 1000 - dayStartHour * 3600_000)
   return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, '0')}-${String(shifted.getDate()).padStart(2, '0')}`
 }
 

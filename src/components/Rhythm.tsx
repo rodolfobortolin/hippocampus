@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type Period, type Slot } from '../lib/api.ts'
+import { api, type Period, type PeriodSummary, type Slot } from '../lib/api.ts'
 import { duration, hours, addDays, today as todayString, number, topSlices, plural, weekdayNames } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
 import { Heatmap, Trend, Bars, Donut } from './charts.tsx'
@@ -163,9 +163,65 @@ export function Rhythm() {
               )}
             </div>
           </div>
+
+          <div className="grid g2">
+            <Hands summary={below} />
+            <div className="panel">
+              <h3>{t.rhythm.written}</h3>
+              <p className="note" style={{ marginTop: -6, marginBottom: 14 }}>{t.rhythm.writtenNote}</p>
+              {below.written.length ? (
+                <div className="rows">
+                  {below.written.map((row) => (
+                    <div key={row.kind} className="row">
+                      <span className="name">{t.rhythm.writing[row.kind]}</span>
+                      <span className="value">{number(row.chars)}</span>
+                      <span className="track"><i style={{
+                        width: `${(row.chars / below.written[0].chars) * 100}%`,
+                        background: 'var(--writing)', boxShadow: '0 0 9px var(--writing)', opacity: 0.8,
+                      }} /></span>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="empty">{t.common.nothingHere}</p>}
+            </div>
+          </div>
           </>}
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * Where the keys went, per app — counted in every block, no text kept. The
+ * lead line is a record, not a verdict: "most of the keys went to Claude".
+ */
+function Hands({ summary }: { summary: PeriodSummary }) {
+  const t = useLanguage().t
+  const keys = summary.hands.reduce((sum, app) => sum + app.keys, 0)
+  const top = summary.hands[0]
+  return (
+    <div className="panel">
+      <h3>{t.today.hands}</h3>
+      {keys > 0 && top ? (
+        <>
+          <p className="note" style={{ marginTop: -6, marginBottom: 14 }}>
+            {t.rhythm.handsLead(Math.round((top.keys / keys) * 100), top.name)}
+          </p>
+          <div className="rows">
+            {summary.hands.filter((app) => app.keys > 0).map((app) => (
+              <div key={app.name} className="row">
+                <span className="name">{app.name}</span>
+                <span className="value">{number(app.keys)} {t.today.keys}</span>
+                <span className="track"><i style={{
+                  width: `${(app.keys / top.keys) * 100}%`,
+                  background: 'var(--ember)', boxShadow: '0 0 9px var(--ember)', opacity: 0.8,
+                }} /></span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : <p className="empty">{t.rhythm.noHands}</p>}
+    </div>
   )
 }

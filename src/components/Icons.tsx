@@ -9,6 +9,9 @@ export const IconToday = () => (
 export const IconRhythm = () => (
   <svg {...base}><path d="M3 20V10M8.5 20V4M14 20v-7M19.5 20V8" /></svg>
 )
+export const IconWork = () => (
+  <svg {...base}><rect x="3.5" y="7" width="17" height="12.5" rx="2.5" /><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" /><path d="M3.5 12.5h17" /></svg>
+)
 export const IconJournal = () => (
   <svg {...base}><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" /><path d="M5 17a3 3 0 0 1 3-3h11" /><path d="M9 8h6" /></svg>
 )

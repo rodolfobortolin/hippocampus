@@ -20,6 +20,15 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 - Work on a branch counts for the ticket in its name. Commits, questions to the
   agent, the agent's own minutes and editor time on feature/sup-12-login all
   land on SUP-12, even when nothing in them says so.
+- Questions to an agent are only what you typed. Background tasks announcing
+  themselves, /model's output and plugin lists had been counted as requests —
+  one in six here.
+- A Work tab: time and moments by client and by piece of work — tickets,
+  Confluence pages, pull requests, documents, videos — and everything that
+  touched one of them, in order, a click away. It shows only what your data
+  has: no clients box for someone who has no clients.
+- The Rhythm shows where the keys went, per app, and what kind of writing
+  the typed text was — requests to AI, chats, code — without reading it.
 
 ## v0.1.0 — 2026-09-21
 

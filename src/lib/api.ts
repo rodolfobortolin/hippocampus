@@ -121,9 +121,18 @@ export type PeriodSummary = {
   shortcuts: { name: string; n: number }[]
   hosts: { name: string; n: number }[]
   typing: { chars: number; samples: number }
+  hands: { name: string; keys: number; clicks: number; scroll: number }[]
+  written: { kind: WritingKind; chars: number }[]
   commits: number; aiTurns: number
   agents: { name: string; minutes: number }[]
 }
+
+export type WritingKind = 'ai' | 'chat' | 'mail' | 'search' | 'code' | 'web' | 'other'
+
+// The pieces of work are shaped in the core; the screen only reads them.
+export type { Item, Org, Touch, WorkItems } from '../../core/items.ts'
+export type { PageKind } from '../../core/pages.ts'
+import type { Item, Touch, WorkItems } from '../../core/items.ts'
 
 export type StoredDay = {
   day: string; active_seconds: number; focus_ratio: number
@@ -147,6 +156,9 @@ export const api = {
     return get<Period>(`/api/period?from=${from}&to=${to}${narrow}`)
   },
   days: () => get<StoredDay[]>('/api/days'),
+  items: (from: string, to: string) => get<WorkItems>(`/api/items?from=${from}&to=${to}`),
+  item: (key: string, from: string, to: string) =>
+    get<{ item: Item | null; touches: Touch[] }>(`/api/item?key=${encodeURIComponent(key)}&from=${from}&to=${to}`),
   close: (day: string, narrate = true) =>
     get<{ narrative: string; recap: string; classified: number }>(
       `/api/rollup?day=${day}&narrate=${narrate ? 1 : 0}`, { method: 'POST' }),

@@ -302,6 +302,26 @@ function inSlot(ts: string, slot: Slot): [string, number[]] {
   return [parts.join(''), args]
 }
 
+export type WritingKind = 'ai' | 'chat' | 'mail' | 'search' | 'code' | 'web' | 'other'
+
+/**
+ * What kind of writing an app's text is, by the app alone. The text is never
+ * read for this: a question to Claude is "ai" because it was typed into
+ * Claude, not because of what it said.
+ */
+export function writingKind(app: string | null | undefined): WritingKind {
+  const name = (app ?? '').toLowerCase()
+  // Whole words: "arc" is a browser, "Archive Utility" is not.
+  const has = (...words: string[]) => new RegExp(`\\b(${words.join('|')})\\b`).test(name)
+  if (has('claude', 'chatgpt', 'codex', 'gemini', 'perplexity', 'copilot')) return 'ai'
+  if (has('whatsapp', 'slack', 'telegram', 'messages', 'discord', 'teams', 'signal')) return 'chat'
+  if (has('mail', 'outlook', 'spark', 'mimestream')) return 'mail'
+  if (has('spotlight', 'raycast', 'alfred')) return 'search'
+  if (has('code', 'cursor', 'zed', 'xcode', 'terminal', 'iterm2?', 'ghostty', 'warp', 'intellij idea', 'webstorm', 'pycharm', 'sublime text', 'windsurf')) return 'code'
+  if (has('google chrome', 'chrome', 'safari', 'arc', 'firefox', 'brave browser', 'microsoft edge', 'orion')) return 'web'
+  return 'other'
+}
+
 export function periodSummary(from: string, to: string, slot: Slot = {}) {
   const [blockSlot, blockArgs] = inSlot('started_at', slot)
   const [tsSlot, tsArgs] = inSlot('ts', slot)
@@ -347,6 +367,15 @@ export function periodSummary(from: string, to: string, slot: Slot = {}) {
     typing: one<any>(
       `select coalesce(sum(chars),0) chars, count(*) samples from typing
         where day between ? and ?${tsSlot}`, from, to, ...tsArgs),
+    // The hands, per app: keys, clicks and scroll are counted in every block,
+    // and no text is kept for it. "Most of the keys went to Claude" needs
+    // nothing more than this.
+    hands: all<any>(
+      `select app as name, sum(keys) keys, sum(clicks) clicks, sum(scroll) scroll from blocks
+        where day between ? and ? and idle = 0${blockSlot}
+        group by app having sum(keys) + sum(clicks) + sum(scroll) > 0 order by sum(keys) desc limit 8`,
+      from, to, ...blockArgs),
+    written: writtenByKind(from, to, tsSlot, tsArgs),
     commits: one<any>(
       `select count(*) n from commits where day between ? and ?${tsSlot}`, from, to, ...tsArgs)?.n ?? 0,
     aiTurns: one<any>(
@@ -358,6 +387,17 @@ export function periodSummary(from: string, to: string, slot: Slot = {}) {
         where day between ? and ?${minuteSlot} group by agent order by minutes desc`,
       from, to, ...minuteArgs),
   }
+}
+
+/** Characters written, by kind, where the text was kept. */
+function writtenByKind(from: string, to: string, tsSlot: string, tsArgs: number[]) {
+  const kinds = new Map<WritingKind, number>()
+  for (const row of all<{ app: string | null; chars: number }>(
+    `select app, sum(chars) chars from typing where day between ? and ?${tsSlot} group by app`, from, to, ...tsArgs)) {
+    const kind = writingKind(row.app)
+    kinds.set(kind, (kinds.get(kind) ?? 0) + row.chars)
+  }
+  return [...kinds].map(([kind, chars]) => ({ kind, chars })).filter((row) => row.chars > 0).sort((a, b) => b.chars - a.chars)
 }
 
 export type Session = { start: number; end: number; minutes: number }

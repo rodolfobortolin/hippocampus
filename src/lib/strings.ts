@@ -1,6 +1,11 @@
 // Uma lista só de idiomas, compartilhada com o núcleo: o app e o diário
 // precisam concordar sobre o que é um idioma válido.
 import { LANGUAGES, type Language } from '../../core/languages.ts'
+import type { PageKind } from '../../core/pages.ts'
+import type { Touch } from '../../core/items.ts'
+import type { WritingKind } from '../../core/metrics.ts'
+
+type TouchSource = Touch['source']
 
 export { LANGUAGES, type Language }
 
@@ -12,7 +17,7 @@ export { LANGUAGES, type Language }
  * ficar pela metade sem ninguém perceber.
  */
 export type Strings = {
-  tabs: { today: string; rhythm: string; journal: string; chat: string; settings: string }
+  tabs: { today: string; rhythm: string; work: string; journal: string; chat: string; settings: string }
   status: {
     brand: string
     /** Por que uma fonte de dados não está coletando. */
@@ -56,6 +61,18 @@ export type Strings = {
     trend: string; activeTimePerDay: string; averageOf: string; perMeasuredDay: string; needsThreeDays: string
     whereTimeWent: string; byCategory: string; projects: string; noProject: string
     signature: string; noShortcuts: string; sites: string; characters: string
+    handsLead: (pct: number, app: string) => string; noHands: string
+    written: string; writtenNote: string; writing: Record<WritingKind, string>
+  }
+  /** The pieces of work: tickets, pages, pull requests, documents, and whose they are. */
+  work: {
+    title: string; pieces: (n: number) => string
+    byClient: string; byClientNote: string; piecesTitle: string; all: string; seeAll: string
+    focused: string; agent: string; visit: [string, string]; prompt: [string, string]
+    moments: string; source: Record<TouchSource, string>; noMoments: string; more: (n: number) => string
+    browser: string; browserTime: string; browserVisits: string; timeSince: (day: string) => string
+    empty: string; emptyNote: string
+    kinds: Record<PageKind, string>
   }
   journal: {
     title: string; subtitle: string; noDays: string; fillsTomorrow: string
@@ -110,7 +127,7 @@ export type Strings = {
 }
 
 const pt: Strings = {
-  tabs: { today: 'Hoje', rhythm: 'Ritmo', journal: 'Diário', chat: 'Conversa', settings: 'Ajustes' },
+  tabs: { today: 'Hoje', rhythm: 'Ritmo', work: 'Trabalho', journal: 'Diário', chat: 'Conversa', settings: 'Ajustes' },
   status: {
     brand: 'memória da máquina',
     source: { 'aguardando-permissao': 'esperando você permitir', 'sem-permissao': 'sem permissão', nunca: 'ainda não tentou' },
@@ -172,6 +189,29 @@ const pt: Strings = {
     projects: 'projetos', noProject: 'Sem projeto atribuído ainda.',
     signature: 'sua assinatura de teclado', noShortcuts: 'Sem atalhos capturados no período.',
     sites: 'sites', characters: 'caracteres digitados no período',
+    handsLead: (pct, app) => `${pct}% das teclas foram em ${app}`, noHands: 'Sem teclas contadas no período.',
+    written: 'o que você escreveu', writtenNote: 'caracteres, por tipo de app — o texto em si não entra na conta',
+    writing: { ai: 'pedidos à IA', chat: 'conversas', mail: 'e-mail', search: 'buscas', code: 'código e terminal', web: 'no navegador', other: 'outros' },
+  },
+  work: {
+    title: 'Trabalho', pieces: (n) => `${n} ${n === 1 ? 'peça de trabalho' : 'peças de trabalho'}`,
+    byClient: 'por cliente', byClientNote: 'pelo subdomínio do Jira e do Confluence e pelo dono no GitHub',
+    piecesTitle: 'peças de trabalho', all: 'tudo', seeAll: 'ver todos os clientes',
+    focused: 'em foco', agent: 'do agente', visit: ['visita', 'visitas'], prompt: ['pedido', 'pedidos'],
+    moments: 'tudo que tocou nisso, em ordem',
+    source: { window: 'janela', visit: 'visita', commit: 'commit', prompt: 'pedido', branch: 'branch', agent: 'agente' },
+    noMoments: 'Nenhum momento neste período.', more: (n) => `mostrar mais ${n}`,
+    browser: 'o navegador, por tipo', browserTime: 'tempo em foco em cada tipo de página',
+    browserVisits: 'visitas a cada tipo de página',
+    timeSince: (day) => `o tempo em foco só é medido desde ${day}; para cobrir o período inteiro, contam as visitas, os commits e os pedidos`,
+    empty: 'Nenhuma peça de trabalho neste período.',
+    emptyNote: 'Elas aparecem quando o navegador, os commits e os pedidos aos agentes citam tickets, páginas, pull requests e documentos.',
+    kinds: {
+      ticket: 'tickets', board: 'quadros', wiki: 'páginas wiki', space: 'espaços', admin: 'administração',
+      'pull-request': 'pull requests', issue: 'issues', repo: 'repositórios', doc: 'documentos', sheet: 'planilhas',
+      slides: 'apresentações', design: 'design', video: 'vídeos', mail: 'e-mail', meeting: 'reuniões', chat: 'conversas',
+      ai: 'IA', search: 'busca', docs: 'documentação', 'sign-in': 'login', page: 'outras páginas',
+    },
   },
   journal: {
     title: 'Diário', subtitle: 'o que o computador viu, escrito pelo Claude Code',
@@ -249,7 +289,7 @@ const pt: Strings = {
 }
 
 const en: Strings = {
-  tabs: { today: 'Today', rhythm: 'Rhythm', journal: 'Journal', chat: 'Chat', settings: 'Settings' },
+  tabs: { today: 'Today', rhythm: 'Rhythm', work: 'Work', journal: 'Journal', chat: 'Chat', settings: 'Settings' },
   status: {
     brand: 'the machine’s memory',
     source: { 'aguardando-permissao': 'waiting for you to allow it', 'sem-permissao': 'no permission', nunca: 'not tried yet' },
@@ -311,6 +351,29 @@ const en: Strings = {
     projects: 'projects', noProject: 'No project assigned yet.',
     signature: 'your keyboard signature', noShortcuts: 'No shortcuts captured in the period.',
     sites: 'sites', characters: 'characters typed in the period',
+    handsLead: (pct, app) => `${pct}% of the keys went to ${app}`, noHands: 'No keys counted in this period.',
+    written: 'what you wrote', writtenNote: 'characters, by kind of app — the text itself never counts',
+    writing: { ai: 'requests to AI', chat: 'chats', mail: 'email', search: 'searches', code: 'code and terminal', web: 'in the browser', other: 'other' },
+  },
+  work: {
+    title: 'Work', pieces: (n) => `${n} ${n === 1 ? 'piece of work' : 'pieces of work'}`,
+    byClient: 'by client', byClientNote: 'from the Jira and Confluence subdomain and the GitHub owner',
+    piecesTitle: 'pieces of work', all: 'all', seeAll: 'see every client',
+    focused: 'in focus', agent: 'by the agent', visit: ['visit', 'visits'], prompt: ['request', 'requests'],
+    moments: 'everything that touched it, in order',
+    source: { window: 'window', visit: 'visit', commit: 'commit', prompt: 'request', branch: 'branch', agent: 'agent' },
+    noMoments: 'No moments in this period.', more: (n) => `show ${n} more`,
+    browser: 'the browser, by kind', browserTime: 'time in focus on each kind of page',
+    browserVisits: 'visits to each kind of page',
+    timeSince: (day) => `time in focus is only measured since ${day}; to cover the whole period, visits, commits and requests count`,
+    empty: 'No pieces of work in this period.',
+    emptyNote: 'They show up once the browser, commits and requests to agents name tickets, pages, pull requests and documents.',
+    kinds: {
+      ticket: 'tickets', board: 'boards', wiki: 'wiki pages', space: 'spaces', admin: 'administration',
+      'pull-request': 'pull requests', issue: 'issues', repo: 'repositories', doc: 'documents', sheet: 'spreadsheets',
+      slides: 'slides', design: 'design', video: 'videos', mail: 'email', meeting: 'meetings', chat: 'chat',
+      ai: 'AI', search: 'search', docs: 'docs', 'sign-in': 'sign-in', page: 'other pages',
+    },
   },
   journal: {
     title: 'Journal', subtitle: 'what the computer saw, written by Claude Code',
@@ -388,7 +451,7 @@ const en: Strings = {
 }
 
 const es: Strings = {
-  tabs: { today: 'Hoy', rhythm: 'Ritmo', journal: 'Diario', chat: 'Conversación', settings: 'Ajustes' },
+  tabs: { today: 'Hoy', rhythm: 'Ritmo', work: 'Trabajo', journal: 'Diario', chat: 'Conversación', settings: 'Ajustes' },
   status: {
     brand: 'la memoria de la máquina',
     source: { 'aguardando-permissao': 'esperando que lo permitas', 'sem-permissao': 'sin permiso', nunca: 'aún no lo intentó' },
@@ -450,6 +513,29 @@ const es: Strings = {
     projects: 'proyectos', noProject: 'Sin proyecto asignado todavía.',
     signature: 'tu firma de teclado', noShortcuts: 'Sin atajos capturados en el periodo.',
     sites: 'sitios', characters: 'caracteres escritos en el periodo',
+    handsLead: (pct, app) => `${pct}% de las teclas fueron en ${app}`, noHands: 'Sin teclas contadas en el periodo.',
+    written: 'lo que escribiste', writtenNote: 'caracteres, por tipo de app — el texto en sí no cuenta',
+    writing: { ai: 'peticiones a la IA', chat: 'conversaciones', mail: 'correo', search: 'búsquedas', code: 'código y terminal', web: 'en el navegador', other: 'otros' },
+  },
+  work: {
+    title: 'Trabajo', pieces: (n) => `${n} ${n === 1 ? 'pieza de trabajo' : 'piezas de trabajo'}`,
+    byClient: 'por cliente', byClientNote: 'por el subdominio de Jira y Confluence y el dueño en GitHub',
+    piecesTitle: 'piezas de trabajo', all: 'todo', seeAll: 'ver todos los clientes',
+    focused: 'en foco', agent: 'del agente', visit: ['visita', 'visitas'], prompt: ['petición', 'peticiones'],
+    moments: 'todo lo que lo tocó, en orden',
+    source: { window: 'ventana', visit: 'visita', commit: 'commit', prompt: 'petición', branch: 'rama', agent: 'agente' },
+    noMoments: 'Ningún momento en este periodo.', more: (n) => `mostrar ${n} más`,
+    browser: 'el navegador, por tipo', browserTime: 'tiempo en foco en cada tipo de página',
+    browserVisits: 'visitas a cada tipo de página',
+    timeSince: (day) => `el tiempo en foco solo se mide desde ${day}; para cubrir todo el periodo, cuentan las visitas, los commits y las peticiones`,
+    empty: 'Ninguna pieza de trabajo en este periodo.',
+    emptyNote: 'Aparecen cuando el navegador, los commits y las peticiones a los agentes nombran tickets, páginas, pull requests y documentos.',
+    kinds: {
+      ticket: 'tickets', board: 'tableros', wiki: 'páginas wiki', space: 'espacios', admin: 'administración',
+      'pull-request': 'pull requests', issue: 'issues', repo: 'repositorios', doc: 'documentos', sheet: 'hojas de cálculo',
+      slides: 'presentaciones', design: 'diseño', video: 'vídeos', mail: 'correo', meeting: 'reuniones', chat: 'chat',
+      ai: 'IA', search: 'búsqueda', docs: 'documentación', 'sign-in': 'inicio de sesión', page: 'otras páginas',
+    },
   },
   journal: {
     title: 'Diario', subtitle: 'lo que el ordenador vio, escrito por Claude Code',
@@ -527,7 +613,7 @@ const es: Strings = {
 }
 
 const fr: Strings = {
-  tabs: { today: 'Aujourd’hui', rhythm: 'Rythme', journal: 'Journal', chat: 'Conversation', settings: 'Réglages' },
+  tabs: { today: 'Aujourd’hui', rhythm: 'Rythme', work: 'Travail', journal: 'Journal', chat: 'Conversation', settings: 'Réglages' },
   status: {
     brand: 'la mémoire de la machine',
     source: { 'aguardando-permissao': 'en attente de ton autorisation', 'sem-permissao': 'sans autorisation', nunca: 'pas encore tenté' },
@@ -589,6 +675,29 @@ const fr: Strings = {
     projects: 'projets', noProject: 'Aucun projet attribué pour l’instant.',
     signature: 'ta signature au clavier', noShortcuts: 'Aucun raccourci capté sur la période.',
     sites: 'sites', characters: 'caractères tapés sur la période',
+    handsLead: (pct, app) => `${pct} % des frappes sont allées à ${app}`, noHands: 'Aucune frappe comptée sur la période.',
+    written: 'ce que tu as écrit', writtenNote: 'caractères, par type d’app — le texte lui-même n’entre jamais dans le compte',
+    writing: { ai: 'demandes à l’IA', chat: 'discussions', mail: 'e-mail', search: 'recherches', code: 'code et terminal', web: 'dans le navigateur', other: 'autres' },
+  },
+  work: {
+    title: 'Travail', pieces: (n) => `${n} ${n === 1 ? 'élément de travail' : 'éléments de travail'}`,
+    byClient: 'par client', byClientNote: 'd’après le sous-domaine Jira et Confluence et le propriétaire sur GitHub',
+    piecesTitle: 'éléments de travail', all: 'tout', seeAll: 'voir tous les clients',
+    focused: 'au premier plan', agent: 'de l’agent', visit: ['visite', 'visites'], prompt: ['demande', 'demandes'],
+    moments: 'tout ce qui y a touché, dans l’ordre',
+    source: { window: 'fenêtre', visit: 'visite', commit: 'commit', prompt: 'demande', branch: 'branche', agent: 'agent' },
+    noMoments: 'Aucun moment sur cette période.', more: (n) => `afficher ${n} de plus`,
+    browser: 'le navigateur, par type', browserTime: 'temps au premier plan par type de page',
+    browserVisits: 'visites par type de page',
+    timeSince: (day) => `le temps au premier plan n’est mesuré que depuis le ${day} ; pour couvrir toute la période, ce sont les visites, les commits et les demandes qui comptent`,
+    empty: 'Aucun élément de travail sur cette période.',
+    emptyNote: 'Ils apparaissent quand le navigateur, les commits et les demandes aux agents citent des tickets, des pages, des pull requests et des documents.',
+    kinds: {
+      ticket: 'tickets', board: 'tableaux', wiki: 'pages wiki', space: 'espaces', admin: 'administration',
+      'pull-request': 'pull requests', issue: 'issues', repo: 'dépôts', doc: 'documents', sheet: 'tableurs',
+      slides: 'présentations', design: 'design', video: 'vidéos', mail: 'e-mail', meeting: 'réunions', chat: 'discussions',
+      ai: 'IA', search: 'recherche', docs: 'documentation', 'sign-in': 'connexion', page: 'autres pages',
+    },
   },
   journal: {
     title: 'Journal', subtitle: 'ce que l’ordinateur a vu, écrit par Claude Code',
@@ -666,7 +775,7 @@ const fr: Strings = {
 }
 
 const de: Strings = {
-  tabs: { today: 'Heute', rhythm: 'Rhythmus', journal: 'Tagebuch', chat: 'Gespräch', settings: 'Einstellungen' },
+  tabs: { today: 'Heute', rhythm: 'Rhythmus', work: 'Arbeit', journal: 'Tagebuch', chat: 'Gespräch', settings: 'Einstellungen' },
   status: {
     brand: 'das Gedächtnis der Maschine',
     source: { 'aguardando-permissao': 'wartet auf deine Erlaubnis', 'sem-permissao': 'keine Berechtigung', nunca: 'noch nicht versucht' },
@@ -728,6 +837,29 @@ const de: Strings = {
     projects: 'Projekte', noProject: 'Noch kein Projekt zugeordnet.',
     signature: 'deine Tastatur-Handschrift', noShortcuts: 'Im Zeitraum keine Kürzel erfasst.',
     sites: 'Seiten', characters: 'Zeichen im Zeitraum getippt',
+    handsLead: (pct, app) => `${pct} % der Tastenanschläge gingen an ${app}`, noHands: 'Keine Tastenanschläge im Zeitraum gezählt.',
+    written: 'was du geschrieben hast', writtenNote: 'Zeichen, nach Art der App — der Text selbst zählt nie',
+    writing: { ai: 'KI-Anfragen', chat: 'Chats', mail: 'E-Mail', search: 'Suchen', code: 'Code und Terminal', web: 'im Browser', other: 'Sonstiges' },
+  },
+  work: {
+    title: 'Arbeit', pieces: (n) => `${n} ${n === 1 ? 'Arbeitselement' : 'Arbeitselemente'}`,
+    byClient: 'nach Kunde', byClientNote: 'nach der Jira- und Confluence-Subdomain und dem Besitzer auf GitHub',
+    piecesTitle: 'Arbeitselemente', all: 'alle', seeAll: 'alle Kunden zeigen',
+    focused: 'im Fokus', agent: 'vom Agenten', visit: ['Aufruf', 'Aufrufe'], prompt: ['Anfrage', 'Anfragen'],
+    moments: 'alles, was es berührt hat, der Reihe nach',
+    source: { window: 'Fenster', visit: 'Aufruf', commit: 'Commit', prompt: 'Anfrage', branch: 'Branch', agent: 'Agent' },
+    noMoments: 'Keine Momente in diesem Zeitraum.', more: (n) => `${n} weitere zeigen`,
+    browser: 'der Browser, nach Art', browserTime: 'Zeit im Fokus je Seitenart',
+    browserVisits: 'Aufrufe je Seitenart',
+    timeSince: (day) => `Zeit im Fokus wird erst seit ${day} gemessen; damit der ganze Zeitraum zählt, zählen Aufrufe, Commits und Anfragen`,
+    empty: 'Keine Arbeitselemente in diesem Zeitraum.',
+    emptyNote: 'Sie erscheinen, sobald Browser, Commits und Anfragen an Agenten Tickets, Seiten, Pull Requests und Dokumente nennen.',
+    kinds: {
+      ticket: 'Tickets', board: 'Boards', wiki: 'Wiki-Seiten', space: 'Bereiche', admin: 'Verwaltung',
+      'pull-request': 'Pull Requests', issue: 'Issues', repo: 'Repositories', doc: 'Dokumente', sheet: 'Tabellen',
+      slides: 'Präsentationen', design: 'Design', video: 'Videos', mail: 'E-Mail', meeting: 'Meetings', chat: 'Chat',
+      ai: 'KI', search: 'Suche', docs: 'Doku', 'sign-in': 'Anmeldung', page: 'andere Seiten',
+    },
   },
   journal: {
     title: 'Tagebuch', subtitle: 'was der Rechner gesehen hat, geschrieben von Claude Code',
