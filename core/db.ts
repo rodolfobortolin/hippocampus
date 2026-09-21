@@ -251,7 +251,16 @@ for (const [column, type] of [
   ['media', 'text'],
   ['playing', 'text'],
 ] as const) {
-  if (!existing.has(column)) db.exec(`alter table blocks add column ${column} ${type}`)
+  if (existing.has(column)) continue
+  try {
+    db.exec(`alter table blocks add column ${column} ${type}`)
+  } catch (error) {
+    // Two processes opening the same new database — the core and the
+    // collector, or test files running side by side — both see the column
+    // missing and both add it; the second one finds it done. That is the
+    // outcome wanted, not a failure.
+    if (!/duplicate column name/.test((error as Error).message)) throw error
+  }
 }
 
 // The category keys travelled with the rename. They are identifiers stored in
