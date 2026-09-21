@@ -204,6 +204,17 @@ for (const [before, after] of [
   db.prepare('update labels set category = ? where category = ?').run(after, before)
 }
 
+// The commits the harvest used to keep once per hash. A rewritten history left
+// up to three rows for one piece of work; the newest row wins, since it carries
+// the hash, the name and the message the repository has now. Empty commits are
+// left alone — two merges in one second share a fingerprint without being the
+// same work. Running it again finds nothing to do.
+db.exec(`
+  delete from commits where files > 0 and id not in (
+    select max(id) from commits where files > 0 group by ts, files, insertions, deletions
+  )
+`)
+
 export function getMeta(key: string, fallback = ''): string {
   const row = db.prepare('select value from meta where key = ?').get(key) as { value?: string } | undefined
   return row?.value ?? fallback

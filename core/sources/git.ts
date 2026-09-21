@@ -9,6 +9,36 @@ const insert = db.prepare(
    values (?, ?, ?, ?, ?, ?, ?, ?)`,
 )
 
+/**
+ * One row per piece of work, not per hash.
+ *
+ * A rebase, an amend or a rewritten history gives the same commit a new hash,
+ * and the table used to keep both: the day this repository's messages were
+ * translated, 88 commits were counted three times over, once per generation of
+ * hashes, and a rebased branch elsewhere counted twice. What survives a rewrite
+ * is the author time and the change itself, so that is the fingerprint — the
+ * newest hash, name and message replace the old ones.
+ *
+ * Empty commits stay out of it: two merges in the same second share a
+ * fingerprint without being the same work. And the same hash seen from a
+ * second checkout (a worktree) keeps the name it already had, rather than
+ * flipping back and forth between folders on every harvest.
+ */
+const sameWork = db.prepare(
+  `select id, sha from commits where ts = ? and files = ? and insertions = ? and deletions = ? and files > 0 limit 1`)
+const rewrite = db.prepare(`update commits set sha = ?, repo = ?, day = ?, subject = ? where id = ?`)
+
+export function keepCommit(
+  sha: string, repo: string, ts: number, subject: string, files: number, insertions: number, deletions: number,
+): void {
+  const twin = files > 0 ? sameWork.get(ts, files, insertions, deletions) as { id: number; sha: string } | undefined : undefined
+  if (twin) {
+    if (twin.sha !== sha) rewrite.run(sha, repo, dayOf(ts), subject, twin.id)
+    return
+  }
+  insert.run(sha, repo, ts, dayOf(ts), subject, files, insertions, deletions)
+}
+
 function git(repo: string, args: string[]): string {
   try {
     return execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
@@ -67,7 +97,7 @@ export async function harvestGit(days = 3): Promise<{ commits: number }> {
       const insertions = Number(/(\d+) insertions?/.exec(stat)?.[1] ?? 0)
       const deletions = Number(/(\d+) deletions?/.exec(stat)?.[1] ?? 0)
       const ts = Number(at)
-      insert.run(sha, name, ts, dayOf(ts), (subject ?? '').slice(0, 300), files, insertions, deletions)
+      keepCommit(sha, name, ts, (subject ?? '').slice(0, 300), files, insertions, deletions)
       total++
     }
   }
