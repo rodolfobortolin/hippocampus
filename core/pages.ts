@@ -61,10 +61,16 @@ export function cleanTitle(title: string | null | undefined): string | undefined
   if (!title) return undefined
   const clean = title
     .replace(/\s[-–—|]\s(Google Chrome|Safari|Arc|Brave|Firefox|Microsoft Edge)(\s[-–—]\s.*)?$/i, '')
-    .replace(/\s[-–—|]\s(YouTube|Jira|Confluence|GitHub|Figma|Notion|Linear|Gmail|Google Docs|Google Sheets|Google Slides)$/i, '')
+    .replace(/\s[-–—|]\s(YouTube|Jira Service Management|Jira Work Management|Jira|Confluence|GitHub|Figma|Notion|Linear|Gmail|Google Docs|Google Sheets|Google Slides)$/i, '')
     .replace(/^\(\d+\)\s*/, '')
     .trim()
   return clean || undefined
+}
+
+/** "[SUP-70] Login fails" and "SUP-70 Login fails" say the key twice next to it. */
+function withoutKey(label: string | undefined, key: string): string | undefined {
+  const rest = label?.replace(new RegExp(`^\\[?${key}\\]?\\s*[-:–—]?\\s*`), '').trim()
+  return rest || undefined
 }
 
 const slugToWords = (slug: string) =>
@@ -81,12 +87,14 @@ const atlassian: Reader = (url, title) => {
   const label = cleanTitle(title)
 
   const issue = path.match(/\/browse\/([A-Z][A-Z0-9]+-\d+)/)?.[1] ?? url.searchParams.get('selectedIssue') ?? undefined
-  if (issue && ticketKeys(issue).length) return { kind: 'ticket', site: 'jira', org, key: issue, label }
+  if (issue && ticketKeys(issue).length) return { kind: 'ticket', site: 'jira', org, key: issue, label: withoutKey(label, issue) }
 
   const page = path.match(/\/wiki\/spaces\/([^/]+)\/pages\/(\d+)(?:\/([^/?#]+))?/)
   if (page) {
+    // "Runbook - Operations" : the space's name ends every page title, and the
+    // space is already beside it.
     return { kind: 'wiki', site: 'confluence', org, key: `${page[1]}/${page[2]}`,
-      label: label ?? (page[3] ? slugToWords(page[3]) : undefined) }
+      label: label?.replace(/\s[-–—]\s[^-–—]+$/, '') ?? (page[3] ? slugToWords(page[3]) : undefined) }
   }
   const space = path.match(/\/wiki\/spaces\/([^/]+)/)
   if (space) return { kind: 'space', site: 'confluence', org, key: space[1], label }
@@ -105,13 +113,18 @@ const atlassian: Reader = (url, title) => {
   return { kind: 'page', site: 'jira', org, label }
 }
 
+/** First path segments that are GitHub's own pages, not an owner. */
+const GITHUB_OWN = new Set(['settings', 'notifications', 'login', 'logout', 'new', 'marketplace', 'apps', 'sponsors',
+  'topics', 'features', 'pulls', 'issues', 'search', 'explore', 'codespaces', 'enterprise', 'copilot', 'account',
+  'organizations', 'dashboard', 'trending', 'collections', 'events', 'about', 'pricing', 'security', 'site'])
+
 const github: Reader = (url, title) => {
   if (url.hostname !== 'github.com') return null
   const [owner, repo, section, number] = url.pathname.split('/').filter(Boolean)
   const label = cleanTitle(title)
-  if (!owner || ['settings', 'notifications', 'login', 'new', 'marketplace'].includes(owner)) {
-    return { kind: 'page', site: 'github', label }
-  }
+  // An organisation's own pages name it in the second segment: /orgs/acme/people.
+  if (owner === 'orgs' || owner === 'users') return { kind: 'page', site: 'github', org: repo, label }
+  if (!owner || GITHUB_OWN.has(owner)) return { kind: 'page', site: 'github', label }
   if (!repo) return { kind: 'page', site: 'github', org: owner, label }
   const full = `${owner}/${repo}`
   if (section === 'pull' && number) return { kind: 'pull-request', site: 'github', org: owner, key: `${full}#${number}`, label }

@@ -16,7 +16,9 @@ const pick = (address: string, title?: string) => {
 
 test('a Jira ticket, opened directly or from a board', () => {
   assert.deepEqual(pick('https://acme.atlassian.net/browse/SUP-1234', 'SUP-1234 Login fails - Jira'),
-    { kind: 'ticket', site: 'jira', org: 'acme', key: 'SUP-1234', label: 'SUP-1234 Login fails' })
+    { kind: 'ticket', site: 'jira', org: 'acme', key: 'SUP-1234', label: 'Login fails' })
+  assert.equal(pick('https://acme.atlassian.net/browse/SUP-70', '[SUP-70] teste - Jira')?.label, 'teste',
+    'the key is shown beside the title already')
   assert.equal(pick('https://acme.atlassian.net/jira/software/projects/SUP/boards/7?selectedIssue=SUP-88')?.key, 'SUP-88')
 })
 
@@ -32,6 +34,8 @@ test('Jira administration is its own kind of work, per site', () => {
 test('Confluence pages and spaces', () => {
   assert.deepEqual(pick('https://acme.atlassian.net/wiki/spaces/KB/pages/123456/Onboarding+checklist'),
     { kind: 'wiki', site: 'confluence', org: 'acme', key: 'KB/123456', label: 'Onboarding checklist' })
+  assert.equal(pick('https://acme.atlassian.net/wiki/spaces/KB/pages/9/x', 'Release 2 - notes - Knowledge Base - Confluence')?.label,
+    'Release 2 - notes', 'the space name that ends the title goes; the page title keeps its own dashes')
   const space = pick('https://acme.atlassian.net/wiki/spaces/KB/overview')
   assert.equal(space?.kind, 'space')
   assert.equal(space?.key, 'KB')
@@ -43,6 +47,10 @@ test('GitHub pull requests, issues and repositories', () => {
   assert.equal(pick('https://github.com/acme/harbor/issues/9')?.kind, 'issue')
   assert.deepEqual(pick('https://github.com/acme/harbor'),
     { kind: 'repo', site: 'github', org: 'acme', key: 'acme/harbor', label: undefined })
+  // An organisation's own pages are that organisation's, not an owner called "orgs".
+  assert.equal(pick('https://github.com/orgs/acme/people')?.org, 'acme')
+  assert.equal(pick('https://github.com/pulls')?.org, undefined)
+  assert.equal(pick('https://github.com/settings/tokens')?.org, undefined)
 })
 
 test('mail never carries its subject', () => {

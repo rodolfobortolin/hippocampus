@@ -161,3 +161,14 @@ test('the detail of a branch ticket starts at the switch', () => {
   assert.deepEqual(touches.map((touch) => touch.source), ['branch', 'commit', 'prompt', 'agent', 'window'])
   assert.equal(touches[3].seconds, 120, 'the agent\'s minutes are one moment, not two')
 })
+
+test('a Jira address pasted into a question teaches where its prefix lives', () => {
+  // OPS is never opened in the browser; the address sits inside a question,
+  // and a later commit names OPS-10 with no address at all.
+  seed()
+  prompt.run('p3', T + 2600, DAY, 'https://globex.atlassian.net/browse/OPS-9 can you look at this one')
+  commit.run('c3', T + 2700, DAY, 'OPS-10: raise the limit')
+  const { items } = workItems(DAY, DAY)
+  assert.equal(items.find((item) => item.key === 'OPS-10')?.org, 'globex')
+  assert.equal(items.find((item) => item.key === 'OPS-10')?.site, 'jira')
+})

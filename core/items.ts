@@ -52,7 +52,10 @@ export type Item = {
  * letters is taken to be the same one too — which is right far more often
  * than not, and the sites it merged are listed, so a wrong merge is visible.
  */
-export type Org = { org: string; sites: string[]; seconds: number; visits: number; items: number }
+export type Org = {
+  org: string; sites: string[]; items: number
+  seconds: number; agentSeconds: number; visits: number; commits: number; prompts: number
+}
 
 /** "Synapse-Oasis", "synapseoasis" and "synapse_oasis" are one name. */
 export const orgName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -79,6 +82,12 @@ function blank(page: Page, at: number): Item {
 }
 
 export type WorkItems = {
+  /**
+   * The first day with focus samples. Visits reach months further back, so a
+   * range that starts earlier can only be compared across its whole length
+   * by visits — time would favour whatever happened after the collector began.
+   */
+  timeSince: string | null
   items: Item[]
   orgs: Org[]
   /** Time per kind: how much of the browser was tickets, docs, mail, video. */
@@ -119,20 +128,45 @@ function branchLookup(): (repo: string | null | undefined, at: number) => string
 }
 
 /**
- * Prefixes that are really tickets: the ones written in upper case somewhere
- * a ticket key would be — a Jira address, a commit, a question. A branch
- * called release-2 is not a ticket; one called vpd-59-catalog is, because
- * VPD-59 is written that way in the commits.
+ * What the whole database knows about ticket keys, whatever the range.
+ *
+ * Which prefixes are really tickets: the ones written in upper case where a
+ * key would be — a Jira address, a commit, a question. A branch called
+ * release-2 is not a ticket; one called vpd-59-catalog is, because VPD-59 is
+ * written that way in the commits.
+ *
+ * And where each prefix lives: any Jira address that names one of its keys —
+ * in the browser history, or pasted into a question or a commit message —
+ * says which site and whose. The most frequent one wins.
  */
-function ticketPrefixes(): Set<string> {
+function ticketKnowledge(): { prefixes: Set<string>; homes: Map<string, { site: string; org?: string }> } {
   const prefixes = new Set<string>()
-  for (const row of all<{ text: string | null }>(
-    `select subject text from commits
-     union all select prompt from ai_turns
-     union all select url from visits where url like '%/browse/%' or url like '%selectedIssue=%'`)) {
-    for (const key of ticketKeys(row.text)) prefixes.add(key.split('-')[0])
+  const seen = new Map<string, Map<string, { site: string; org?: string; n: number }>>()
+  const learn = (address: string) => {
+    const page = readPage(address)
+    if (page?.kind !== 'ticket' || !page.key) return
+    const prefix = page.key.split('-')[0]
+    const places = seen.get(prefix) ?? new Map()
+    const id = `${page.site}:${page.org ?? ''}`
+    const place = places.get(id) ?? { site: page.site, org: page.org, n: 0 }
+    place.n++
+    places.set(id, place)
+    seen.set(prefix, places)
   }
-  return prefixes
+  for (const row of all<{ text: string | null; address: number }>(
+    `select subject text, 0 address from commits
+     union all select prompt, 0 from ai_turns
+     union all select url, 1 from visits where url like '%/browse/%' or url like '%selectedIssue=%'`)) {
+    for (const key of ticketKeys(row.text)) prefixes.add(key.split('-')[0])
+    if (row.address) learn(row.text ?? '')
+    else if (row.text?.includes('://')) for (const address of row.text.match(/https?:\/\/[^\s<>()\]\["']+/g) ?? []) learn(address)
+  }
+  const homes = new Map<string, { site: string; org?: string }>()
+  for (const [prefix, places] of seen) {
+    const best = [...places.values()].sort((a, b) => b.n - a.n)[0]
+    homes.set(prefix, { site: best.site, org: best.org })
+  }
+  return { prefixes, homes }
 }
 
 type Gathered = { items: Map<string, Item>; touches: Touch[] }
@@ -185,13 +219,9 @@ function gather(from: string, to: string, only?: string): Gathered {
     note(item, { at: visit.ts, source: 'visit', text: visit.title ?? undefined })
   }
 
-  // A ticket key seen in a browser teaches which site it lives on: every key
-  // with that prefix is then attributed there, even when it only ever appears
-  // in a commit, a prompt or a branch.
-  const home = new Map<string, { site: string; org?: string }>()
-  for (const item of items.values()) {
-    if (item.kind === 'ticket' && item.key) home.set(item.key.split('-')[0], { site: item.site, org: item.org })
-  }
+  // Where each prefix lives: every key with it is attributed there, even when
+  // it only ever appears in a commit, a prompt or a branch.
+  const { prefixes, homes: home } = ticketKnowledge()
   const ticket = (key: string, at: number, project?: string | null) => {
     const where = home.get(key.split('-')[0])
     const item = touch({ kind: 'ticket', site: where?.site ?? 'ticket', org: where?.org, key }, at)
@@ -202,7 +232,6 @@ function gather(from: string, to: string, only?: string): Gathered {
   }
 
   const branchAt = branchLookup()
-  const prefixes = ticketPrefixes()
   const onBranch = (repo: string | null | undefined, at: number) =>
     branchKeys(branchAt(repo, at)).filter((key) => prefixes.has(key.split('-')[0]))
   // What a text names, and what the branch it was written on names, once each.
@@ -282,17 +311,20 @@ export function workItems(from: string, to: string): WorkItems {
     k.seconds += item.seconds; k.visits += item.visits; kinds.set(item.kind, k)
     if (!item.org) continue
     const id = orgName(item.org)
-    const o = orgs.get(id) ?? { org: item.org, sites: [], seconds: 0, visits: 0, items: 0 }
+    const o = orgs.get(id) ?? { org: item.org, sites: [], items: 0, seconds: 0, agentSeconds: 0, visits: 0, commits: 0, prompts: 0 }
     if (!o.sites.includes(item.site)) o.sites.push(item.site)
     // The Atlassian subdomain is the most readable spelling of the name.
     if (item.site === 'jira' || item.site === 'confluence') o.org = item.org
-    o.seconds += item.seconds; o.visits += item.visits; o.items++
+    o.seconds += item.seconds; o.agentSeconds += item.agentSeconds; o.visits += item.visits
+    o.commits += item.commits; o.prompts += item.prompts; o.items++
     orgs.set(id, o)
   }
 
   return {
+    timeSince: (all<{ day: string | null }>(`select min(day) day from blocks`)[0]?.day) ?? null,
     items: list,
-    orgs: [...orgs.values()].sort((a, b) => b.seconds - a.seconds || b.visits - a.visits),
+    orgs: [...orgs.values()].sort((a, b) => b.seconds + b.agentSeconds - a.seconds - a.agentSeconds
+      || b.visits + b.commits + b.prompts - a.visits - a.commits - a.prompts),
     kinds: [...kinds.values()].sort((a, b) => b.seconds - a.seconds || b.visits - a.visits),
   }
 }
