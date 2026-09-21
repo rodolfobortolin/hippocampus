@@ -173,9 +173,9 @@ export function currentLanguage(lang: string): Language {
  */
 export const CATEGORY_NAMES: Record<Language, Record<string, string>> = {
   'pt-BR': {
-    code: 'código', ai: 'IA', research: 'research', communication: 'comunicação',
-    writing: 'writing', design: 'design', admin: 'admin', distraction: 'distração',
-    'unlabelled': 'unlabelled',
+    code: 'código', ai: 'IA', research: 'pesquisa', communication: 'comunicação',
+    writing: 'escrita', design: 'design', admin: 'administrativo', distraction: 'distração',
+    'unlabelled': 'sem rótulo',
   },
   'en-US': {
     code: 'code', ai: 'AI', research: 'research', communication: 'communication',

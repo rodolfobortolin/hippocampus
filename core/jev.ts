@@ -45,6 +45,27 @@ export function cachedLabel(key: string): Label | undefined {
   return one<Label>('select key, category, project, deep_work, confidence from labels where key = ?', key)
 }
 
+/**
+ * How long an admitted gap is taken at its word.
+ *
+ * Below the confidence line jev's answer is stored as "unlabelled" on purpose:
+ * a confident mistake costs more than an honest gap. But it was stored for
+ * good, and the cache answered for that window forever after. Some of those
+ * are right to stay unknown — a notification with no title has nothing to
+ * read. Others sat a hundredth under the line, with the project already
+ * guessed correctly. Asking again twice a day costs a handful of calls and
+ * gives the close ones another chance.
+ */
+const RETRY_UNKNOWN_AFTER = 12 * 60 * 60
+
+/** Whether this window has to go to jev: never asked, or a gap old enough to retry. */
+function needsAsking(key: string): boolean {
+  const row = one<{ category: string; created_at: number }>(
+    'select category, created_at from labels where key = ?', key)
+  if (!row) return true
+  return row.category === 'unlabelled' && Date.now() / 1000 - row.created_at > RETRY_UNKNOWN_AFTER
+}
+
 export function jevReady(): boolean {
   return Boolean(config.typesafeKey)
 }
@@ -62,9 +83,8 @@ export async function classify(
   projects: string[],
 ): Promise<Label | null> {
   const key = labelKey(block)
-  const cached = cachedLabel(key)
-  if (cached) return cached
-  if (!jevReady()) return null
+  if (!needsAsking(key)) return cachedLabel(key) ?? null
+  if (!jevReady()) return cachedLabel(key) ?? null
 
   const question = JEV_QUESTIONS[validLanguage(config.lang)]
   const projectOptions: Record<string, string> = { nenhum: question.noProject }
@@ -109,7 +129,8 @@ export async function classify(
   const project = data.answers?.project?.choice
   const confidence = data.answers?.categoria?.confidence ?? 0
   // A confident mistake costs more than an admitted gap: someone who sees one
-  // wrong number stops trusting the rest. Below 0.55 the window stays unlabelled.
+  // wrong number stops trusting the rest. Below 0.55 the window stays
+  // unlabelled — for now; see RETRY_UNKNOWN_AFTER.
   const label: Label = {
     key,
     category: confidence >= 0.55 ? data.answers?.categoria?.choice ?? 'unlabelled' : 'unlabelled',
@@ -130,7 +151,7 @@ export async function classifyDay(day: string, projects: string[]): Promise<numb
       where day = ? and idle = 0 group by app, title having total >= 20 order by total desc limit 120`,
   ).all(day) as any[]
 
-  const pending = blocks.filter((block) => !cachedLabel(labelKey(block)))
+  const pending = blocks.filter((block) => needsAsking(labelKey(block)))
   let done = 0
   const queue = [...pending]
   const workers = Array.from({ length: 6 }, async () => {

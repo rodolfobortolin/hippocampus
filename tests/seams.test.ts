@@ -317,3 +317,12 @@ test('the wider tools are off until asked for', async () => {
   assert.ok(/wide \? \{\} : \{ allowedTools:/.test(agent),
     'core/agent.ts should keep the allowlist unless wideTools is on')
 })
+
+test('today is labelled while it happens, not only when it closes', () => {
+  // Labelling ran only when a day closed, so the whole of today read
+  // "unlabelled" until tomorrow — 92 of 95 unlabelled minutes, on the day it
+  // was measured, were simply not yet looked at.
+  const collector = read('core/collector.ts')
+  assert.match(collector, /name: 'labels'[^\n]*classifyDay\(dayOf\(Date\.now\(\) \/ 1000\)/,
+    'core/collector.ts should classify the current day on a timer')
+})

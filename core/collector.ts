@@ -13,6 +13,8 @@ import { all } from './db.ts'
 import { backfillAll } from './backfill.ts'
 import { buildAllEpisodes } from './episodes.ts'
 import { withTimeout, sourceStates } from './guard.ts'
+import { classifyDay } from './jev.ts'
+import { knownProjects } from './metrics.ts'
 
 type Task = { name: string; everyMinutes: number; run: () => unknown | Promise<unknown> }
 
@@ -23,6 +25,12 @@ const tasks: Task[] = [
   { name: 'codex', everyMinutes: 10, run: harvestCodexSessions },
   { name: 'shell', everyMinutes: 15, run: harvestShell },
   { name: 'git', everyMinutes: 30, run: () => harvestGit(2) },
+  // Today's windows, labelled as they happen. The labelling used to run only
+  // when a day closed, so everything done today read "unlabelled" until
+  // tomorrow — most of that slice was simply not yet looked at. A label is
+  // cached per window, so this asks nothing extra: each window is asked once
+  // either way, only sooner.
+  { name: 'labels', everyMinutes: 10, run: () => classifyDay(dayOf(Date.now() / 1000), knownProjects()) },
 ]
 
 /**

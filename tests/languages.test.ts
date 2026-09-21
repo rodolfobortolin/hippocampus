@@ -107,3 +107,18 @@ test('no English word is left sitting inside the other languages', async () => {
     }
   }
 })
+
+test('the category names are translated, not left in English', async () => {
+  // The donut read "IA, comunicação, distração" next to "unlabelled, research,
+  // writing" — a bulk rename had reached into the Portuguese names and turned
+  // three of them into their keys. These three have a word of their own in
+  // every language here, so an English one showing up is a leak.
+  const { CATEGORY_NAMES } = await import('../core/languages.ts')
+  const english = CATEGORY_NAMES['en-US']
+  for (const language of ['pt-BR', 'es-ES', 'fr-FR', 'de-DE'] as const) {
+    for (const key of ['unlabelled', 'research', 'writing']) {
+      assert.notEqual(CATEGORY_NAMES[language][key], english[key],
+        `${language} shows "${english[key]}" for ${key} — still the English word`)
+    }
+  }
+})
