@@ -422,3 +422,11 @@ footer p { margin: 0; color: var(--text-dim); }
   .top.scrolled { background: #0b0c0f; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .viewer-scrim { background: #050608; backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* The one ask on the page. Quiet on purpose: centred, short, and after
+   everything the app does has been said. */
+.lunch { max-width: 620px; margin: 0 auto; padding: 72px 20px 24px; text-align: center; }
+.lunch h2 { font-size: clamp(26px, 4vw, 36px); font-weight: 300; letter-spacing: -0.02em; text-wrap: balance; }
+.lunch h2 b { font-weight: 600; }
+.lunch p { color: var(--text-mid); margin: 14px auto 26px; line-height: 1.6; text-wrap: pretty; }
+.lunch .fine { font-size: 13px; color: var(--text-dim); margin: 16px 0 0; }

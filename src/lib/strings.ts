@@ -155,6 +155,8 @@ export type Strings = {
     timesheet: string; timesheetNote: string
     captures: string; capturesNote: string
     codeFolder: string; codeFolderNote: string; introAgain: string
+    /** The one ask, at the end of the settings: free, and a lunch if it helped. */
+    lunch: string; lunchNote: string; lunchButton: string
     save: string; saved: string; saving: string; test: string; working: string; failed: string
     agents: string; agentsNote: string; agentsOn: string; agentsOff: string
     agentsApprove: string; agentsWhere: string
@@ -415,6 +417,7 @@ const pt: Strings = {
     timesheet: 'rascunho de apontamento', timesheetNote: 'para quem cobra por hora: as horas da semana por cliente e ticket, na aba Trabalho e, às sextas, no diário. Um registro para conferir, não uma avaliação',
     captures: 'guardar notas sozinho', capturesNote: 'no fechamento do dia, o app lê o que você pediu naquele dia e escreve as poucas coisas duráveis nas suas notas de projeto, conhecimento e pessoas. Desligado, a aba Notas fica só para o que você escrever à mão',
     codeFolder: 'pasta de código', codeFolderNote: 'onde ficam os repositórios — commits e branches vêm daqui', introAgain: 'rever a introdução',
+    lunch: 'apoie o projeto', lunchNote: 'o Hippocampus é gratuito e de código aberto. Se ele te devolveu uma tarde, me pague um almoço', lunchButton: 'pagar um almoço · US$ 15',
     save: 'salvar', saved: 'salvo', saving: 'salvando…', test: 'testar', working: 'funcionando', failed: 'falhou',
     agents: 'medir sozinho, desde o login',
     agentsNote: 'o coletor, o leitor de janela e a escuta sobem com o Mac e voltam se caírem',
@@ -678,6 +681,7 @@ const en: Strings = {
     timesheet: 'timesheet draft', timesheetNote: 'for anyone who bills by the hour: the week\'s hours by client and ticket, in the Work tab and, on Fridays, in the journal. A record to check, not a judgement',
     captures: 'keep notes on its own', capturesNote: 'at the close of the day the app reads what you asked for and writes the few durable things into your project, knowledge and people notes. Off, the Notes tab is only for what you write by hand',
     codeFolder: 'code folder', codeFolderNote: 'where your repositories live — commits and branches come from here', introAgain: 'see the introduction again',
+    lunch: 'support the project', lunchNote: 'Hippocampus is free and open source. If it gave you back an afternoon, buy me a lunch', lunchButton: 'buy me a lunch · $15',
     save: 'save', saved: 'saved', saving: 'saving…', test: 'test', working: 'working', failed: 'failed',
     agents: 'measure on its own, from login',
     agentsNote: 'the collector, the window reader and the listener start with the Mac and come back if they fall',
@@ -941,6 +945,7 @@ const es: Strings = {
     timesheet: 'borrador de horas', timesheetNote: 'para quien factura por hora: las horas de la semana por cliente y ticket, en la pestaña Trabajo y, los viernes, en el diario. Un registro para revisar, no una evaluación',
     captures: 'guardar notas solo', capturesNote: 'al cierre del día la app lee lo que pediste y escribe las pocas cosas duraderas en tus notas de proyecto, conocimiento y personas. Apagado, la pestaña Notas queda solo para lo que escribas a mano',
     codeFolder: 'carpeta de código', codeFolderNote: 'donde están tus repositorios: commits y ramas salen de aquí', introAgain: 'ver la introducción otra vez',
+    lunch: 'apoya el proyecto', lunchNote: 'Hippocampus es gratuito y de código abierto. Si te devolvió una tarde, invítame a comer', lunchButton: 'invitar a comer · US$ 15',
     save: 'guardar', saved: 'guardado', saving: 'guardando…', test: 'probar', working: 'funciona', failed: 'falló',
     agents: 'medir solo, desde el inicio de sesión',
     agentsNote: 'el recolector, el lector de ventanas y la escucha arrancan con el Mac y vuelven si se caen',
@@ -1204,6 +1209,7 @@ const fr: Strings = {
     timesheet: 'brouillon de feuille de temps', timesheetNote: 'pour qui facture à l’heure : les heures de la semaine par client et ticket, dans l’onglet Travail et, le vendredi, dans le journal. Un relevé à vérifier, pas un jugement',
     captures: 'garder des notes tout seul', capturesNote: 'à la clôture du jour, l’app lit ce que tu as demandé et écrit les rares choses durables dans tes notes de projet, de connaissance et de personnes. Désactivé, l’onglet Notes ne garde que ce que tu écris toi-même',
     codeFolder: 'dossier du code', codeFolderNote: 'là où sont tes dépôts — les commits et les branches viennent d’ici', introAgain: 'revoir l’introduction',
+    lunch: 'soutenir le projet', lunchNote: 'Hippocampus est gratuit et open source. S’il t’a rendu un après-midi, offre-moi un déjeuner', lunchButton: 'offrir un déjeuner · 15 $',
     save: 'enregistrer', saved: 'enregistré', saving: 'enregistrement…', test: 'tester', working: 'fonctionne', failed: 'a échoué',
     agents: 'mesurer tout seul, dès l’ouverture de session',
     agentsNote: 'le collecteur, le lecteur de fenêtre et l’écoute démarrent avec le Mac et reviennent s’ils tombent',
@@ -1467,6 +1473,7 @@ const de: Strings = {
     timesheet: 'Entwurf der Zeiterfassung', timesheetNote: 'für alle, die nach Stunden abrechnen: die Stunden der Woche nach Kunde und Ticket, im Tab Arbeit und freitags im Tagebuch. Eine Aufzeichnung zum Prüfen, keine Bewertung',
     captures: 'Notizen selbst behalten', capturesNote: 'beim Tagesabschluss liest die App, was du verlangt hast, und schreibt das Wenige, das bleibt, in deine Projekt-, Wissens- und Personennotizen. Aus bleibt der Reiter Notizen dem vorbehalten, was du selbst schreibst',
     codeFolder: 'Code-Ordner', codeFolderNote: 'wo deine Repositories liegen — Commits und Branches kommen von hier', introAgain: 'Einführung noch einmal',
+    lunch: 'das Projekt unterstützen', lunchNote: 'Hippocampus ist kostenlos und quelloffen. Wenn es dir einen Nachmittag zurückgegeben hat, lad mich zum Mittagessen ein', lunchButton: 'ein Mittagessen spendieren · 15 $',
     save: 'speichern', saved: 'gespeichert', saving: 'speichert…', test: 'testen', working: 'funktioniert', failed: 'fehlgeschlagen',
     agents: 'von der Anmeldung an selbst messen',
     agentsNote: 'Sammler, Fensterleser und Mithören starten mit dem Mac und kommen zurück, wenn sie ausfallen',

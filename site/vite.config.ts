@@ -5,7 +5,15 @@ import { defineConfig } from 'vite'
 // The version comes from package.json, the one place the app writes it. The
 // page says %VERSION% wherever it needs the number, so the button to the
 // release notes can never point at an older release than the one out.
-const { version } = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'))
+const { version, funding } = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'))
+
+// The lunch link comes from the same file. Until there is one, the block that
+// offers it is left out of the page entirely: a button that leads nowhere is
+// worse than no button.
+const lunch: string = funding?.url ?? ''
+const withLunch = (html: string) => lunch
+  ? html.replaceAll('%LUNCH%', lunch)
+  : html.replace(/<!-- lunch -->[\s\S]*?<!-- \/lunch -->/g, '')
 
 // The project's website. It lives beside the app and borrows the one thing it
 // could not do without — the core, straight from src/three — so the sphere on
@@ -18,6 +26,6 @@ export default defineConfig({
   server: { port: 5180 },
   plugins: [{
     name: 'version',
-    transformIndexHtml: (html) => html.replaceAll('%VERSION%', version),
+    transformIndexHtml: (html) => withLunch(html.replaceAll('%VERSION%', version)),
   }],
 })

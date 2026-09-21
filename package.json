@@ -2,6 +2,10 @@
   "name": "hippocampus",
   "private": true,
   "version": "0.2.0",
+  "funding": {
+    "type": "stripe",
+    "url": ""
+  },
   "type": "module",
   "description": "Your Mac becomes memory: local collection, charts and a conversation about your day.",
   "main": "app/main.cjs",

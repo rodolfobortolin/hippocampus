@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import pkg from '../../package.json'
 import { useLanguage } from '../lib/language.tsx'
 import { api } from '../lib/api.ts'
 import { LANGUAGES, type Language } from '../lib/strings.ts'
@@ -74,6 +75,9 @@ function Field({ label, note, children }: { label: string; note?: string; childr
     </div>
   )
 }
+
+/** Where the lunch button goes; empty until the payment link exists. */
+const LUNCH: string = (pkg as { funding?: { url?: string } }).funding?.url ?? ''
 
 export function Settings() {
   const { t, language, settings, save } = useLanguage()
@@ -388,6 +392,14 @@ export function Settings() {
           <Field label={t.settings.introAgain}>
             <button onClick={() => store({ onboarded: false })}>{t.settings.introAgain}</button>
           </Field>
+          {/* The one ask in the app, at the very end of the settings, and only
+              once there is somewhere for it to go. It opens the browser; nothing
+              about the day travels with it. */}
+          {LUNCH && (
+            <Field label={t.settings.lunch} note={t.settings.lunchNote}>
+              <button onClick={() => window.open(LUNCH, '_blank')}>{t.settings.lunchButton}</button>
+            </Field>
+          )}
         </div>
       </div>
     </>
