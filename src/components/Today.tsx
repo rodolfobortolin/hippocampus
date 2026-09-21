@@ -105,11 +105,17 @@ export function Today({ status }: { status: Status | null }) {
               <div className="number glow">{active.value}<small>{active.unit}</small></div>
             </Card>
 
+            {/* Every minute an agent worked, whatever you were doing meanwhile —
+                the part with you away from the keyboard is said underneath. It
+                showed only that part once, and a morning of an agent working
+                beside you read "1min". */}
             <Card rotulo={t.today.delegated}
-              nota={data.delegatedSeconds > 60 ? t.today.delegatedNote : t.today.noDelegated}>
+              nota={!data.agentMinutes ? t.today.noDelegated
+                : data.delegatedSeconds > 60 ? t.today.delegatedAway(duration(data.delegatedSeconds))
+                : t.today.delegatedNote}>
               <div className="number" style={{ color: 'var(--ai)', textShadow: '0 0 26px rgba(167,139,250,.35)' }}>
-                {hours(data.delegatedSeconds).value}
-                <small>{hours(data.delegatedSeconds).unit}</small>
+                {hours(data.agentMinutes * 60).value}
+                <small>{hours(data.agentMinutes * 60).unit}</small>
               </div>
             </Card>
 

@@ -14,9 +14,26 @@ const insert = db.prepare(
   `insert or ignore into ai_turns (source_id, ts, day, project, session, prompt, tools) values (?, ?, ?, ?, ?, ?, ?)`,
 )
 
-// Cada event do assistente marca o minute em que ele estava trabalhando.
-// Later this is crossed with the idle blocks: time at a standstill with an
-// agent working is not absence, it is delegated work.
+/**
+ * The minutes an agent was working, turn by turn.
+ *
+ * A turn runs from what set the agent going — a question, a tool's result,
+ * a notification — to the answer that ends it (`end_turn`). Every minute in
+ * between is work, including the minutes a tool was running with no message
+ * written: a build, the tests, a wait on CI. Marking only the minutes with a
+ * message, as this did before, counted 30 minutes of a morning an agent spent
+ * working without a break. The time between the end of a turn and the next
+ * question is the agent waiting for the person, and is not counted.
+ *
+ * A gap longer than this inside a turn is not filled: the session died, or
+ * the machine slept, and nobody was working through it.
+ */
+const LONGEST_STEP = 15 * 60
+
+type TurnState = { open: boolean; last: number }
+
+const updateTools = db.prepare('update ai_turns set tools = ? where source_id = ?')
+
 const markMinute = db.prepare(
   `insert into agent_minutes (minute, agent, day, project, events) values (?, 'claude', ?, ?, 1)
    on conflict(minute, agent) do update set events = events + 1`,
@@ -39,10 +56,42 @@ function textOf(content: unknown): string {
  * read inside a folder macOS decides to protect would take the whole collector
  * down, not just this one source.
  */
+/**
+ * Sessions a Hippocampus core started for itself — writing the journal,
+ * answering in the chat — run in its data folder. They are the app at work,
+ * not the person's agents, and counting them put the app's own prompts among
+ * the person's requests. Any folder holding a hippocampus.db is one: this
+ * install's, or another's, like the demo the website is photographed from.
+ */
+const ownFolders = new Map<string, boolean>()
+async function isOwnSession(cwd: string | undefined): Promise<boolean> {
+  if (!cwd) return false
+  if (!ownFolders.has(cwd)) ownFolders.set(cwd, await exists(path.join(cwd, 'hippocampus.db')))
+  return ownFolders.get(cwd)!
+}
+
+/** How much of the logs one round reads, so catching up never stalls the collector. */
+const ROUND_BUDGET = 200 * 1024 * 1024
+
+// Once: the minutes were counted message by message, and the app's own
+// sessions were counted as the person's. Reading every log again from the
+// start fills the turns in; requests already stored are not duplicated, since
+// each keeps its id. What the app's own sessions left behind goes.
+if (getMeta('claude.turns') !== '1') {
+  const own = path.basename(config.dataDir)
+  db.prepare(`delete from ai_turns where project = ? and source_id not like 'codex:%'`).run(own)
+  db.prepare(`delete from agent_minutes where agent = 'claude' and project = ?`).run(own)
+  setMeta('claude.offsets', '{}')
+  setMeta('claude.turn-state', '{}')
+  setMeta('claude.turns', '1')
+}
+
 export async function harvestClaudeSessions(): Promise<{ turns: number }> {
   if (!(await exists(root))) return { turns: 0 }
   const offsets = JSON.parse(getMeta('claude.offsets', '{}')) as Record<string, number>
+  const states = JSON.parse(getMeta('claude.turn-state', '{}')) as Record<string, TurnState>
   let turns = 0
+  let budget = ROUND_BUDGET
 
   for (const entry of await fs.readdir(root, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
@@ -56,6 +105,8 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
       const size = (await fs.stat(file)).size
       const from = offsets[file] ?? 0
       if (size <= from) continue
+      if (budget <= 0) break
+      budget -= size - from
 
       const handle = await fs.open(file, 'r')
       const buffer = Buffer.alloc(size - from)
@@ -71,40 +122,72 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
       offsets[file] = from + Buffer.byteLength(chunk.slice(0, lastBreak + 1), 'utf8')
 
       const session = name.replace('.jsonl', '')
-      // Ferramentas usadas ficam agrupadas no request humano que as disparou.
+      // The tools used are grouped under the human request that set them off.
       let lastPrompt: { id: string; tools: Set<string> } | null = null
+      const state = states[file] ?? { open: false, last: 0 }
+      states[file] = state
+      const lines = chunk.slice(0, lastBreak).split('\n')
 
-      for (const line of chunk.slice(0, lastBreak).split('\n')) {
-        if (!line.trim()) continue
-        let event: any
-        try { event = JSON.parse(line) } catch { continue }
-        const ts = Math.floor(new Date(event.timestamp).getTime() / 1000)
-        if (!Number.isFinite(ts)) continue
+      // Whose session it is, decided before any writing: the check touches the
+      // disk, and nothing may wait on the disk while a transaction is open.
+      const cwdLine = lines.find((line) => line.includes('"cwd":'))
+      let cwd: string | undefined
+      try { cwd = cwdLine ? JSON.parse(cwdLine).cwd : undefined } catch { cwd = undefined }
+      if (await isOwnSession(cwd)) continue
 
-        if (event.type === 'user' && event.origin?.kind === 'human') {
-          const prompt = humanText(redact(textOf(event.message?.content)))
-          if (!prompt) continue
-          const id = `${session}:${event.uuid}`
-          insert.run(id, ts, dayOf(ts), event.cwd ? path.basename(event.cwd) : project, session,
-            prompt.slice(0, 1200), '[]')
-          lastPrompt = { id, tools: new Set() }
-          turns++
-        } else if (event.type === 'assistant') {
-          markMinute.run(Math.floor(ts / 60), dayOf(ts),
-            event.cwd ? path.basename(event.cwd) : project)
-        }
+      // One transaction per file: catching up on a year of logs writes
+      // hundreds of thousands of minutes, and one commit each would take ages.
+      db.exec('begin')
+      try {
+        for (const line of lines) {
+          if (!line.trim()) continue
+          let event: any
+          try { event = JSON.parse(line) } catch { continue }
+          const ts = Math.floor(new Date(event.timestamp).getTime() / 1000)
+          if (!Number.isFinite(ts)) continue
+          if (event.type !== 'user' && event.type !== 'assistant') continue
 
-        if (event.type === 'assistant' && lastPrompt) {
-          for (const block of event.message?.content ?? []) {
-            if (block?.type === 'tool_use' && block.name) lastPrompt.tools.add(String(block.name))
+          // The turn: every minute since the last event, while it is open.
+          const where = event.cwd ? path.basename(event.cwd) : project
+          const minute = Math.floor(ts / 60)
+          if (state.open && state.last && ts - state.last <= LONGEST_STEP) {
+            for (let m = Math.floor(state.last / 60) + 1; m < minute; m++) markMinute.run(m, dayOf(m * 60), where)
           }
-          db.prepare('update ai_turns set tools = ? where source_id = ?')
-            .run(JSON.stringify([...lastPrompt.tools]), lastPrompt.id)
+          if (state.open || event.type === 'assistant') markMinute.run(minute, dayOf(ts), where)
+          state.last = ts
+          if (event.type === 'user') {
+            // Stopped by the person: nothing is being worked on until the next question.
+            state.open = !/^\s*\[Request interrupted/.test(textOf(event.message?.content))
+          } else if (event.message?.stop_reason === 'end_turn') {
+            state.open = false
+          }
+
+          if (event.type === 'user' && event.origin?.kind === 'human') {
+            const prompt = humanText(redact(textOf(event.message?.content)))
+            if (!prompt) continue
+            const id = `${session}:${event.uuid}`
+            insert.run(id, ts, dayOf(ts), event.cwd ? path.basename(event.cwd) : project, session,
+              prompt.slice(0, 1200), '[]')
+            lastPrompt = { id, tools: new Set() }
+            turns++
+          }
+
+          if (event.type === 'assistant' && lastPrompt) {
+            for (const block of event.message?.content ?? []) {
+              if (block?.type === 'tool_use' && block.name) lastPrompt.tools.add(String(block.name))
+            }
+            updateTools.run(JSON.stringify([...lastPrompt.tools]), lastPrompt.id)
+          }
         }
+        db.exec('commit')
+      } catch (error) {
+        db.exec('rollback')
+        throw error
       }
     }
   }
 
   setMeta('claude.offsets', JSON.stringify(offsets))
+  setMeta('claude.turn-state', JSON.stringify(states))
   return { turns }
 }

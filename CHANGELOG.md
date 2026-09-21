@@ -6,6 +6,13 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Delegated work counts every minute an agent worked, not only the minutes you
+  were away: a morning of an agent working beside you had read "1min". The
+  time with you away is still said, underneath. An agent's minutes now run
+  from the question to the answer, the minutes a tool was running included —
+  one session here went from 30 counted minutes to 68.
+- The app's own sessions — writing the journal, answering in the chat — are
+  no longer counted as your agents at work or as your requests.
 - A first-run walkthrough: what stays on the Mac and what each optional
   service sees, the two macOS permissions with their live state, where your
   code lives, the Obsidian vault, the services with their keys, and the two

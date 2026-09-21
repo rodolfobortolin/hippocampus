@@ -12,6 +12,7 @@ export type Dossier = {
   header: (day: string, active: string) => string
   delegated: (delegated: string, away: string) => string
   idle: (idle: string) => string
+  agents: (total: string) => string
   window: (start: string, end: string) => string
   atMachine: (total: string, stretches: number) => string
   switches: (total: number, ofProject: number) => string
@@ -41,6 +42,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `teclado. Isso NÃO é ociosidade — é resultado que saiu sem ele na frente, e vale ser contado ` +
       `como parte do dia. Fora isso, ${a} de ausência de verdade.`,
     idle: (o) => `Tempo parado: ${o}, sem agente trabalhando no meio.`,
+    agents: (t) => `Agentes trabalharam ${t} no total neste dia, contando o tempo em que ele também estava no teclado.`,
     window: (i, f) => `Começou ${i}, parou ${f}.`,
     atMachine: (t, n) => `Perto da máquina ${t}, em ${n} ${n === 1 ? 'trecho' : 'trechos'}, pausas curtas incluídas (pelo registro de energia do macOS; não é tempo ativo).`,
     switches: (t, p) => `${t} trocas de aplicativo, das quais ${p} mudaram de projeto (só essas custam resíduo de atenção).`,
@@ -63,6 +65,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `That is NOT idleness — it is output that happened without them in front of the machine, and it ` +
       `counts as part of the day. Beyond that, ${a} of genuine absence.`,
     idle: (o) => `Idle time: ${o}, with no agent working through it.`,
+    agents: (t) => `Agents worked ${t} in all this day, counting the time they were at the keyboard too.`,
     window: (i, f) => `Started ${i}, stopped ${f}.`,
     atMachine: (t, n) => `Near the machine ${t}, in ${n} ${n === 1 ? 'stretch' : 'stretches'}, short breaks included (from the macOS power log; not active time).`,
     switches: (t, p) => `${t} app switches, ${p} of which changed project (only those cost attention residue).`,
@@ -85,6 +88,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `teclado. Eso NO es ociosidad — es resultado que salió sin él delante, y cuenta como parte del ` +
       `día. Aparte de eso, ${a} de ausencia real.`,
     idle: (o) => `Tiempo detenido: ${o}, sin ningún agente trabajando de por medio.`,
+    agents: (t) => `Los agentes trabajaron ${t} en total este día, contando el tiempo en que también estaba al teclado.`,
     window: (i, f) => `Empezó ${i}, paró ${f}.`,
     atMachine: (t, n) => `Cerca de la máquina ${t}, en ${n} ${n === 1 ? 'tramo' : 'tramos'}, pausas cortas incluidas (según el registro de energía de macOS; no es tiempo activo).`,
     switches: (t, p) => `${t} cambios de aplicación, de los cuales ${p} cambiaron de proyecto (solo esos dejan residuo de atención).`,
@@ -107,6 +111,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `Ce n'est PAS de l'inactivité — c'est un résultat obtenu sans lui devant la machine, et cela ` +
       `compte dans la journée. En dehors de ça, ${a} d'absence réelle.`,
     idle: (o) => `Temps immobile : ${o}, sans aucun agent au travail entre-temps.`,
+    agents: (t) => `Les agents ont travaillé ${t} au total ce jour-là, en comptant le temps où il était aussi au clavier.`,
     window: (i, f) => `A commencé ${i}, s'est arrêté ${f}.`,
     atMachine: (t, n) => `Près de la machine ${t}, en ${n} ${n === 1 ? 'période' : 'périodes'}, courtes pauses comprises (d'après le journal d'énergie de macOS ; ce n'est pas du temps actif).`,
     switches: (t, p) => `${t} changements d'application, dont ${p} ont changé de projet (seuls ceux-là laissent un résidu d'attention).`,
@@ -129,6 +134,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `Das ist KEIN Leerlauf — es ist Ergebnis, das ohne ihn vor dem Rechner entstand, und es zählt ` +
       `zum Tag. Davon abgesehen ${a} echte Abwesenheit.`,
     idle: (o) => `Stillstand: ${o}, ohne dass dabei ein Agent gearbeitet hätte.`,
+    agents: (t) => `Agenten haben an diesem Tag insgesamt ${t} gearbeitet, auch während er selbst an der Tastatur war.`,
     window: (i, f) => `Begann ${i}, hörte ${f} auf.`,
     atMachine: (t, n) => `In der Nähe des Rechners ${t}, in ${n} ${n === 1 ? 'Abschnitt' : 'Abschnitten'}, kurze Pausen eingerechnet (laut Energieprotokoll von macOS; keine aktive Zeit).`,
     switches: (t, p) => `${t} App-Wechsel, davon ${p} mit Projektwechsel (nur die hinterlassen Aufmerksamkeitsreste).`,

@@ -32,7 +32,7 @@ export type Strings = {
     from: string; to: string; idleMachine: string; nothingMeasured: string
     measuringNoActivity: string; backToKeyboard: string; collectorRecords: string; onlySees: string
     yourTime: string; awayFromMachine: string
-    delegated: string; delegatedNote: string; noDelegated: string
+    delegated: string; delegatedNote: string; noDelegated: string; delegatedAway: (time: string) => string
     focused: string; focusedNote: string
     switches: string; switchesNote: (n: number) => string
     dominated: string; biggestSlice: string
@@ -171,7 +171,7 @@ const pt: Strings = {
     onlySees: 'O Hippocampus só enxerga a partir do dia em que começou a medir.',
     yourTime: 'seu tempo', awayFromMachine: 'longe da máquina',
     delegated: 'trabalho delegado', delegatedNote: 'agentes produzindo enquanto você fazia outra coisa',
-    noDelegated: 'nenhum agente trabalhou fora do seu tempo',
+    noDelegated: 'nenhum agente trabalhou neste dia', delegatedAway: (t) => `${t} disso com você longe do teclado`,
     focused: 'trabalho concentrado', focusedNote: 'tempo em código, IA, escrita, design e pesquisa',
     switches: 'trocas de aplicativo', switchesNote: (n) => `${n} mudaram de projeto — só essas custam caro`,
     dominated: 'aplicativo que dominou', biggestSlice: 'maior fatia foi',
@@ -398,7 +398,7 @@ const en: Strings = {
     onlySees: 'Hippocampus only sees from the day it started measuring.',
     yourTime: 'your time', awayFromMachine: 'away from the machine',
     delegated: 'delegated work', delegatedNote: 'agents producing while you did something else',
-    noDelegated: 'no agent worked outside your time',
+    noDelegated: 'no agent worked this day', delegatedAway: (t) => `${t} of it while you were away from the keyboard`,
     focused: 'focused work', focusedNote: 'time in code, AI, writing, design and research',
     switches: 'app switches', switchesNote: (n) => `${n} changed project — only those cost you`,
     dominated: 'app that dominated', biggestSlice: 'biggest slice was',
@@ -625,7 +625,7 @@ const es: Strings = {
     onlySees: 'Hippocampus solo ve desde el día en que empezó a medir.',
     yourTime: 'tu tiempo', awayFromMachine: 'lejos de la máquina',
     delegated: 'trabajo delegado', delegatedNote: 'agentes produciendo mientras hacías otra cosa',
-    noDelegated: 'ningún agente trabajó fuera de tu tiempo',
+    noDelegated: 'ningún agente trabajó este día', delegatedAway: (t) => `${t} de eso contigo lejos del teclado`,
     focused: 'trabajo concentrado', focusedNote: 'tiempo en código, IA, escritura, diseño e investigación',
     switches: 'cambios de aplicación', switchesNote: (n) => `${n} cambiaron de proyecto — solo esos cuestan caro`,
     dominated: 'aplicación que dominó', biggestSlice: 'la mayor porción fue',
@@ -852,7 +852,7 @@ const fr: Strings = {
     onlySees: 'Hippocampus ne voit qu’à partir du jour où il a commencé à mesurer.',
     yourTime: 'ton temps', awayFromMachine: 'loin de la machine',
     delegated: 'travail délégué', delegatedNote: 'des agents produisaient pendant que tu faisais autre chose',
-    noDelegated: 'aucun agent n’a travaillé en dehors de ton temps',
+    noDelegated: 'aucun agent n’a travaillé ce jour-là', delegatedAway: (t) => `dont ${t} pendant que tu étais loin du clavier`,
     focused: 'travail concentré', focusedNote: 'temps passé en code, IA, écriture, design et recherche',
     switches: 'changements d’application', switchesNote: (n) => `${n} ont changé de projet — seuls ceux-là coûtent cher`,
     dominated: 'application dominante', biggestSlice: 'la plus grosse part revient à',
@@ -1079,7 +1079,7 @@ const de: Strings = {
     onlySees: 'Hippocampus sieht erst ab dem Tag, an dem es zu messen begann.',
     yourTime: 'deine Zeit', awayFromMachine: 'weg vom Rechner',
     delegated: 'delegierte Arbeit', delegatedNote: 'Agenten haben produziert, während du etwas anderes gemacht hast',
-    noDelegated: 'kein Agent hat außerhalb deiner Zeit gearbeitet',
+    noDelegated: 'an diesem Tag hat kein Agent gearbeitet', delegatedAway: (t) => `davon ${t}, während du nicht an der Tastatur warst`,
     focused: 'konzentrierte Arbeit', focusedNote: 'Zeit in Code, KI, Schreiben, Design und Recherche',
     switches: 'App-Wechsel', switchesNote: (n) => `${n} haben das Projekt gewechselt — nur die kosten wirklich`,
     dominated: 'App, die dominiert hat', biggestSlice: 'das größte Stück ging an',

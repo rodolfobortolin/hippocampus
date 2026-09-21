@@ -32,6 +32,7 @@ export function dossier(day: string, level: 'resumo' | 'completo' = 'completo'):
     report.delegatedSeconds > 300
       ? d.delegated(hours(report.delegatedSeconds), hours(report.awaySeconds))
       : d.idle(hours(report.idleSeconds)),
+    ...(report.agentMinutes > 5 ? [d.agents(hours(report.agentMinutes * 60))] : []),
     d.window(clock(report.firstAt), clock(report.lastAt)),
     ...(report.presence.seconds ? [d.atMachine(hours(report.presence.seconds), report.presence.stretches)] : []),
     d.switches(report.switches, report.switchesProject),
