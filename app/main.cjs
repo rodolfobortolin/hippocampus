@@ -44,6 +44,72 @@ function agents(command) {
     })
   })
 }
+/**
+ * Updates, the way Speakly takes them: electron-updater reads the latest
+ * release on GitHub, downloads it in the background, and it is installed when
+ * the person says so — or when the app next quits.
+ *
+ * The update is only as trustworthy as its signature: on macOS the updater
+ * checks that the downloaded app carries the same Developer ID as this one,
+ * and that check is never turned off. Speakly turns it off for ad-hoc builds;
+ * this app is always signed, so there is no case for it.
+ *
+ * No release with a build attached yet means the check fails with a 404, and
+ * that is not an error anyone should see: it is logged and left alone.
+ */
+const UPDATES = { owner: 'rodolfobortolin', repo: 'hippocampus' }
+let updateReady = null
+
+function startUpdates() {
+  if (!app.isPackaged) return
+  let autoUpdater
+  try {
+    ;({ autoUpdater } = require('electron-updater'))
+  } catch (error) {
+    console.warn('[update] electron-updater is missing:', error.message)
+    return
+  }
+  autoUpdater.setFeedURL({ provider: 'github', ...UPDATES })
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.logger = null
+  autoUpdater.on('update-downloaded', (info) => {
+    updateReady = info.version
+    console.log(`[update] ${info.version} downloaded; it installs on restart`)
+    tray?.setContextMenu(trayMenu())
+  })
+  autoUpdater.on('error', (error) => console.warn('[update]', String(error?.message ?? error).split('\n')[0]))
+  const check = () => autoUpdater.checkForUpdates().catch(() => {})
+  setTimeout(check, 15_000)
+  setInterval(check, 4 * 60 * 60 * 1000)
+  startUpdates.install = () => autoUpdater.quitAndInstall(false, true)
+}
+
+/**
+ * After an update the agents are still running the old code: the collector,
+ * the focus helper and the listener are launchd's processes, not this one,
+ * and replacing the files under a running Node process leaves it serving the
+ * old version with new files on disk, half and half. So when this app starts
+ * as a version the agents have not seen, it restarts them once.
+ */
+const AGENT_LABELS = ['com.hippocampus.collector', 'com.hippocampus.focus', 'com.hippocampus.listener']
+function restartAgentsAfterUpdate() {
+  if (!app.isPackaged) return
+  const seen = path.join(app.getPath('userData'), 'agents-version')
+  let last = ''
+  try { last = fs.readFileSync(seen, 'utf8').trim() } catch {}
+  const now = app.getVersion()
+  if (last === now) return
+  // The first run of an install has nothing to restart; only a change does.
+  if (last) {
+    for (const label of AGENT_LABELS) {
+      execFile('/bin/launchctl', ['kickstart', '-k', `gui/${process.getuid()}/${label}`], () => {})
+    }
+    console.log(`[update] ${last} → ${now}: agents restarted`)
+  }
+  try { fs.writeFileSync(seen, now) } catch {}
+}
+
 // Where the floating core was left last time. Kept outside the database on
 // purpose: Electron starts before the core, and the window cannot wait for it.
 const WINDOW_MEMORY = path.join(app.getPath('userData'), 'core.json')
@@ -306,22 +372,18 @@ function menuAccelerator() {
   return callShortcut ? callShortcut.replace('CommandOrControl', 'Cmd') : undefined
 }
 
-function buildTray() {
-  // Vite copies public/ into dist/ when it builds, and only dist/ goes into
-  // the package: in the installed app the image lives there. Reading public/
-  // worked in development and left the installed app with an empty image —
-  // a menu bar item that could be clicked and could not be seen.
-  const icon = nativeImage.createFromPath(
-    path.join(ROOT, app.isPackaged ? 'dist' : 'public', 'trayTemplate.png'))
-  icon.setTemplateImage(true)
-  tray = new Tray(icon)
-  if (icon.isEmpty()) {
-    // Never invisible again: a mark in the menu bar is better than a hole.
-    console.error('[tray] trayTemplate.png not found; showing a text mark instead')
-    tray.setTitle('◉')
-  }
-  tray.setToolTip('Hippocampus — measuring')
-  tray.setContextMenu(Menu.buildFromTemplate([
+/**
+ * The menu bar's menu, apart from the icon: an update that finishes
+ * downloading rebuilds the menu, and building the icon again would put a
+ * second one in the menu bar.
+ */
+function trayMenu() {
+  return Menu.buildFromTemplate([
+    // Only when one is waiting: the one thing in the menu that is new.
+    ...(updateReady ? [
+      { label: `Restart to update to ${updateReady}`, click: () => startUpdates.install?.() },
+      { type: 'separator' },
+    ] : []),
     { label: 'Open Hippocampus', click: openWindow },
     { label: 'Floating core', accelerator: 'Cmd+Shift+H', click: toggleCore },
     // The accelerator shown is whatever is registered right now, not the one
@@ -339,7 +401,25 @@ function buildTray() {
       path.join(app.getPath('appData'), 'Hippocampus')) },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
-  ]))
+  ])
+}
+
+function buildTray() {
+  // Vite copies public/ into dist/ when it builds, and only dist/ goes into
+  // the package: in the installed app the image lives there. Reading public/
+  // worked in development and left the installed app with an empty image —
+  // a menu bar item that could be clicked and could not be seen.
+  const icon = nativeImage.createFromPath(
+    path.join(ROOT, app.isPackaged ? 'dist' : 'public', 'trayTemplate.png'))
+  icon.setTemplateImage(true)
+  tray = new Tray(icon)
+  if (icon.isEmpty()) {
+    // Never invisible again: a mark in the menu bar is better than a hole.
+    console.error('[tray] trayTemplate.png not found; showing a text mark instead')
+    tray.setTitle('◉')
+  }
+  tray.setToolTip('Hippocampus — measuring')
+  tray.setContextMenu(trayMenu())
   tray.on('click', openWindow)
 }
 
@@ -394,12 +474,17 @@ app.whenReady().then(async () => {
   // new combination works without restarting the app.
   ipcMain.handle('shortcut:set', (_event, accelerator) => useShortcut(accelerator))
 
+  ipcMain.handle('update:status', () => ({ version: app.getVersion(), ready: updateReady }))
+  ipcMain.handle('update:install', () => startUpdates.install?.())
+
   ipcMain.handle('agents:status', () => agents('status'))
   ipcMain.handle('agents:register', () => agents('register'))
   ipcMain.handle('agents:unregister', () => agents('unregister'))
 
+  restartAgentsAfterUpdate()
   await ensureCore()
   buildTray()
+  startUpdates()
   openWindow()
   watchTheCore()
   // Calling the core from anywhere, without hunting for the app. A shortcut

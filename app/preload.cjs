@@ -10,6 +10,12 @@ contextBridge.exposeInMainWorld('hippocampus', {
   /** When this run of the app started. The opening plays once per launch. */
   launchedAt: process.env.HIPPOCAMPUS_LAUNCH ?? '',
 
+  /** This version, and the one waiting to be installed — null when none is. */
+  updateStatus: () => ipcRenderer.invoke('update:status'),
+
+  /** Quits, installs the update that finished downloading, and opens again. */
+  installUpdate: () => ipcRenderer.invoke('update:install'),
+
   /** Opens the system folder picker. Null when the person backs out. */
   chooseFolder: (message) => ipcRenderer.invoke('choose-folder', message),
 

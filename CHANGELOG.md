@@ -6,6 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The app updates itself: it looks for a new release on GitHub when it opens
+  and every four hours, downloads it in the background, and installs it when
+  it restarts — from the menu bar or Settings, which also shows the version.
 - The timesheet draft shows a day or a week, stepped back and forth with
   arrows, instead of three buttons where "previous week" looked like the week
   on screen. Lines under a minute are left out, and a note says how many.

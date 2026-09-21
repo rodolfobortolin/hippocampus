@@ -62,6 +62,8 @@ const bridge = (globalThis as any).hippocampus as {
     register: () => Promise<unknown>
     unregister: () => Promise<unknown>
   }
+  updateStatus?: () => Promise<{ version: string; ready: string | null }>
+  installUpdate?: () => Promise<void>
 } | undefined
 
 function Field({ label, note, children }: { label: string; note?: string; children: React.ReactNode }) {
@@ -80,6 +82,13 @@ function Field({ label, note, children }: { label: string; note?: string; childr
 const LUNCH: string = (pkg as { funding?: { url?: string } }).funding?.url ?? ''
 
 export function Settings() {
+  const [update, setUpdate] = useState<{ version: string; ready: string | null } | null>(null)
+  useEffect(() => {
+    const ask = () => bridge?.updateStatus?.().then(setUpdate).catch(() => {})
+    ask()
+    const timer = setInterval(ask, 60_000)
+    return () => clearInterval(timer)
+  }, [])
   const { t, language, settings, save } = useLanguage()
   const [name, setName] = useState('')
   const [journalFolder, setJournalFolder] = useState('')
@@ -389,6 +398,15 @@ export function Settings() {
         </div>
 
         <div className="panel">
+          {/* Which version this is, and the next one once it has downloaded.
+              Updates arrive on their own; this is only where to see them. */}
+          {update && (
+            <Field label={t.settings.version} note={update.ready ? t.settings.updateReady(update.ready) : t.settings.updatesNote}>
+              {update.ready
+                ? <button onClick={() => void bridge?.installUpdate?.()}>{t.settings.updateInstall}</button>
+                : <span className="note" style={{ margin: 0 }}>{update.version}</span>}
+            </Field>
+          )}
           <Field label={t.settings.introAgain}>
             <button onClick={() => store({ onboarded: false })}>{t.settings.introAgain}</button>
           </Field>

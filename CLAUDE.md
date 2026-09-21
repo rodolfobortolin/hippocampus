@@ -146,11 +146,26 @@ a test failing, never in the middle of a change that is only half done.
 5. Watch it: `gh run watch <id> --exit-status`. Red means no release — fix it
    first.
 6. Green: `gh release create vX.Y.Z --title vX.Y.Z --notes-file <that section>`.
-   Publishing it also republishes the website, whose button names the version
-   from package.json — nothing to change on the site by hand.
-7. Attach a build only if it is notarized (`npm run notarize` succeeded).
+   The release commit on main republishes the website, whose button names the
+   version from package.json — nothing to change on the site by hand.
+7. Attach a build only if it is notarized. `npm run notarize` builds, notarizes
+   and staples, and leaves three files in `release/vX.Y.Z/`: the `.dmg` people
+   download, the `-mac.zip` and `latest-mac.yml` the installed apps update
+   from. Attach all three (`gh release upload vX.Y.Z release/vX.Y.Z/*`) — a
+   release without `latest-mac.yml` is one no installed app updates to.
    Without notarization macOS refuses to open it on any other Mac, so a download
    would be a trap; say in the notes that it has to be built from source.
+
+**Updates.** The installed app checks the latest GitHub release on start and
+every four hours (`startUpdates` in `app/main.cjs`), downloads it in the
+background and installs it on restart, from the menu bar or Settings. The
+updater checks that the download carries the same Developer ID; that check is
+never switched off. After an update the app restarts the three agents once,
+because launchd's processes would otherwise keep running the old code.
+
+Never let electron-builder notarize on its own: it notarizes before the
+afterSign hook reseals the app, and the ticket then describes an app that no
+longer exists. `scripts/notarize.sh` does it in the right order.
 
 Then tell Rodolfo it went out, with the link — a release is public.
 
