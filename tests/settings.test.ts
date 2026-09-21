@@ -75,3 +75,32 @@ test('a key longer than 128 characters comes back whole', async () => {
       .catch(() => { /* nothing to clean up */ })
   }
 })
+
+test('the region decides where OpenAI is reached, and a proxy still wins', async () => {
+  // A European project key answers /v1/models on the global host and is refused
+  // by the live endpoint, so the key looks half working. The region is the
+  // person's to pick, and the default `.env` line must not beat that choice.
+  const { openaiBase, saveSettings } = await import('../core/settings.ts')
+  const before = process.env.OPENAI_BASE_URL
+
+  try {
+    delete process.env.OPENAI_BASE_URL
+    saveSettings({ region: 'global' })
+    assert.equal(openaiBase(), 'https://api.openai.com/v1')
+    saveSettings({ region: 'eu' })
+    assert.equal(openaiBase(), 'https://eu.api.openai.com/v1')
+
+    // The stock host sitting in .env.example must not override the choice.
+    process.env.OPENAI_BASE_URL = 'https://api.openai.com/v1'
+    assert.equal(openaiBase(), 'https://eu.api.openai.com/v1',
+      'the default in .env must not beat what was picked on screen')
+
+    // Somewhere that is neither of OpenAI's hosts is a proxy, set on purpose.
+    process.env.OPENAI_BASE_URL = 'http://127.0.0.1:9099/v1'
+    assert.equal(openaiBase(), 'http://127.0.0.1:9099/v1')
+  } finally {
+    if (before === undefined) delete process.env.OPENAI_BASE_URL
+    else process.env.OPENAI_BASE_URL = before
+    saveSettings({ region: 'global' })
+  }
+})

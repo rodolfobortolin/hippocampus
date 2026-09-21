@@ -36,6 +36,22 @@ export type Settings = {
   voiceMode: 'push' | 'live'
   /** Which GPT-Live-1 voice speaks, when the live mode is on. */
   liveVoice: string
+  /**
+   * Which OpenAI geography the key belongs to.
+   *
+   * A key issued inside a European project reaches `/v1/models` on the global
+   * host and is refused by the live endpoint — "Attempted to access resource
+   * from outside project geography EU" — so the key looks half working, which
+   * is worse than not working.
+   */
+  region: Region
+}
+
+export type Region = 'global' | 'eu'
+
+const REGIONS: Record<Region, string> = {
+  global: 'https://api.openai.com/v1',
+  eu: 'https://eu.api.openai.com/v1',
 }
 
 export type KeyState = 'keychain' | 'environment' | 'empty'
@@ -116,6 +132,7 @@ const DEFAULTS: Settings = {
   shortcut: 'CommandOrControl+Shift+Space',
   voiceMode: 'push',
   liveVoice: 'marin',
+  region: 'global',
 }
 
 /**
@@ -156,6 +173,7 @@ export function readSettings(): Settings {
       shortcut: String(data.shortcut ?? DEFAULTS.shortcut),
       voiceMode: data.voiceMode === 'live' ? 'live' : 'push',
       liveVoice: String(data.liveVoice ?? DEFAULTS.liveVoice),
+      region: data.region === 'eu' ? 'eu' : 'global',
     }
   } catch {
     return { ...DEFAULTS }
@@ -187,4 +205,21 @@ export function saveSettings(input: Partial<Settings>): Settings {
   if (next.vault && !fs.existsSync(next.vault)) next.vault = readSettings().vault
   setMeta('settings', JSON.stringify(next))
   return applySettings(next)
+}
+
+
+/**
+ * Where OpenAI is reached, for the voice.
+ *
+ * The region chosen in the app decides it. `OPENAI_BASE_URL` still wins when it
+ * points somewhere that is neither of OpenAI's own hosts — that is a proxy or a
+ * gateway, and it is set on purpose. Pointing it at the stock global host does
+ * not override the choice, because that is the default sitting in `.env.example`
+ * and it would quietly beat what the person picked on screen.
+ */
+export function openaiBase(): string {
+  const fromEnv = (process.env.OPENAI_BASE_URL ?? '').trim().replace(/\/$/, '')
+  const known = Object.values(REGIONS)
+  if (fromEnv && !known.includes(fromEnv)) return fromEnv
+  return REGIONS[readSettings().region]
 }

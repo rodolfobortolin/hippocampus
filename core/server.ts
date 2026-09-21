@@ -11,7 +11,7 @@ import { rollup } from './rollup.ts'
 import { jevReady } from './jev.ts'
 import { claudeAvailable } from './claude.ts'
 import { vaultReady } from './vault.ts'
-import { readSettings, saveSettings, writeKey, keyState, type KeyName } from './settings.ts'
+import { readSettings, saveSettings, writeKey, keyState, openaiBase, type KeyName } from './settings.ts'
 import { LANGUAGES } from './languages.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
 import { blockedBrowsers, retryDeniedBrowsers } from './sources/browser.ts'
@@ -184,7 +184,7 @@ export function serve(collector?: Collector): http.Server {
         // Without the language hint the model confuses Portuguese with Italian.
         form.append('language', config.lang.split('-')[0])
 
-        const openai = await fetch(`${config.openaiBaseUrl}/audio/transcriptions`, {
+        const openai = await fetch(`${openaiBase()}/audio/transcriptions`, {
           method: 'POST',
           headers: { authorization: `Bearer ${config.openaiKey}` },
           body: form,
@@ -206,7 +206,7 @@ export function serve(collector?: Collector): http.Server {
         const chunks: Buffer[] = []
         for await (const chunk of request) chunks.push(chunk as Buffer)
         const { text, voice } = JSON.parse(Buffer.concat(chunks).toString() || '{}')
-        const speech = await fetch(`${config.openaiBaseUrl}/audio/speech`, {
+        const speech = await fetch(`${openaiBase()}/audio/speech`, {
           method: 'POST',
           headers: { authorization: `Bearer ${config.openaiKey}`, 'content-type': 'application/json' },
           body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: voice ?? config.voice, input: String(text).slice(0, 4000) }),

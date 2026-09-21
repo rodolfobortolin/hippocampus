@@ -16,7 +16,7 @@ import OpenAI from 'openai'
 import { SidebandWS } from 'openai/resources/live/sideband/ws'
 import { config } from './config.ts'
 import { validLanguage, LANGUAGES, type Language } from './languages.ts'
-import { readKey } from './settings.ts'
+import { readKey, openaiBase } from './settings.ts'
 
 const MODEL = process.env.HIPPOCAMPUS_LIVE_MODEL || 'gpt-live-1'
 const DEFAULT_VOICE = 'marin'
@@ -33,7 +33,7 @@ export const liveAvailable = () => Boolean(readKey('openai') || config.openaiKey
 function client() {
   return new OpenAI({
     apiKey: readKey('openai') || config.openaiKey,
-    baseURL: config.openaiBaseUrl || undefined,
+    baseURL: openaiBase(),
   })
 }
 

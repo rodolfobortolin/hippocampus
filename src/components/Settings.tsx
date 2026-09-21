@@ -218,6 +218,21 @@ export function Settings() {
             </p>
           </Field>
 
+          <Field label={t.settings.region} note={t.settings.regionNote}>
+            <div className="languages">
+              <button
+                className={`pill ${settings.region !== 'eu' ? 'active' : ''}`}
+                onClick={() => store({ region: 'global' })}>
+                {t.settings.regionGlobal}
+              </button>
+              <button
+                className={`pill ${settings.region === 'eu' ? 'active' : ''}`}
+                onClick={() => store({ region: 'eu' })}>
+                {t.settings.regionEu}
+              </button>
+            </div>
+          </Field>
+
           {settings.voiceMode === 'live' && (
             <Field label={t.settings.liveVoiceLabel}>
               <select value={settings.liveVoice}

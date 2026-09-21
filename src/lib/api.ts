@@ -72,6 +72,8 @@ export type Settings = {
   /** `push` records and takes turns; `live` opens a real-time session. */
   voiceMode: 'push' | 'live'
   liveVoice: string
+  /** Which OpenAI geography the key belongs to. */
+  region: 'global' | 'eu'
   liveVoices: string[]
   /** False when there is no OpenAI key, which is what the live voice needs. */
   liveAvailable: boolean
