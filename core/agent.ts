@@ -326,6 +326,19 @@ function readable(name: string): string {
   return name
 }
 
+/**
+ * What one streamed event adds to the answer on screen.
+ *
+ * Each block of text is streamed on its own, and nothing separates them: the
+ * short note before a tool ran straight into the answer after it — "I'll pull
+ * the week.Mon 14 → …". A block that follows another starts a paragraph.
+ */
+export function streamedText(event: any, after: boolean): string {
+  if (event?.type === 'content_block_start' && event.content_block?.type === 'text') return after ? '\n\n' : ''
+  const delta = event?.delta
+  return delta?.type === 'text_delta' && delta.text ? delta.text : ''
+}
+
 /** Talks to Claude Code, with the local database as its tools. */
 export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<AgentEvent> {
   // A model that fits the request: jev judges the complexity before it starts.
@@ -372,14 +385,16 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
 
   let final = ''
   let told = false
+  let streamed = false
   try {
     for await (const message of run as any) {
       // The text arrives in pieces; the complete block that follows would
       // repeat all of it, so only its tool use matters.
       if (message.type === 'stream_event') {
-        const delta = message.event?.delta
-        if (delta?.type === 'text_delta' && delta.text) {
-          yield { type: 'delta', text: delta.text }
+        const piece = streamedText(message.event, streamed)
+        if (piece) {
+          streamed ||= piece.trim() !== ''
+          yield { type: 'delta', text: piece }
         }
         continue
       }
