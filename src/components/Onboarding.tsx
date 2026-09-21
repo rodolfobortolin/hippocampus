@@ -19,7 +19,8 @@ import { Badge } from './Icons.tsx'
  * whole walkthrough is one click, and it can be seen again from Settings.
  */
 
-const STEPS = ['welcome', 'you', 'permissions', 'code', 'vault', 'services', 'extras', 'done'] as const
+// The language comes first: it decides the words of every step after it.
+const STEPS = ['you', 'welcome', 'permissions', 'code', 'vault', 'services', 'extras', 'done'] as const
 type Step = typeof STEPS[number]
 
 type Bridge = {
@@ -90,7 +91,6 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
       case 'welcome':
         return (
           <>
-            <div className="onb-mark"><Badge /></div>
             <h1>{o.welcomeTitle}</h1>
             <p className="onb-lead">{o.welcomeLead}</p>
             <div className="onb-points">
@@ -101,21 +101,23 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
           </>
         )
       case 'you':
+        // Picking a language rewrites this very screen in it, and every one after.
         return (
           <>
+            <div className="onb-mark"><Badge /></div>
             <h1>{o.youTitle}</h1>
             <p className="onb-lead">{o.youText}</p>
-            <input className="onb-input" value={name} autoFocus placeholder={t.settings.name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={() => name.trim() && name.trim() !== settings.name && save({ name: name.trim() })} />
             <div className="languages onb-languages">
               {(Object.keys(LANGUAGES) as Language[]).map((code) => (
                 <button key={code} className={`pill ${code === language ? 'active' : ''}`}
-                  onClick={() => save({ language: code })}>
+                  aria-pressed={code === language} onClick={() => save({ language: code })}>
                   <b>{LANGUAGES[code].flag}</b> {LANGUAGES[code].name}
                 </button>
               ))}
             </div>
+            <input className="onb-input" value={name} placeholder={t.settings.name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => name.trim() && name.trim() !== settings.name && save({ name: name.trim() })} />
           </>
         )
       case 'permissions':

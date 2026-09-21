@@ -68,7 +68,8 @@ export const config = {
   // With no configured name, the macOS account name does: the prompt needs
   // someone to address, and "the computer's memory of " is not a sentence.
   userName: env('USER', os.userInfo().username),
-  lang: env('LANG', 'pt-BR'),
+  // English until the person picks: the walkthrough's first question.
+  lang: env('LANG', 'en-US'),
   /** The data directory. Everything lives here and nowhere else. */
   dataDir: env('DATA', carriedOver(support, 'Hipocampo', 'Hippocampus')),
   logDir: carriedOver(logs, 'Hipocampo', 'Hippocampus'),

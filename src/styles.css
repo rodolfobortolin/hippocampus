@@ -758,7 +758,7 @@ button.piece-line:hover { background: var(--panel-high); }
 .onb-key input { width: 180px; }
 .onb-input { width: min(360px, 100%); font-size: 16px; padding: 11px 14px; margin-bottom: 20px; }
 .onb-key input:focus, .onb-input:focus { border-color: rgba(255, 138, 61, 0.5); }
-.onb-languages { margin-bottom: 0; }
+.onb-languages { margin-bottom: 18px; }
 
 .onb-folder { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .onb-folder code {
