@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { config, dayOf } from '../config.ts'
+import { humanText } from '../prompts.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
 import { exists } from '../guard.ts'
@@ -92,7 +93,7 @@ export async function harvestCodexSessions(): Promise<{ turns: number; minutes: 
 
         // A message with role `user` is the human request; `developer` is the system.
         if (payload.type === 'message' && payload.role === 'user') {
-          const request = redact(textOf(payload.content).replace(/\s+/g, ' ').trim())
+          const request = humanText(redact(textOf(payload.content)))
           if (request) {
             insertTurn.run(`codex:${session}:${payload.id ?? event.ordinal}`, ts, dayOf(ts),
               project, session, request.slice(0, 1200), '["codex"]')

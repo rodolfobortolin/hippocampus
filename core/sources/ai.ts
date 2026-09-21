@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { config, dayOf } from '../config.ts'
+import { humanText } from '../prompts.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
 import { exists } from '../guard.ts'
@@ -81,7 +82,7 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
         if (!Number.isFinite(ts)) continue
 
         if (event.type === 'user' && event.origin?.kind === 'human') {
-          const prompt = redact(textOf(event.message?.content).replace(/\s+/g, ' ').trim())
+          const prompt = humanText(redact(textOf(event.message?.content)))
           if (!prompt) continue
           const id = `${session}:${event.uuid}`
           insert.run(id, ts, dayOf(ts), event.cwd ? path.basename(event.cwd) : project, session,

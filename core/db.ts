@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite'
 import { paths } from './config.ts'
+import { humanText } from './prompts.ts'
 
 export const db = new DatabaseSync(paths.db)
 
@@ -254,6 +255,22 @@ export function getMeta(key: string, fallback = ''): string {
 export function setMeta(key: string, value: string): void {
   db.prepare('insert into meta(key, value) values (?, ?) on conflict(key) do update set value = excluded.value')
     .run(key, value)
+}
+
+// Turns an agent's log calls "user" that no person typed — a background task
+// announcing itself, /model's output, the list of plugins — were stored as
+// requests until the harvesters learned to tell them apart (core/prompts.ts).
+// Once, on the rows already here: the machine ones go, the wrapped ones keep
+// the person's words. The logs they came from are still on disk.
+if (getMeta('prompts.human') !== '1') {
+  const drop = db.prepare('delete from ai_turns where id = ?')
+  const keep = db.prepare('update ai_turns set prompt = ? where id = ?')
+  for (const row of db.prepare('select id, prompt from ai_turns').all() as { id: number; prompt: string | null }[]) {
+    const text = humanText(row.prompt)
+    if (text === null) drop.run(row.id)
+    else if (text !== row.prompt) keep.run(text, row.id)
+  }
+  setMeta('prompts.human', '1')
 }
 
 export function all<T = any>(sql: string, ...params: any[]): T[] {
