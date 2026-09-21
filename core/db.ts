@@ -185,6 +185,20 @@ create table if not exists meetings (
 create index if not exists meetings_start on meetings(started_at);
 
 create table if not exists meta (key text primary key, value text);
+
+-- What was written into the person's own notes at the close of a day, so the
+-- app can show it, and so closing the same day twice does not write it twice.
+create table if not exists captures (
+  id integer primary key,
+  day text not null,
+  kind text not null,
+  title text not null,
+  file text not null,
+  created integer not null default 0,
+  at integer not null,
+  unique(day, kind, title)
+);
+create index if not exists captures_day on captures(day);
 `)
 
 // The table's first version had only the minute as its key, which kept two

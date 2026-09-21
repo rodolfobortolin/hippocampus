@@ -10,6 +10,7 @@ import { writeDaySection } from './vault.ts'
 import { HOW_TO_WRITE, VAULT_HEADING, VAULT_LINE, TIMESHEET_HEADING, TIMESHEET_WORDS, validLanguage } from './languages.ts'
 import { PERSONAS } from './personas.ts'
 import { DOSSIER } from './dossier.ts'
+import { curate } from './curator.ts'
 import { timesheet, timesheetTable } from './timesheet.ts'
 import { readSettings, applySettings } from './settings.ts'
 
@@ -147,6 +148,20 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
       report.apps.slice(0, 5).map((a) => `${a.name} ${hours(a.seconds)}`).join(' · '),
     ].join('\n')
     vaultFile = writeDaySection(day, body, VAULT_HEADING[language])
+  }
+
+  // What the day left behind that outlives it, in the person's own notes.
+  // Only a day that was really lived: a couple of minutes at the machine has
+  // nothing durable in it, and asking anyway invents something.
+  if (readSettings().captures && narrative && options.narrate !== false) {
+    try {
+      const kept = await curate(day)
+      if (kept.length) console.log(`[curator] ${day}: ${kept.length} notas guardadas`)
+    } catch (error) {
+      // The journal is written by now; a curator that failed is not a reason
+      // to lose it.
+      console.error('[curator] falhou:', (error as Error).message)
+    }
   }
 
   // On Fridays, for someone who asked for it: the week so far as a draft

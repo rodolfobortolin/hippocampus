@@ -830,3 +830,14 @@ button.piece-line:hover { background: var(--panel-high); }
 .capture .keep:active:not(:disabled) { transform: scale(0.97); }
 .capture .keep:disabled { opacity: 0.32; cursor: default; color: var(--text-mid); border-color: var(--border); }
 @media (prefers-reduced-motion: reduce) { .capture .keep { transition: border-color 0.16s, opacity 0.16s; } }
+
+/* What the close of the day kept: kind, title, and a mark when the note was
+   born tonight. Three columns, so a long title never pushes the mark to a
+   line of its own. */
+.kept { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.kept > div {
+  display: grid; grid-template-columns: 96px 1fr auto; gap: 12px; align-items: baseline; font-size: 13px;
+}
+.kept .of { color: var(--text-dim); font-size: 11.5px; letter-spacing: 0.03em; text-transform: uppercase; }
+.kept .title { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kept .fresh { color: var(--gold); font-size: 11px; }

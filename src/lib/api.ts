@@ -84,6 +84,8 @@ export type NotesView = {
   vault: boolean
 }
 export type Captured = { file: string; created: boolean; section: string | null; error?: string }
+/** A note the close of the day wrote by itself. */
+export type Capture = { kind: NoteKind; title: string; file: string; created: number }
 
 export type Settings = {
   language: 'pt-BR' | 'en-US' | 'es-ES' | 'fr-FR' | 'de-DE'
@@ -106,6 +108,8 @@ export type Settings = {
   wideTools: boolean
   calendar: boolean
   timesheet: boolean
+  /** Whether the close of the day writes the durable notes by itself. */
+  captures: boolean
   /** The folder the repositories live in. */
   codeRoot: string
   /** Whether the first-run walkthrough was finished or skipped. */
@@ -193,6 +197,10 @@ export const api = {
     get<{ narrative: string; recap: string; classified: number }>(
       `/api/rollup?day=${day}&narrate=${narrate ? 1 : 0}`, { method: 'POST' }),
   notes: (kind: NoteKind) => get<NotesView>(`/api/notes?kind=${kind}`),
+  captures: (day: string) => get<{ day: string; captures: Capture[] }>(`/api/captures?day=${day}`),
+  curate: (day: string, again = false) =>
+    get<{ day: string; kept: { kind: NoteKind; title: string; text: string }[]; captures: Capture[] }>(
+      `/api/curate?day=${day}&again=${again ? 1 : 0}`, { method: 'POST' }),
   capture: (body: { kind: NoteKind; title: string; text: string; section?: string }) =>
     get<Captured>('/api/capture', {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),

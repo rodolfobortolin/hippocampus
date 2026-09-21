@@ -105,6 +105,8 @@ export type Strings = {
     save: string; saving: string; goesTo: string; inSection: string; folderIsNew: string
     created: string; appended: string; existing: string; noneYet: string
     noVault: string; noVaultHow: string
+    written: string; writtenNote: string; nothingWritten: string
+    runNow: string; running: string; isNew: string
   }
   journal: {
     title: string; subtitle: string; noDays: string; fillsTomorrow: string
@@ -140,6 +142,7 @@ export type Strings = {
     wideTools: string; wideToolsNote: string; wideToolsOn: string
     calendar: string; calendarNote: string; calendarWaiting: string; calendarGranted: string; calendarDenied: string
     timesheet: string; timesheetNote: string
+    captures: string; capturesNote: string
     codeFolder: string; codeFolderNote: string; introAgain: string
     save: string; saved: string; saving: string; test: string; working: string; failed: string
     agents: string; agentsNote: string; agentsOn: string; agentsOff: string
@@ -328,6 +331,8 @@ const pt: Strings = {
     existing: 'já no cofre', noneYet: 'nenhuma nota deste tipo ainda',
     noVault: 'Sem cofre escolhido, não há onde guardar.',
     noVaultHow: 'Escolha a pasta do Obsidian nos Ajustes.',
+    written: 'guardado no fechamento', writtenNote: 'no fim do dia o app lê o que você pediu e guarda sozinho o que dura mais que o dia',
+    nothingWritten: 'o fechamento deste dia não guardou nada', runNow: 'ler este dia agora', running: 'lendo o dia…', isNew: 'nova',
   },
   journal: {
     title: 'Diário', subtitle: 'o que o computador viu, escrito pelo Claude Code',
@@ -381,6 +386,7 @@ const pt: Strings = {
     wideTools: 'ferramentas ampliadas', wideToolsNote: 'desligado, ele responde só do que foi medido aqui, sem abrir arquivos, rodar comandos nem ir à web', wideToolsOn: 'ligado: ele pode ler arquivos, rodar comandos e buscar na web sem perguntar, e usa os seus servidores MCP',
     calendar: 'reuniões do calendário', calendarNote: 'desligado, nada do Calendário é lido e nenhuma permissão é pedida. Ligado, o ajudante pede acesso uma vez e traz nome e horário das reuniões; desligar apaga o que veio', calendarWaiting: 'ligado — o ajudante pede a permissão em até dez minutos', calendarGranted: 'ligado: nome e horário das reuniões, lidos neste Mac; desligar apaga o que veio', calendarDenied: 'o macOS negou o acesso — autorize o Hippocampus Focus em Ajustes do Sistema → Privacidade e Segurança → Calendários',
     timesheet: 'rascunho de apontamento', timesheetNote: 'para quem cobra por hora: as horas da semana por cliente e ticket, na aba Trabalho e, às sextas, no diário. Um registro para conferir, não uma avaliação',
+    captures: 'guardar notas sozinho', capturesNote: 'no fechamento do dia, o app lê o que você pediu naquele dia e escreve as poucas coisas duráveis nas suas notas de projeto, conhecimento e pessoas. Desligado, a aba Notas fica só para o que você escrever à mão',
     codeFolder: 'pasta de código', codeFolderNote: 'onde ficam os repositórios — commits e branches vêm daqui', introAgain: 'rever a introdução',
     save: 'salvar', saved: 'salvo', saving: 'salvando…', test: 'testar', working: 'funcionando', failed: 'falhou',
     agents: 'medir sozinho, desde o login',
@@ -574,6 +580,8 @@ const en: Strings = {
     existing: 'already in the vault', noneYet: 'nothing of this kind yet',
     noVault: 'With no vault chosen there is nowhere to keep it.',
     noVaultHow: 'Pick the Obsidian folder in Settings.',
+    written: 'kept at the close', writtenNote: 'at the end of the day the app reads what you asked for and keeps, by itself, what outlives the day',
+    nothingWritten: 'the close of this day kept nothing', runNow: 'read this day now', running: 'reading the day…', isNew: 'new',
   },
   journal: {
     title: 'Journal', subtitle: 'what the computer saw, written by Claude Code',
@@ -627,6 +635,7 @@ const en: Strings = {
     wideTools: 'wider tools', wideToolsNote: 'off, it answers only from what was measured here, without opening files, running commands or going to the web', wideToolsOn: 'on: it can read files, run commands and search the web without asking, and it uses your MCP servers',
     calendar: 'calendar meetings', calendarNote: 'off, nothing in Calendar is read and no permission is asked. On, the helper asks once and brings meeting names and times; turning it off deletes what came', calendarWaiting: 'on — the helper asks for permission within ten minutes', calendarGranted: 'on: meeting names and times, read on this Mac; turning it off deletes what came', calendarDenied: 'macOS denied access — allow Hippocampus Focus in System Settings → Privacy & Security → Calendars',
     timesheet: 'timesheet draft', timesheetNote: 'for anyone who bills by the hour: the week\'s hours by client and ticket, in the Work tab and, on Fridays, in the journal. A record to check, not a judgement',
+    captures: 'keep notes on its own', capturesNote: 'at the close of the day the app reads what you asked for and writes the few durable things into your project, knowledge and people notes. Off, the Notes tab is only for what you write by hand',
     codeFolder: 'code folder', codeFolderNote: 'where your repositories live — commits and branches come from here', introAgain: 'see the introduction again',
     save: 'save', saved: 'saved', saving: 'saving…', test: 'test', working: 'working', failed: 'failed',
     agents: 'measure on its own, from login',
@@ -820,6 +829,8 @@ const es: Strings = {
     existing: 'ya en la bóveda', noneYet: 'todavía nada de este tipo',
     noVault: 'Sin bóveda elegida no hay dónde guardarlo.',
     noVaultHow: 'Elige la carpeta de Obsidian en Ajustes.',
+    written: 'guardado al cierre', writtenNote: 'al final del día la app lee lo que pediste y guarda sola lo que dura más que el día',
+    nothingWritten: 'el cierre de este día no guardó nada', runNow: 'leer este día ahora', running: 'leyendo el día…', isNew: 'nueva',
   },
   journal: {
     title: 'Diario', subtitle: 'lo que el ordenador vio, escrito por Claude Code',
@@ -873,6 +884,7 @@ const es: Strings = {
     wideTools: 'herramientas ampliadas', wideToolsNote: 'desactivado, responde solo con lo medido aquí, sin abrir archivos, ejecutar comandos ni ir a la web', wideToolsOn: 'activado: puede leer archivos, ejecutar comandos y buscar en la web sin preguntar, y usa tus servidores MCP',
     calendar: 'reuniones del calendario', calendarNote: 'apagado, no se lee nada del Calendario ni se pide permiso. Encendido, el ayudante pide acceso una vez y trae nombre y hora de las reuniones; apagarlo borra lo que llegó', calendarWaiting: 'encendido — el ayudante pide el permiso en menos de diez minutos', calendarGranted: 'encendido: nombre y hora de las reuniones, leídos en este Mac; apagarlo borra lo que llegó', calendarDenied: 'macOS negó el acceso — autoriza Hippocampus Focus en Ajustes del Sistema → Privacidad y seguridad → Calendarios',
     timesheet: 'borrador de horas', timesheetNote: 'para quien factura por hora: las horas de la semana por cliente y ticket, en la pestaña Trabajo y, los viernes, en el diario. Un registro para revisar, no una evaluación',
+    captures: 'guardar notas solo', capturesNote: 'al cierre del día la app lee lo que pediste y escribe las pocas cosas duraderas en tus notas de proyecto, conocimiento y personas. Apagado, la pestaña Notas queda solo para lo que escribas a mano',
     codeFolder: 'carpeta de código', codeFolderNote: 'donde están tus repositorios: commits y ramas salen de aquí', introAgain: 'ver la introducción otra vez',
     save: 'guardar', saved: 'guardado', saving: 'guardando…', test: 'probar', working: 'funciona', failed: 'falló',
     agents: 'medir solo, desde el inicio de sesión',
@@ -1066,6 +1078,8 @@ const fr: Strings = {
     existing: 'déjà dans le coffre', noneYet: 'rien de ce type pour l’instant',
     noVault: 'Sans coffre choisi, il n’y a nulle part où garder.',
     noVaultHow: 'Choisis le dossier Obsidian dans les Réglages.',
+    written: 'gardé à la clôture', writtenNote: 'en fin de journée l’app lit ce que tu as demandé et garde d’elle-même ce qui dure plus qu’un jour',
+    nothingWritten: 'la clôture de ce jour n’a rien gardé', runNow: 'lire ce jour maintenant', running: 'lecture du jour…', isNew: 'nouvelle',
   },
   journal: {
     title: 'Journal', subtitle: 'ce que l’ordinateur a vu, écrit par Claude Code',
@@ -1119,6 +1133,7 @@ const fr: Strings = {
     wideTools: 'outils élargis', wideToolsNote: 'désactivé, il répond seulement avec ce qui a été mesuré ici, sans ouvrir de fichiers, lancer de commandes ni aller sur le web', wideToolsOn: 'activé : il peut lire des fichiers, lancer des commandes et chercher sur le web sans demander, et il utilise tes serveurs MCP',
     calendar: 'réunions du calendrier', calendarNote: 'désactivé, rien n’est lu dans Calendrier et aucune autorisation n’est demandée. Activé, l’assistant demande l’accès une fois et apporte le nom et l’heure des réunions ; le désactiver efface ce qui est venu', calendarWaiting: 'activé — l’assistant demande l’autorisation d’ici dix minutes', calendarGranted: 'activé : nom et heure des réunions, lus sur ce Mac ; le désactiver efface ce qui est venu', calendarDenied: 'macOS a refusé l’accès — autorise Hippocampus Focus dans Réglages Système → Confidentialité et sécurité → Calendriers',
     timesheet: 'brouillon de feuille de temps', timesheetNote: 'pour qui facture à l’heure : les heures de la semaine par client et ticket, dans l’onglet Travail et, le vendredi, dans le journal. Un relevé à vérifier, pas un jugement',
+    captures: 'garder des notes tout seul', capturesNote: 'à la clôture du jour, l’app lit ce que tu as demandé et écrit les rares choses durables dans tes notes de projet, de connaissance et de personnes. Désactivé, l’onglet Notes ne garde que ce que tu écris toi-même',
     codeFolder: 'dossier du code', codeFolderNote: 'là où sont tes dépôts — les commits et les branches viennent d’ici', introAgain: 'revoir l’introduction',
     save: 'enregistrer', saved: 'enregistré', saving: 'enregistrement…', test: 'tester', working: 'fonctionne', failed: 'a échoué',
     agents: 'mesurer tout seul, dès l’ouverture de session',
@@ -1312,6 +1327,8 @@ const de: Strings = {
     existing: 'schon im Tresor', noneYet: 'noch nichts dieser Art',
     noVault: 'Ohne gewählten Tresor gibt es keinen Ort dafür.',
     noVaultHow: 'Wähle den Obsidian-Ordner in den Einstellungen.',
+    written: 'beim Tagesabschluss behalten', writtenNote: 'am Tagesende liest die App, was du verlangt hast, und behält von selbst, was länger bleibt',
+    nothingWritten: 'der Abschluss dieses Tages hat nichts behalten', runNow: 'diesen Tag jetzt lesen', running: 'der Tag wird gelesen…', isNew: 'neu',
   },
   journal: {
     title: 'Tagebuch', subtitle: 'was der Rechner gesehen hat, geschrieben von Claude Code',
@@ -1365,6 +1382,7 @@ const de: Strings = {
     wideTools: 'erweiterte Werkzeuge', wideToolsNote: 'aus antwortet er nur aus dem hier Gemessenen, ohne Dateien zu öffnen, Befehle auszuführen oder ins Web zu gehen', wideToolsOn: 'an: er darf Dateien lesen, Befehle ausführen und im Web suchen, ohne zu fragen, und nutzt deine MCP-Server',
     calendar: 'Kalendertermine', calendarNote: 'aus, wird nichts aus dem Kalender gelesen und keine Berechtigung erfragt. An, fragt der Helfer einmal und bringt Namen und Zeiten der Termine; ausschalten löscht, was kam', calendarWaiting: 'an — der Helfer fragt innerhalb von zehn Minuten nach der Berechtigung', calendarGranted: 'an: Namen und Zeiten der Termine, auf diesem Mac gelesen; ausschalten löscht, was kam', calendarDenied: 'macOS hat den Zugriff verweigert — erlaube Hippocampus Focus in Systemeinstellungen → Datenschutz & Sicherheit → Kalender',
     timesheet: 'Entwurf der Zeiterfassung', timesheetNote: 'für alle, die nach Stunden abrechnen: die Stunden der Woche nach Kunde und Ticket, im Tab Arbeit und freitags im Tagebuch. Eine Aufzeichnung zum Prüfen, keine Bewertung',
+    captures: 'Notizen selbst behalten', capturesNote: 'beim Tagesabschluss liest die App, was du verlangt hast, und schreibt das Wenige, das bleibt, in deine Projekt-, Wissens- und Personennotizen. Aus bleibt der Reiter Notizen dem vorbehalten, was du selbst schreibst',
     codeFolder: 'Code-Ordner', codeFolderNote: 'wo deine Repositories liegen — Commits und Branches kommen von hier', introAgain: 'Einführung noch einmal',
     save: 'speichern', saved: 'gespeichert', saving: 'speichert…', test: 'testen', working: 'funktioniert', failed: 'fehlgeschlagen',
     agents: 'von der Anmeldung an selbst messen',

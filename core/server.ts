@@ -12,6 +12,7 @@ import { jevReady } from './jev.ts'
 import { claudeAvailable } from './claude.ts'
 import { vaultReady } from './vault.ts'
 import { capture, listNotes, noteFolders, NOTE_KINDS } from './notes.ts'
+import { curate, capturesOf } from './curator.ts'
 import { readSettings, saveSettings, writeKey, keyState, openaiBase, type KeyName } from './settings.ts'
 import { LANGUAGES } from './languages.ts'
 import { workItems, itemDetail } from './items.ts'
@@ -198,6 +199,20 @@ export function serve(collector?: Collector): http.Server {
       if (route === '/api/notes') {
         const kind = NOTE_KINDS.find((k) => k === query.get('kind')) ?? 'project'
         return json(response, { kind, folders: noteFolders(), titles: listNotes(kind), vault: vaultReady() })
+      }
+
+      // What the close of the day wrote into the person's own notes, and the
+      // same thing asked for by hand — for a day that closed before this
+      // existed, or one they want rewritten.
+      if (route === '/api/captures') {
+        const day = query.get('day') ?? dayOf(Date.now() / 1000 - 86_400)
+        return json(response, { day, captures: capturesOf(day) })
+      }
+
+      if (route === '/api/curate' && request.method === 'POST') {
+        const day = query.get('day') ?? dayOf(Date.now() / 1000 - 86_400)
+        const kept = await curate(day, { again: query.get('again') === '1' })
+        return json(response, { day, kept, captures: capturesOf(day) })
       }
 
       if (route === '/api/capture' && request.method === 'POST') {

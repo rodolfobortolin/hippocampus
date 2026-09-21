@@ -316,9 +316,12 @@ export function capture(input: Capture): Captured {
   const front = FRONT[lang]
   const born = template(input.kind, title, day)
     ?? `---\n${front.type}: ${TEMPLATES[lang][input.kind].toLowerCase()}\n${front.created}: ${day}\n---\n\n# ${title}\n`
-  // A new note goes into the section the template already opens, when it has
-  // one, so the text is not stranded above the shape of the note.
-  const heading = known.length ? sectionIn(born, known) ?? /^##\s+(\S.*)$/m.exec(born)?.[1]?.trim() ?? mine : null
+  // A new note goes into the first section its template opens — a knowledge
+  // template that starts with "Summary" and then "Details" wants the first
+  // line in the summary, not three headings below it, leaving the top empty.
+  const heading = known.length
+    ? /^##\s+(\S.*)$/m.exec(born)?.[1]?.trim() ?? sectionIn(born, known) ?? mine
+    : null
   const line = heading && DATED.has(normal(heading)) ? `- **${day}** — ${text}` : text
   fs.writeFileSync(file, heading ? appendUnder(born, heading, line) : `${born.trimEnd()}\n\n${text}\n`)
   return { file, created: true, section: heading }

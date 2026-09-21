@@ -75,6 +75,12 @@ export type Settings = {
    */
   calendar: boolean
   /**
+   * Whether the close of the day also writes the durable notes — project,
+   * knowledge, person — into the vault, the way the journal is written.
+   * Off leaves the Notes tab to the person's own hand.
+   */
+  captures: boolean
+  /**
    * Whether the week's hours are drafted by client and piece of work — for
    * someone who bills by the hour. For anyone else a timesheet reads as
    * surveillance, so it stays off until asked for.
@@ -178,6 +184,7 @@ const DEFAULTS: Settings = {
   caption: true,
   wideTools: false,
   calendar: false,
+  captures: true,
   timesheet: false,
   codeRoot: config.codeRoot,
   onboarded: false,
@@ -225,6 +232,7 @@ export function readSettings(): Settings {
       caption: data.caption !== false,
       wideTools: data.wideTools === true,
       calendar: data.calendar === true,
+      captures: data.captures !== false,
       timesheet: data.timesheet === true,
       codeRoot: String(data.codeRoot ?? '').trim() || DEFAULTS.codeRoot,
       onboarded: data.onboarded === true,

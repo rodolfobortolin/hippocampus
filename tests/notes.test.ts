@@ -100,6 +100,19 @@ test('a new note is born from the vault template, filled in', () => {
   assert.ok(text.indexOf('nasceu hoje') < text.indexOf('## Links'), 'it lands in the first section')
 })
 
+test('a new note fills the first section its template opens', () => {
+  const root = vault()
+  config.lang = 'pt-BR'
+  fs.mkdirSync(path.join(root, '90 Templates'))
+  fs.writeFileSync(path.join(root, '90 Templates', 'Conhecimento.md'),
+    '---\ntipo: conhecimento\n---\n\n# {{title}}\n\n## Resumo\n\n## Detalhes\n\n## Links\n')
+
+  const saved = capture({ kind: 'knowledge', title: 'Chaveiro corta em 128', text: 'security -w trunca o segredo', day: '2026-09-21' })
+  assert.equal(saved.section, 'Resumo')
+  const text = read(saved.file)
+  assert.ok(text.indexOf('security -w') < text.indexOf('## Detalhes'), 'the summary is not left empty')
+})
+
 test('a capture never lands inside the block the journal owns', () => {
   const root = vault()
   config.lang = 'pt-BR'

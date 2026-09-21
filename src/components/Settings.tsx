@@ -290,6 +290,13 @@ export function Settings() {
             </button>
           </Field>
 
+          <Field label={t.settings.captures} note={t.settings.capturesNote}>
+            <button className={`switch ${settings.captures ? 'active' : ''}`}
+              onClick={() => store({ captures: !settings.captures })}>
+              <i />
+            </button>
+          </Field>
+
           <Field label={t.settings.keepTyping} note={t.settings.keepTypingNote}>
             <button className={`switch ${settings.keepTyping ? 'active' : ''}`}
               onClick={() => store({ keepTyping: !settings.keepTyping })}>

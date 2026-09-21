@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, type Captured, type NoteKind, type NotesView } from '../lib/api.ts'
+import { api, type Capture, type Captured, type NoteKind, type NotesView } from '../lib/api.ts'
 import { useLanguage } from '../lib/language.tsx'
 
 const KINDS: NoteKind[] = ['project', 'knowledge', 'person', 'area', 'inbox']
@@ -22,9 +22,32 @@ export function Notes() {
   const [saved, setSaved] = useState<Captured | null>(null)
   const [error, setError] = useState('')
   const writing = useRef<HTMLTextAreaElement>(null)
+  const [written, setWritten] = useState<Capture[]>([])
+  const [reading, setReading] = useState(false)
+
+  // Yesterday: the last day that closed, and so the last one the curator read.
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
 
   const load = (which: NoteKind) => api.notes(which).then(setView).catch((e) => setError(e.message))
   useEffect(() => { load(kind) }, [kind])
+  useEffect(() => {
+    api.captures(yesterday).then((r) => setWritten(r.captures)).catch(() => setWritten([]))
+  }, [])
+
+  // Reading a day that closed before this existed, or one worth rereading.
+  const readDay = async () => {
+    setReading(true)
+    setError('')
+    try {
+      const result = await api.curate(yesterday, true)
+      setWritten(result.captures)
+      await load(kind)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setReading(false)
+    }
+  }
 
   const folder = view?.folders.find((f) => f.kind === kind)
   const known = view?.titles ?? []
@@ -127,6 +150,33 @@ export function Notes() {
                 <code>{saved.file.split('/').slice(-2).join('/')}</code>
                 {saved.section && <> · {t.notes.inSection} <b>{saved.section}</b></>}
               </p>
+            )}
+          </div>
+
+          {/* What the close of the day kept on its own. This is the half that
+              does not depend on anyone remembering to write. */}
+          <div className="panel">
+            <h3>
+              {t.notes.written} <em>{yesterday}</em>
+            </h3>
+            <p className="note" style={{ marginTop: 6 }}>{t.notes.writtenNote}</p>
+            {written.length === 0 ? (
+              <div className="capture-foot" style={{ marginTop: 12 }}>
+                <span className="note" style={{ margin: 0 }}>{t.notes.nothingWritten}</span>
+                <button className="keep" onClick={() => void readDay()} disabled={reading}>
+                  {reading ? t.notes.running : t.notes.runNow}
+                </button>
+              </div>
+            ) : (
+              <div className="kept">
+                {written.map((note) => (
+                  <div key={`${note.kind}-${note.title}`}>
+                    <span className="of">{t.notes.kinds[note.kind]}</span>
+                    <span className="title" title={note.title}>{note.title}</span>
+                    <span className="fresh">{note.created === 1 ? t.notes.isNew : ''}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
