@@ -161,7 +161,11 @@ export async function harvestClaudeSessions(): Promise<{ turns: number }> {
         if (state.open && state.last && ts - state.last <= LONGEST_STEP) {
           for (let m = Math.floor(state.last / 60) + 1; m < minute; m++) markMinute.run(m, dayOf(m * 60), where)
         }
-        if (state.open || event.type === 'assistant') markMinute.run(minute, dayOf(ts), where)
+        // A question opens the turn in its own minute: an answer that only
+        // starts in the next minute used to leave the minute of the asking out.
+        const asks = event.type === 'user' && !state.open
+          && !/^\s*\[Request interrupted/.test(textOf(event.message?.content))
+        if (state.open || event.type === 'assistant' || asks) markMinute.run(minute, dayOf(ts), where)
         state.last = ts
         if (event.type === 'user') {
           // Stopped by the person: nothing is being worked on until the next question.

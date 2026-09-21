@@ -87,3 +87,13 @@ test('a turn that spans two readings is filled across them', async () => {
   await harvestClaudeSessions()
   assert.deepEqual(minutes('ledger'), ['13:00', '13:01', '13:02', '13:03'])
 })
+
+test('the minute a question is asked is the agent’s, even when the answer starts in the next', async () => {
+  const cwd = '/work/quay'
+  session('-work-quay', 's8', [
+    human('17:00:40', 'rename the column', cwd),
+    assistant('17:01:10', 'end_turn', cwd),
+  ])
+  await harvestClaudeSessions()
+  assert.deepEqual(minutes('quay'), ['17:00', '17:01'])
+})

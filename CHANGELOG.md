@@ -6,6 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The minute a question is asked counts as the agent's, even when the answer
+  only starts in the next one.
+
 - The trend in Rhythm says what it is drawing, and lets you change it: active
   time, work delegated to agents, app switches or commits, each per day. Under
   the title, where it is going — "rising 18%, the second half of the period
