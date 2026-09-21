@@ -1,0 +1,8 @@
+# Copied into the app as Resources/app-update.yml (see electron-builder.yml).
+# electron-updater will not download an update without it, and electron-builder
+# only writes it for installer targets — this app is packed as a folder and
+# made into a .dmg and a zip afterwards, by scripts/notarize.sh.
+provider: github
+owner: rodolfobortolin
+repo: hippocampus
+updaterCacheDirName: hippocampus-updater

@@ -69,10 +69,29 @@ function startUpdates() {
     console.warn('[update] electron-updater is missing:', error.message)
     return
   }
+  // The updater reads app-update.yml from the bundle before it downloads
+  // anything, feed or no feed. A build that lacks it — v0.3.0 did — gets one
+  // written beside its data instead, so it can still reach the fix.
+  const bundled = path.join(process.resourcesPath, 'app-update.yml')
+  if (!fs.existsSync(bundled)) {
+    const own = path.join(app.getPath('userData'), 'app-update.yml')
+    try {
+      fs.writeFileSync(own, `provider: github\nowner: ${UPDATES.owner}\nrepo: ${UPDATES.repo}\nupdaterCacheDirName: hippocampus-updater\n`)
+      autoUpdater.updateConfigPath = own
+    } catch (error) {
+      console.warn('[update] could not write app-update.yml:', error.message)
+    }
+  }
   autoUpdater.setFeedURL({ provider: 'github', ...UPDATES })
-  autoUpdater.autoDownload = true
+  // Downloaded by hand rather than automatically: the automatic download is a
+  // promise nobody holds, and its failures surfaced as unhandled rejections.
+  autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.logger = null
+  autoUpdater.on('update-available', (info) => {
+    console.log(`[update] ${info.version} available; downloading`)
+    autoUpdater.downloadUpdate().catch((error) => console.warn('[update] download failed:', String(error?.message ?? error)))
+  })
   autoUpdater.on('update-downloaded', (info) => {
     updateReady = info.version
     console.log(`[update] ${info.version} downloaded; it installs on restart`)

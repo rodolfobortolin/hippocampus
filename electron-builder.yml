@@ -26,6 +26,13 @@ files:
 # They must not be re-signed here: the Accessibility grant binds to their
 # identity, and macOS treats "same Developer ID" as the same thing.
 extraResources:
+  # Where updates come from. electron-updater will not download an update
+  # without Resources/app-update.yml, even with the feed set in code, and
+  # electron-builder only writes that file for installer targets; this app is
+  # packed as a folder and made into a .dmg and a zip by scripts/notarize.sh.
+  # v0.3.0 went out without it, and no copy of it could update itself.
+  - from: build/app-update.yml
+    to: app-update.yml
   - from: native
     to: native
     filter:

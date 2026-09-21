@@ -76,3 +76,20 @@ test('the website names the version from package.json, never a number of its own
   assert.match(page, /releases\/tag\/v%VERSION%/)
   assert.match(read('site/vite.config.ts'), /replaceAll\('%VERSION%', version\)/)
 })
+
+test('the app carries the update config, for the same repository it checks', () => {
+  // electron-updater will not download without Resources/app-update.yml, and
+  // electron-builder does not write it for a folder build. v0.3.0 went out
+  // without one and no copy of it could update itself.
+  assert.match(read('electron-builder.yml'), /- from: build\/app-update\.yml\s*\n\s*to: app-update\.yml/,
+    'the bundle carries build/app-update.yml as Resources/app-update.yml')
+  const config = read('build/app-update.yml')
+  const owner = /owner: (\S+)/.exec(config)?.[1]
+  const repo = /repo: (\S+)/.exec(config)?.[1]
+  assert.ok(owner && repo)
+  assert.match(read('app/main.cjs'), new RegExp(`const UPDATES = \\{ owner: '${owner}', repo: '${repo}' \\}`),
+    'the app checks the same repository its update config names')
+  // Nothing is ever published by the packager: releases are uploaded by hand,
+  // after the app is notarized in the right order.
+  assert.match(JSON.parse(read('package.json')).scripts.dist, /--publish never/)
+})
