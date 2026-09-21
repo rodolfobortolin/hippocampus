@@ -17,7 +17,7 @@ export { LANGUAGES, type Language }
  * ficar pela metade sem ninguém perceber.
  */
 export type Strings = {
-  tabs: { today: string; rhythm: string; work: string; journal: string; chat: string; settings: string }
+  tabs: { today: string; rhythm: string; work: string; notes: string; journal: string; chat: string; settings: string }
   status: {
     brand: string
     /** Por que uma fonte de dados não está coletando. */
@@ -97,6 +97,15 @@ export type Strings = {
     extrasTitle: string
     doneTitle: string; doneText: string; nowInFocus: string; noSampleYet: string
   }
+  notes: {
+    title: string; subtitle: string
+    kinds: Record<'project' | 'knowledge' | 'person' | 'area' | 'inbox', string>
+    hints: Record<'project' | 'knowledge' | 'person' | 'area' | 'inbox', string>
+    titleField: string; titlePlaceholder: string; textPlaceholder: string
+    save: string; saving: string; goesTo: string; inSection: string; folderIsNew: string
+    created: string; appended: string; existing: string; noneYet: string
+    noVault: string; noVaultHow: string
+  }
   journal: {
     title: string; subtitle: string; noDays: string; fillsTomorrow: string
     notWritten: string; notWrittenYet: string; writeThisDay: string; writing: string
@@ -153,7 +162,7 @@ export type Strings = {
 }
 
 const pt: Strings = {
-  tabs: { today: 'Hoje', rhythm: 'Ritmo', work: 'Trabalho', journal: 'Diário', chat: 'Conversa', settings: 'Ajustes' },
+  tabs: { today: 'Hoje', rhythm: 'Ritmo', work: 'Trabalho', notes: 'Notas', journal: 'Diário', chat: 'Conversa', settings: 'Ajustes' },
   status: {
     brand: 'memória da máquina',
     source: { 'awaiting-permission': 'esperando você permitir', 'no-permission': 'sem permissão', never: 'ainda não tentou' },
@@ -301,6 +310,25 @@ const pt: Strings = {
     nowInFocus: 'em foco agora',
     noSampleYet: 'esperando a primeira amostra…',
   },
+  notes: {
+    title: 'Notas', subtitle: 'o que merece durar mais que um dia',
+    kinds: { project: 'Projeto', knowledge: 'Conhecimento', person: 'Pessoa', area: 'Área', inbox: 'Inbox' },
+    hints: {
+      project: 'algo em andamento, com começo e fim',
+      knowledge: 'uma solução, um aprendizado, algo que você vai querer de novo',
+      person: 'quem trabalha com você, e o que ficou combinado',
+      area: 'o que não acaba: saúde, finanças, uma responsabilidade contínua',
+      inbox: 'uma ideia solta, para organizar depois',
+    },
+    titleField: 'Título', titlePlaceholder: 'o nome da nota, como você a procuraria',
+    textPlaceholder: 'o que aconteceu, o que você decidiu, o que aprendeu…',
+    save: 'guardar', saving: 'guardando…',
+    goesTo: 'vai para', inSection: 'na seção', folderIsNew: 'a pasta é criada agora, nesta primeira nota',
+    created: 'nota criada em', appended: 'linha acrescentada em',
+    existing: 'já no cofre', noneYet: 'nenhuma nota deste tipo ainda',
+    noVault: 'Sem cofre escolhido, não há onde guardar.',
+    noVaultHow: 'Escolha a pasta do Obsidian nos Ajustes.',
+  },
   journal: {
     title: 'Diário', subtitle: 'o que o computador viu, escrito pelo Claude Code',
     noDays: 'Nenhum dia medido ainda.', fillsTomorrow: 'Amanhã de manhã esta lista começa a encher sozinha.',
@@ -380,7 +408,7 @@ const pt: Strings = {
 }
 
 const en: Strings = {
-  tabs: { today: 'Today', rhythm: 'Rhythm', work: 'Work', journal: 'Journal', chat: 'Chat', settings: 'Settings' },
+  tabs: { today: 'Today', rhythm: 'Rhythm', work: 'Work', notes: 'Notes', journal: 'Journal', chat: 'Chat', settings: 'Settings' },
   status: {
     brand: 'the machine’s memory',
     source: { 'awaiting-permission': 'waiting for you to allow it', 'no-permission': 'no permission', never: 'not tried yet' },
@@ -528,6 +556,25 @@ const en: Strings = {
     nowInFocus: 'in focus now',
     noSampleYet: 'waiting for the first sample…',
   },
+  notes: {
+    title: 'Notes', subtitle: 'what deserves to outlive the day',
+    kinds: { project: 'Project', knowledge: 'Knowledge', person: 'Person', area: 'Area', inbox: 'Inbox' },
+    hints: {
+      project: 'something under way, with a beginning and an end',
+      knowledge: 'a solution, a lesson, something you will want again',
+      person: 'who you work with, and what was agreed',
+      area: 'what never ends: health, money, a standing responsibility',
+      inbox: 'a loose thought, to sort out later',
+    },
+    titleField: 'Title', titlePlaceholder: 'the note’s name, the way you would look for it',
+    textPlaceholder: 'what happened, what you decided, what you learned…',
+    save: 'keep', saving: 'keeping…',
+    goesTo: 'goes to', inSection: 'in section', folderIsNew: 'the folder is created now, with this first note',
+    created: 'note created at', appended: 'line added to',
+    existing: 'already in the vault', noneYet: 'nothing of this kind yet',
+    noVault: 'With no vault chosen there is nowhere to keep it.',
+    noVaultHow: 'Pick the Obsidian folder in Settings.',
+  },
   journal: {
     title: 'Journal', subtitle: 'what the computer saw, written by Claude Code',
     noDays: 'No days measured yet.', fillsTomorrow: 'Tomorrow morning this list starts filling on its own.',
@@ -607,7 +654,7 @@ const en: Strings = {
 }
 
 const es: Strings = {
-  tabs: { today: 'Hoy', rhythm: 'Ritmo', work: 'Trabajo', journal: 'Diario', chat: 'Conversación', settings: 'Ajustes' },
+  tabs: { today: 'Hoy', rhythm: 'Ritmo', work: 'Trabajo', notes: 'Notas', journal: 'Diario', chat: 'Conversación', settings: 'Ajustes' },
   status: {
     brand: 'la memoria de la máquina',
     source: { 'awaiting-permission': 'esperando que lo permitas', 'no-permission': 'sin permiso', never: 'aún no lo intentó' },
@@ -755,6 +802,25 @@ const es: Strings = {
     nowInFocus: 'en foco ahora',
     noSampleYet: 'esperando la primera muestra…',
   },
+  notes: {
+    title: 'Notas', subtitle: 'lo que merece durar más que un día',
+    kinds: { project: 'Proyecto', knowledge: 'Conocimiento', person: 'Persona', area: 'Área', inbox: 'Entrada' },
+    hints: {
+      project: 'algo en marcha, con principio y final',
+      knowledge: 'una solución, un aprendizaje, algo que querrás de nuevo',
+      person: 'con quién trabajas y qué quedó acordado',
+      area: 'lo que no termina: salud, dinero, una responsabilidad continua',
+      inbox: 'una idea suelta, para ordenar después',
+    },
+    titleField: 'Título', titlePlaceholder: 'el nombre de la nota, como la buscarías',
+    textPlaceholder: 'qué pasó, qué decidiste, qué aprendiste…',
+    save: 'guardar', saving: 'guardando…',
+    goesTo: 'va a', inSection: 'en la sección', folderIsNew: 'la carpeta se crea ahora, con esta primera nota',
+    created: 'nota creada en', appended: 'línea añadida en',
+    existing: 'ya en la bóveda', noneYet: 'todavía nada de este tipo',
+    noVault: 'Sin bóveda elegida no hay dónde guardarlo.',
+    noVaultHow: 'Elige la carpeta de Obsidian en Ajustes.',
+  },
   journal: {
     title: 'Diario', subtitle: 'lo que el ordenador vio, escrito por Claude Code',
     noDays: 'Ningún día medido todavía.', fillsTomorrow: 'Mañana por la mañana esta lista empieza a llenarse sola.',
@@ -834,7 +900,7 @@ const es: Strings = {
 }
 
 const fr: Strings = {
-  tabs: { today: 'Aujourd’hui', rhythm: 'Rythme', work: 'Travail', journal: 'Journal', chat: 'Conversation', settings: 'Réglages' },
+  tabs: { today: 'Aujourd’hui', rhythm: 'Rythme', work: 'Travail', notes: 'Notes', journal: 'Journal', chat: 'Conversation', settings: 'Réglages' },
   status: {
     brand: 'la mémoire de la machine',
     source: { 'awaiting-permission': 'en attente de ton autorisation', 'no-permission': 'sans autorisation', never: 'pas encore tenté' },
@@ -982,6 +1048,25 @@ const fr: Strings = {
     nowInFocus: 'au premier plan',
     noSampleYet: 'en attente du premier échantillon…',
   },
+  notes: {
+    title: 'Notes', subtitle: 'ce qui mérite de durer plus qu’un jour',
+    kinds: { project: 'Projet', knowledge: 'Connaissance', person: 'Personne', area: 'Domaine', inbox: 'Boîte' },
+    hints: {
+      project: 'quelque chose en cours, avec un début et une fin',
+      knowledge: 'une solution, un apprentissage, ce que tu voudras retrouver',
+      person: 'avec qui tu travailles, et ce qui a été convenu',
+      area: 'ce qui ne finit pas : santé, argent, une responsabilité continue',
+      inbox: 'une idée en vrac, à ranger plus tard',
+    },
+    titleField: 'Titre', titlePlaceholder: 'le nom de la note, tel que tu la chercherais',
+    textPlaceholder: 'ce qui s’est passé, ce que tu as décidé, ce que tu as appris…',
+    save: 'garder', saving: 'enregistrement…',
+    goesTo: 'va dans', inSection: 'section', folderIsNew: 'le dossier est créé maintenant, avec cette première note',
+    created: 'note créée dans', appended: 'ligne ajoutée dans',
+    existing: 'déjà dans le coffre', noneYet: 'rien de ce type pour l’instant',
+    noVault: 'Sans coffre choisi, il n’y a nulle part où garder.',
+    noVaultHow: 'Choisis le dossier Obsidian dans les Réglages.',
+  },
   journal: {
     title: 'Journal', subtitle: 'ce que l’ordinateur a vu, écrit par Claude Code',
     noDays: 'Aucun jour mesuré pour l’instant.', fillsTomorrow: 'Demain matin cette liste commence à se remplir toute seule.',
@@ -1061,7 +1146,7 @@ const fr: Strings = {
 }
 
 const de: Strings = {
-  tabs: { today: 'Heute', rhythm: 'Rhythmus', work: 'Arbeit', journal: 'Tagebuch', chat: 'Gespräch', settings: 'Einstellungen' },
+  tabs: { today: 'Heute', rhythm: 'Rhythmus', work: 'Arbeit', notes: 'Notizen', journal: 'Tagebuch', chat: 'Gespräch', settings: 'Einstellungen' },
   status: {
     brand: 'das Gedächtnis der Maschine',
     source: { 'awaiting-permission': 'wartet auf deine Erlaubnis', 'no-permission': 'keine Berechtigung', never: 'noch nicht versucht' },
@@ -1208,6 +1293,25 @@ const de: Strings = {
     doneText: 'Das sieht es gerade. Die ersten Diagramme erscheinen innerhalb der Stunde.',
     nowInFocus: 'gerade im Fokus',
     noSampleYet: 'wartet auf die erste Messung…',
+  },
+  notes: {
+    title: 'Notizen', subtitle: 'was länger als einen Tag bleiben soll',
+    kinds: { project: 'Projekt', knowledge: 'Wissen', person: 'Person', area: 'Bereich', inbox: 'Eingang' },
+    hints: {
+      project: 'etwas Laufendes, mit Anfang und Ende',
+      knowledge: 'eine Lösung, eine Erkenntnis, etwas, das du wieder brauchst',
+      person: 'mit wem du arbeitest und was vereinbart wurde',
+      area: 'was nie endet: Gesundheit, Geld, eine dauernde Verantwortung',
+      inbox: 'ein loser Gedanke, später zu sortieren',
+    },
+    titleField: 'Titel', titlePlaceholder: 'der Name der Notiz, so wie du sie suchen würdest',
+    textPlaceholder: 'was passiert ist, was du entschieden hast, was du gelernt hast…',
+    save: 'behalten', saving: 'wird gespeichert…',
+    goesTo: 'geht nach', inSection: 'im Abschnitt', folderIsNew: 'der Ordner entsteht jetzt, mit dieser ersten Notiz',
+    created: 'Notiz angelegt in', appended: 'Zeile ergänzt in',
+    existing: 'schon im Tresor', noneYet: 'noch nichts dieser Art',
+    noVault: 'Ohne gewählten Tresor gibt es keinen Ort dafür.',
+    noVaultHow: 'Wähle den Obsidian-Ordner in den Einstellungen.',
   },
   journal: {
     title: 'Tagebuch', subtitle: 'was der Rechner gesehen hat, geschrieben von Claude Code',

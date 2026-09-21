@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { heatmap, periodSummary } from '../core/metrics.ts'
-import { today } from '../core/config.ts'
+import { dayOf } from '../core/config.ts'
 
 /**
  * Clicking a cell of the heatmap narrows the charts below it to that slot.
@@ -13,8 +13,13 @@ import { today } from '../core/config.ts'
  * something else — and nothing on screen would say so.
  *
  * So every cell is checked against the filter, not a sample of them.
+ *
+ * The period ends yesterday on purpose. Reading up to today means reading a
+ * day the collector is still writing: the map was built, a four-second sample
+ * landed, and the filter then counted four seconds more — a failure that says
+ * nothing about the code and only appears on the machine that is measuring.
  */
-const to = today()
+const to = dayOf(Date.now() / 1000 - 86_400)
 const from = new Date(Date.parse(`${to}T12:00:00`) - 89 * 86_400_000).toISOString().slice(0, 10)
 
 test('every cell of the map is exactly what the filter adds up for it', () => {

@@ -4,15 +4,16 @@ import { useLanguage } from './lib/language.tsx'
 import { Today } from './components/Today.tsx'
 import { Rhythm } from './components/Rhythm.tsx'
 import { Work } from './components/Work.tsx'
+import { Notes } from './components/Notes.tsx'
 import { Journal } from './components/Journal.tsx'
 import { Chat } from './components/Chat.tsx'
 import { Settings } from './components/Settings.tsx'
 import { Onboarding } from './components/Onboarding.tsx'
 import {
-  Badge, IconToday, IconRhythm, IconWork, IconJournal, IconChat, IconSettings,
+  Badge, IconToday, IconRhythm, IconWork, IconNotes, IconJournal, IconChat, IconSettings,
 } from './components/Icons.tsx'
 
-type Tab = 'today' | 'rhythm' | 'work' | 'journal' | 'chat' | 'settings'
+type Tab = 'today' | 'rhythm' | 'work' | 'notes' | 'journal' | 'chat' | 'settings'
 
 export function App() {
   const { t, settings } = useLanguage()
@@ -31,6 +32,7 @@ export function App() {
     { id: 'today', name: t.tabs.today, Icon: IconToday },
     { id: 'rhythm', name: t.tabs.rhythm, Icon: IconRhythm },
     { id: 'work', name: t.tabs.work, Icon: IconWork },
+    { id: 'notes', name: t.tabs.notes, Icon: IconNotes },
     { id: 'journal', name: t.tabs.journal, Icon: IconJournal },
     { id: 'chat', name: t.tabs.chat, Icon: IconChat },
     { id: 'settings', name: t.tabs.settings, Icon: IconSettings },
@@ -123,6 +125,7 @@ export function App() {
         ) : tab === 'today' ? <Today status={status} />
           : tab === 'rhythm' ? <Rhythm />
           : tab === 'work' ? <Work />
+          : tab === 'notes' ? <Notes />
           : tab === 'journal' ? <Journal status={status} />
           : tab === 'settings' ? <Settings />
           : <Chat status={status} />}

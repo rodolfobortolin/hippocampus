@@ -11,6 +11,7 @@ import { rollup } from './rollup.ts'
 import { jevReady } from './jev.ts'
 import { claudeAvailable } from './claude.ts'
 import { vaultReady } from './vault.ts'
+import { capture, listNotes, noteFolders, NOTE_KINDS } from './notes.ts'
 import { readSettings, saveSettings, writeKey, keyState, openaiBase, type KeyName } from './settings.ts'
 import { LANGUAGES } from './languages.ts'
 import { workItems, itemDetail } from './items.ts'
@@ -190,6 +191,33 @@ export function serve(collector?: Collector): http.Server {
       }
 
       if (route === '/api/projects') return json(response, knownProjects())
+
+      // The durable notes: what is already in the vault, and one more line in
+      // it. The folders come along because the person deserves to see where a
+      // capture is going before it goes.
+      if (route === '/api/notes') {
+        const kind = NOTE_KINDS.find((k) => k === query.get('kind')) ?? 'project'
+        return json(response, { kind, folders: noteFolders(), titles: listNotes(kind), vault: vaultReady() })
+      }
+
+      if (route === '/api/capture' && request.method === 'POST') {
+        const chunks: Buffer[] = []
+        for await (const chunk of request) chunks.push(chunk as Buffer)
+        const body = JSON.parse(Buffer.concat(chunks).toString() || '{}')
+        const kind = NOTE_KINDS.find((k) => k === body.kind)
+        if (!kind) return json(response, { error: 'unknown kind' }, 400)
+        try {
+          const saved = capture({
+            kind, title: String(body.title ?? ''), text: String(body.text ?? ''),
+            section: body.section ? String(body.section) : undefined,
+          })
+          return json(response, saved)
+        } catch (error) {
+          // A missing vault or an empty title is the person's to fix, not a
+          // crash: the message goes to the screen as it is.
+          return json(response, { error: (error as Error).message }, 400)
+        }
+      }
 
       if (route === '/api/rollup' && request.method === 'POST') {
         const day = query.get('day') ?? dayOf(Date.now() / 1000 - 86_400)

@@ -75,6 +75,16 @@ export type Status = {
   span: { from: string; to: string }
 }
 
+/** The notes that outlive a day, and where they are kept. */
+export type NoteKind = 'project' | 'knowledge' | 'person' | 'area' | 'inbox'
+export type NotesView = {
+  kind: NoteKind
+  folders: { kind: NoteKind; folder: string; exists: boolean }[]
+  titles: string[]
+  vault: boolean
+}
+export type Captured = { file: string; created: boolean; section: string | null; error?: string }
+
 export type Settings = {
   language: 'pt-BR' | 'en-US' | 'es-ES' | 'fr-FR' | 'de-DE'
   name: string
@@ -182,6 +192,11 @@ export const api = {
   close: (day: string, narrate = true) =>
     get<{ narrative: string; recap: string; classified: number }>(
       `/api/rollup?day=${day}&narrate=${narrate ? 1 : 0}`, { method: 'POST' }),
+  notes: (kind: NoteKind) => get<NotesView>(`/api/notes?kind=${kind}`),
+  capture: (body: { kind: NoteKind; title: string; text: string; section?: string }) =>
+    get<Captured>('/api/capture', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    }),
   settings: () => get<Settings>('/api/settings'),
   saveSettings: (change: Record<string, unknown>) => get<Settings>('/api/settings', {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(change),

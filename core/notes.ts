@@ -88,6 +88,19 @@ const SECTIONS: Record<Language, Record<NoteKind, string[]>> = {
   },
 }
 
+/**
+ * The front matter of a note born without a template, in the language the
+ * vault is being written in. A Portuguese vault that gets `type: knowledge`
+ * falls out of every search the person already had.
+ */
+const FRONT: Record<Language, { type: string; created: string }> = {
+  'pt-BR': { type: 'tipo', created: 'criado' },
+  'en-US': { type: 'type', created: 'created' },
+  'es-ES': { type: 'tipo', created: 'creado' },
+  'fr-FR': { type: 'type', created: 'créé' },
+  'de-DE': { type: 'typ', created: 'erstellt' },
+}
+
 /** Sections that read as a timeline: there, a line is stamped with its date. */
 const DATED = new Set(
   Object.values(SECTIONS).flatMap((byKind) => [...byKind.project, ...byKind.person])
@@ -251,7 +264,11 @@ export function appendUnder(text: string, heading: string, body: string): string
   const next = /^##\s+/m.exec(text.slice(from))
   const at = outsideOurs(text, next ? from + next.index : text.length)
   const before = text.slice(0, at).trimEnd()
-  return `${before}\n${body.trim().startsWith('-') ? '' : '\n'}${body.trim()}\n\n${text.slice(at).trimStart()}`.trimEnd() + '\n'
+  // A heading is followed by a blank line; a list item is followed by the next
+  // item, tight — which is how the person's own notes are already written.
+  const last = before.slice(before.lastIndexOf('\n') + 1)
+  const glue = /^[-*+]\s|^\d+\.\s/.test(last) && /^[-*+]\s/.test(body.trim()) ? '\n' : '\n\n'
+  return `${before}${glue}${body.trim()}\n\n${text.slice(at).trimStart()}`.trimEnd() + '\n'
 }
 
 export type Capture = {
@@ -296,8 +313,9 @@ export function capture(input: Capture): Captured {
   const folder = path.join(config.vault, folderFor(input.kind))
   fs.mkdirSync(folder, { recursive: true })
   const file = path.join(folder, `${title}.md`)
+  const front = FRONT[lang]
   const born = template(input.kind, title, day)
-    ?? `---\ntype: ${input.kind}\ncreated: ${day}\n---\n\n# ${title}\n`
+    ?? `---\n${front.type}: ${TEMPLATES[lang][input.kind].toLowerCase()}\n${front.created}: ${day}\n---\n\n# ${title}\n`
   // A new note goes into the section the template already opens, when it has
   // one, so the text is not stranded above the shape of the note.
   const heading = known.length ? sectionIn(born, known) ?? /^##\s+(\S.*)$/m.exec(born)?.[1]?.trim() ?? mine : null

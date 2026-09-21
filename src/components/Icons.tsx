@@ -15,6 +15,9 @@ export const IconWork = () => (
 export const IconJournal = () => (
   <svg {...base}><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" /><path d="M5 17a3 3 0 0 1 3-3h11" /><path d="M9 8h6" /></svg>
 )
+export const IconNotes = () => (
+  <svg {...base}><path d="M6 3.5h9l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1-1.5Z" /><path d="M14.5 3.5V8H19" /><path d="M8.5 12.5h7M8.5 16h4.5" /></svg>
+)
 export const IconChat = () => (
   <svg {...base}><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z" /></svg>
 )

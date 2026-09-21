@@ -445,3 +445,41 @@ test('running the day close by hand uses the person\'s settings', () => {
   const cli = rollup.slice(rollup.indexOf('if (import.meta.url'))
   assert.match(cli, /applySettings\(\)/, 'core/rollup.ts, run as a command, should apply the settings first')
 })
+
+test('the five kinds of note are the same five on screen, in every language', () => {
+  const core = read('core/notes.ts')
+  const screen = read('src/components/Notes.tsx')
+  const words = read('src/lib/strings.ts')
+
+  const kinds = /export const NOTE_KINDS: NoteKind\[\] = \[([^\]]+)\]/.exec(core)?.[1]
+  const onScreen = /const KINDS: NoteKind\[\] = \[([^\]]+)\]/.exec(screen)?.[1]
+  assert.ok(kinds && onScreen, 'both lists are still declared where this looks for them')
+  assert.deepEqual(
+    [...kinds.matchAll(/'([a-z]+)'/g)].map((m) => m[1]),
+    [...onScreen.matchAll(/'([a-z]+)'/g)].map((m) => m[1]),
+  )
+
+  // A kind with no label reads as blank on a chip — and a kind with no folder
+  // in a language writes into `undefined/`.
+  const labels = [...words.matchAll(/kinds: \{ project: [^}]+\}/g)]
+  const hints = [...words.matchAll(/hints: \{[^}]+\}/g)]
+  assert.equal(labels.length, 5, 'five languages name the kinds')
+  assert.equal(hints.length, 5, 'five languages explain them')
+  for (const kind of [...kinds.matchAll(/'([a-z]+)'/g)].map((m) => m[1])) {
+    for (const block of [...labels, ...hints]) {
+      assert.match(block[0], new RegExp(`\\b${kind}:`), `${kind} is missing from a language`)
+    }
+    const foldersBlock = /const FOLDERS:[\s\S]*?\n\}/.exec(core)?.[0] ?? ''
+    assert.equal(
+      (foldersBlock.match(new RegExp(`${kind}: '`, 'g')) ?? []).length, 5,
+      `${kind} has no folder in one of the five languages`)
+  }
+})
+
+test('the routes the notes screen calls are the ones the core serves', () => {
+  const api = read('src/lib/api.ts')
+  const server = read('core/server.ts')
+  for (const route of [...api.matchAll(/'(\/api\/(?:notes|capture))/g)].map((m) => m[1])) {
+    assert.ok(server.includes(`'${route}'`), `the core does not answer ${route}`)
+  }
+})

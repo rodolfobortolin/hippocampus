@@ -139,6 +139,23 @@ test('the inbox is a note with no section, and the list comes back sorted', () =
   assert.ok(!text.includes('##'), 'nothing invents a section for a loose thought')
 })
 
+test('a note born in a Portuguese vault is written in Portuguese', () => {
+  const root = vault()
+  config.lang = 'pt-BR'
+  const saved = capture({ kind: 'knowledge', title: 'TCC congela disco', text: 'para o processo, sem erro', day: '2026-09-21' })
+  const text = read(saved.file)
+  assert.match(text, /^---\ntipo: conhecimento\ncriado: 2026-09-21\n---/)
+  // And the line under the heading is separated from it, as a note is written.
+  assert.match(text, /## Detalhes\n\npara o processo/)
+})
+
+test('an empty section opens with a blank line, a list stays tight', () => {
+  const opened = appendUnder('# A\n\n## Histórico\n\n## Links\n', 'Histórico', '- **2026-09-21** — primeira')
+  assert.match(opened, /## Histórico\n\n- \*\*2026-09-21\*\*/)
+  const second = appendUnder(opened, 'Histórico', '- **2026-09-22** — segunda')
+  assert.match(second, /primeira\n- \*\*2026-09-22\*\*/)
+})
+
 test('a heading that is not there yet is opened at the end', () => {
   const text = appendUnder('# A\n\n## One\n\n- a line\n', 'Two', '- another')
   assert.match(text, /## Two\n\n- another\n$/)
