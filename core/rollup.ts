@@ -31,6 +31,7 @@ export function dossier(day: string, level: 'resumo' | 'completo' = 'completo'):
       ? d.delegated(hours(report.delegatedSeconds), hours(report.awaySeconds))
       : d.idle(hours(report.idleSeconds)),
     d.window(clock(report.firstAt), clock(report.lastAt)),
+    ...(report.presence.seconds ? [d.atMachine(hours(report.presence.seconds), report.presence.stretches)] : []),
     d.switches(report.switches, report.switchesProject),
     d.focus(hours(report.focusSeconds), hours(report.activeSeconds), Math.round(report.focusRatio * 100)),
     report.focusShape.sessions

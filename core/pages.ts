@@ -44,6 +44,18 @@ export function ticketKeys(text: string | null | undefined): string[] {
   return [...found]
 }
 
+/**
+ * Ticket keys a branch name may carry. Branches are usually lower case —
+ * feature/vpd-59-german-catalog — so the last segment is read in upper case,
+ * which also turns "release-2" and "next-15-upgrade" into candidates. These
+ * are only candidates: the caller keeps the ones whose prefix is a real ticket
+ * prefix somewhere else, in a Jira address, a commit or a question.
+ */
+export function branchKeys(branch: string | null | undefined): string[] {
+  const leaf = branch?.split('/').pop()
+  return leaf ? ticketKeys(leaf.toUpperCase()) : []
+}
+
 /** A window or tab title, without the browser's and the site's own suffixes. */
 export function cleanTitle(title: string | null | undefined): string | undefined {
   if (!title) return undefined

@@ -37,6 +37,8 @@ export type Day = {
   }
   firstAt: number | null
   lastAt: number | null
+  /** Time at the machine, from macOS's record of input. */
+  presence: { seconds: number; stretches: number }
   apps: Slice[]
   categories: Slice[]
   projects: Slice[]

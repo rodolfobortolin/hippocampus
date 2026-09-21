@@ -13,6 +13,7 @@ export type Dossier = {
   delegated: (delegated: string, away: string) => string
   idle: (idle: string) => string
   window: (start: string, end: string) => string
+  atMachine: (total: string, stretches: number) => string
   switches: (total: number, ofProject: number) => string
   focus: (focus: string, active: string, pct: number) => string
   sessions: (n: number, longest: number, median: number, bands: string) => string
@@ -38,6 +39,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `como parte do dia. Fora isso, ${a} de ausência de verdade.`,
     idle: (o) => `Tempo parado: ${o}, sem agente trabalhando no meio.`,
     window: (i, f) => `Começou ${i}, parou ${f}.`,
+    atMachine: (t, n) => `Perto da máquina ${t}, em ${n} ${n === 1 ? 'trecho' : 'trechos'}, pausas curtas incluídas (pelo registro de energia do macOS; não é tempo ativo).`,
     switches: (t, p) => `${t} trocas de aplicativo, das quais ${p} mudaram de projeto (só essas custam resíduo de atenção).`,
     focus: (f, a, p) => `Trabalho concentrado: ${f} de ${a} ativos (${p}%), em categorias de código, IA, escrita, design e pesquisa.`,
     sessions: (n, ma, me, fx) => `Isso veio em ${n} sessões sustentadas: a maior de ${ma}min, mediana de ${me}min. Por tamanho: ${fx}.`,
@@ -58,6 +60,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `counts as part of the day. Beyond that, ${a} of genuine absence.`,
     idle: (o) => `Idle time: ${o}, with no agent working through it.`,
     window: (i, f) => `Started ${i}, stopped ${f}.`,
+    atMachine: (t, n) => `Near the machine ${t}, in ${n} ${n === 1 ? 'stretch' : 'stretches'}, short breaks included (from the macOS power log; not active time).`,
     switches: (t, p) => `${t} app switches, ${p} of which changed project (only those cost attention residue).`,
     focus: (f, a, p) => `Focused work: ${f} out of ${a} active (${p}%), in code, AI, writing, design and research categories.`,
     sessions: (n, ma, me, fx) => `That came in ${n} sustained sessions: the longest ${ma}min, median ${me}min. By length: ${fx}.`,
@@ -78,6 +81,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `día. Aparte de eso, ${a} de ausencia real.`,
     idle: (o) => `Tiempo detenido: ${o}, sin ningún agente trabajando de por medio.`,
     window: (i, f) => `Empezó ${i}, paró ${f}.`,
+    atMachine: (t, n) => `Cerca de la máquina ${t}, en ${n} ${n === 1 ? 'tramo' : 'tramos'}, pausas cortas incluidas (según el registro de energía de macOS; no es tiempo activo).`,
     switches: (t, p) => `${t} cambios de aplicación, de los cuales ${p} cambiaron de proyecto (solo esos dejan residuo de atención).`,
     focus: (f, a, p) => `Trabajo concentrado: ${f} de ${a} activos (${p}%), en categorías de código, IA, escritura, diseño e investigación.`,
     sessions: (n, ma, me, fx) => `Eso vino en ${n} sesiones sostenidas: la mayor de ${ma}min, mediana de ${me}min. Por tamaño: ${fx}.`,
@@ -98,6 +102,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `compte dans la journée. En dehors de ça, ${a} d'absence réelle.`,
     idle: (o) => `Temps immobile : ${o}, sans aucun agent au travail entre-temps.`,
     window: (i, f) => `A commencé ${i}, s'est arrêté ${f}.`,
+    atMachine: (t, n) => `Près de la machine ${t}, en ${n} ${n === 1 ? 'période' : 'périodes'}, courtes pauses comprises (d'après le journal d'énergie de macOS ; ce n'est pas du temps actif).`,
     switches: (t, p) => `${t} changements d'application, dont ${p} ont changé de projet (seuls ceux-là laissent un résidu d'attention).`,
     focus: (f, a, p) => `Travail concentré : ${f} sur ${a} actifs (${p} %), dans les catégories code, IA, écriture, design et recherche.`,
     sessions: (n, ma, me, fx) => `Cela s'est réparti en ${n} sessions tenues : la plus longue ${ma}min, médiane ${me}min. Par durée : ${fx}.`,
@@ -118,6 +123,7 @@ export const DOSSIER: Record<Language, Dossier> = {
       `zum Tag. Davon abgesehen ${a} echte Abwesenheit.`,
     idle: (o) => `Stillstand: ${o}, ohne dass dabei ein Agent gearbeitet hätte.`,
     window: (i, f) => `Begann ${i}, hörte ${f} auf.`,
+    atMachine: (t, n) => `In der Nähe des Rechners ${t}, in ${n} ${n === 1 ? 'Abschnitt' : 'Abschnitten'}, kurze Pausen eingerechnet (laut Energieprotokoll von macOS; keine aktive Zeit).`,
     switches: (t, p) => `${t} App-Wechsel, davon ${p} mit Projektwechsel (nur die hinterlassen Aufmerksamkeitsreste).`,
     focus: (f, a, p) => `Konzentrierte Arbeit: ${f} von ${a} aktiv (${p} %), in den Kategorien Code, KI, Schreiben, Design und Recherche.`,
     sessions: (n, ma, me, fx) => `Das verteilte sich auf ${n} durchgehaltene Sitzungen: die längste ${ma}min, Median ${me}min. Nach Länge: ${fx}.`,

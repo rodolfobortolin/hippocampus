@@ -146,6 +146,30 @@ create table if not exists agent_minutes (
 );
 create index if not exists agent_minutes_day on agent_minutes(day);
 
+-- When someone was at the Mac, from macOS's own record of input: from the
+-- first key or pointer movement after an absence to the last one before the
+-- next. The system keeps a week of it and records it whether or not the
+-- collector is running, so it is copied here to outlive the week.
+create table if not exists presence (
+  started_at integer primary key,
+  ended_at integer not null,
+  day text not null
+);
+create index if not exists presence_day on presence(day);
+
+-- Which branch each repository was switched to, and when, from git's reflog.
+-- A branch often carries the ticket it is for, which ties the commits, the
+-- questions to an agent and the agent's own minutes in that repository to it.
+create table if not exists branches (
+  repo text not null,
+  ts integer not null,
+  day text not null,
+  branch text not null,
+  from_branch text,
+  primary key (repo, ts, branch)
+);
+create index if not exists branches_repo on branches(repo, ts);
+
 create table if not exists meta (key text primary key, value text);
 `)
 

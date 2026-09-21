@@ -1,4 +1,5 @@
 import { all, one } from './db.ts'
+import { presenceOf } from './sources/presence.ts'
 import { config, dayOf } from './config.ts'
 
 export type AppSlice = { app: string; seconds: number; category: string | null }
@@ -137,6 +138,11 @@ export function dayReport(day: string) {
 
   const bounds = one<any>(
     `select min(started_at) first_at, max(ended_at) last_at from blocks where day = ? and idle = 0`, day)
+  // The day began when someone sat down, not when the collector noticed:
+  // macOS's own record of input covers the hours it was not running.
+  const presence = presenceOf(day)
+  const earliest = (a: number | null, b: number | null) => (a && b ? Math.min(a, b) : a ?? b)
+  const latest = (a: number | null, b: number | null) => (a && b ? Math.max(a, b) : a ?? b)
   const sessions = focusSessions(day)
 
   return {
@@ -152,8 +158,9 @@ export function dayReport(day: string) {
     focusRatio: activeSeconds ? focusSeconds / activeSeconds : 0,
     switches,
     switchesProject,
-    firstAt: bounds?.first_at ?? null,
-    lastAt: bounds?.last_at ?? null,
+    firstAt: earliest(bounds?.first_at ?? null, presence.firstAt),
+    lastAt: latest(bounds?.last_at ?? null, presence.lastAt),
+    presence: { seconds: presence.seconds, stretches: presence.spans.length },
     apps: sortSlices(apps).slice(0, 14),
     categories: sortSlices(categories),
     projects: sortSlices(projects).slice(0, 10),

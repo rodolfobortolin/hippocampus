@@ -8,6 +8,7 @@ import { harvestClaudeSessions } from './sources/ai.ts'
 import { harvestCodexSessions } from './sources/codex.ts'
 import { harvestGit } from './sources/git.ts'
 import { harvestShell } from './sources/shell.ts'
+import { harvestPresence } from './sources/presence.ts'
 import { rollup } from './rollup.ts'
 import { all } from './db.ts'
 import { backfillAll } from './backfill.ts'
@@ -25,6 +26,9 @@ const tasks: Task[] = [
   { name: 'codex', everyMinutes: 10, run: harvestCodexSessions },
   { name: 'shell', everyMinutes: 15, run: harvestShell },
   { name: 'git', everyMinutes: 30, run: () => harvestGit(2) },
+  // macOS keeps a week of it; once an hour is far more than enough to never
+  // lose a stretch, and a reading costs two seconds of pmset.
+  { name: 'presence', everyMinutes: 60, run: harvestPresence },
   // Today's windows, labelled as they happen. The labelling used to run only
   // when a day closed, so everything done today read "unlabelled" until
   // tomorrow — most of that slice was simply not yet looked at. A label is

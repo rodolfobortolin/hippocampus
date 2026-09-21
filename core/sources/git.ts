@@ -39,6 +39,30 @@ export function keepCommit(
   insert.run(sha, repo, ts, dayOf(ts), subject, files, insertions, deletions)
 }
 
+const insertBranch = db.prepare(
+  `insert or ignore into branches (repo, ts, day, branch, from_branch) values (?, ?, ?, ?, ?)`)
+
+export type BranchMove = { ts: number; from: string | null; to: string }
+
+const SHA = /^[0-9a-f]{7,40}$/
+
+/**
+ * Branch switches, from `git reflog --date=unix --format=%gd%x1f%gs`.
+ *
+ * The reflog keeps 90 days of where HEAD pointed, with the time. Only the
+ * switches matter here; a checkout of a bare hash is looking at history, not
+ * working on something, and is skipped.
+ */
+export function readReflog(text: string): BranchMove[] {
+  const moves: BranchMove[] = []
+  for (const line of text.split('\n')) {
+    const move = /^HEAD@\{(\d+)\}\x1fcheckout: moving from (\S+) to (\S+)$/.exec(line.trim())
+    if (!move || SHA.test(move[3])) continue
+    moves.push({ ts: Number(move[1]), from: SHA.test(move[2]) ? null : move[2], to: move[3] })
+  }
+  return moves
+}
+
 function git(repo: string, args: string[]): string {
   try {
     return execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
@@ -58,14 +82,15 @@ function git(repo: string, args: string[]): string {
  * because that timeout also needs the event loop to fire; async is what hands
  * control back to it.
  */
-export async function harvestGit(days = 3): Promise<{ commits: number }> {
+export async function harvestGit(days = 3): Promise<{ commits: number; branches: number }> {
   let names: string[]
   try {
     names = await fs.readdir(config.codeRoot)
   } catch {
-    return { commits: 0 }
+    return { commits: 0, branches: 0 }
   }
   let total = 0
+  let switches = 0
 
   for (const name of names) {
     const repo = path.join(config.codeRoot, name)
@@ -73,6 +98,12 @@ export async function harvestGit(days = 3): Promise<{ commits: number }> {
       await fs.access(path.join(repo, '.git'))
     } catch {
       continue
+    }
+
+    // The whole reflog each time: it is a few hundred lines, and a repository
+    // with no commit in days can still have been switched to a new branch.
+    for (const move of readReflog(git(repo, ['reflog', '--date=unix', '--format=%gd%x1f%gs']))) {
+      switches += Number(insertBranch.run(name, move.ts, dayOf(move.ts), move.to, move.from).changes)
     }
 
     // %x1f separates fields and %x1e OPENS each commit — it does not close it.
@@ -101,5 +132,5 @@ export async function harvestGit(days = 3): Promise<{ commits: number }> {
       total++
     }
   }
-  return { commits: total }
+  return { commits: total, branches: switches }
 }

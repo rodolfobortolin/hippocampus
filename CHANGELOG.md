@@ -15,6 +15,11 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   page, the pull request and the client behind each tab, joined with the
   commits and questions that name them.
 - A second program writing to the database waits its turn instead of failing.
+- The day starts when you sat down, even if the app was closed: macOS's own
+  record of keys and pointer marks each stretch at the machine.
+- Work on a branch counts for the ticket in its name. Commits, questions to the
+  agent, the agent's own minutes and editor time on feature/sup-12-login all
+  land on SUP-12, even when nothing in them says so.
 
 ## v0.1.0 — 2026-09-21
 

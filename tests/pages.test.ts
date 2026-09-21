@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readPage, ticketKeys, cleanTitle } from '../core/pages.ts'
+import { readPage, ticketKeys, branchKeys, cleanTitle } from '../core/pages.ts'
 
 /**
  * URLs shaped like the ones in a real browser history, with the names
@@ -72,6 +72,16 @@ test('ticket keys are found in any text, and version numbers are not tickets', (
   assert.deepEqual(ticketKeys('upgrade to GPT-5, UTF-8 everywhere, ISO-8601 dates, CVE-2024'), [])
   assert.deepEqual(ticketKeys('branch feature/ATD-481-clinic-picker'), ['ATD-481'])
   assert.deepEqual(ticketKeys(null), [])
+})
+
+test('a branch offers the ticket in its last segment, in any case', () => {
+  assert.deepEqual(branchKeys('feature/vpd-59-german-catalog'), ['VPD-59'])
+  assert.deepEqual(branchKeys('fix/ETIAPP-73-optional-invite-emails'), ['ETIAPP-73'])
+  assert.deepEqual(branchKeys('sup-12'), ['SUP-12'])
+  // Candidates only: whether RELEASE is a ticket prefix is for the caller to know.
+  assert.deepEqual(branchKeys('release-2'), ['RELEASE-2'])
+  assert.deepEqual(branchKeys('main'), [])
+  assert.deepEqual(branchKeys(null), [])
 })
 
 test('titles lose the browser and the site, and keep the rest', () => {

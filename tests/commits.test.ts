@@ -9,7 +9,7 @@ import path from 'node:path'
 process.env.HIPPOCAMPUS_DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'hippocampus-commits-'))
 
 const { db } = await import('../core/db.ts')
-const { keepCommit } = await import('../core/sources/git.ts')
+const { keepCommit, readReflog } = await import('../core/sources/git.ts')
 
 const rows = () => db.prepare('select sha, repo, subject from commits order by id').all() as
   { sha: string; repo: string; subject: string }[]
@@ -58,4 +58,19 @@ test('the same hash from a second checkout keeps the name it had', () => {
   const kept = rows()
   assert.equal(kept.length, 1)
   assert.equal(kept[0].repo, 'atende')
+})
+
+test('the reflog gives the branch switches, and only those', () => {
+  const reflog = [
+    'HEAD@{1790000300}\x1fcommit: Retry the token refresh',
+    'HEAD@{1790000200}\x1fcheckout: moving from main to feature/sup-77-retry',
+    'HEAD@{1790000100}\x1fcheckout: moving from 3f2a91c to main',
+    'HEAD@{1790000050}\x1fcheckout: moving from main to 3f2a91c',
+    'HEAD@{1790000000}\x1fclone: from github.com:acme/harbor.git',
+  ].join('\n')
+  assert.deepEqual(readReflog(reflog), [
+    { ts: 1_790_000_200, from: 'main', to: 'feature/sup-77-retry' },
+    // Leaving a detached hash for a branch still says where work went on.
+    { ts: 1_790_000_100, from: null, to: 'main' },
+  ], 'a checkout of a bare hash is looking at history, not working on it')
 })
