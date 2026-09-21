@@ -152,3 +152,26 @@ a test failing, never in the middle of a change that is only half done.
 
 Then tell Rodolfo it went out, with the link — a release is public.
 
+## The website
+
+`site/` is the project's page. The sphere at the top is `src/three/Core.ts`
+itself, imported rather than redrawn, so it cannot drift from the app.
+
+The screenshots come from the real app running over an invented week — never
+from the real database, which carries client names, ticket numbers and window
+titles that do not belong on a public page. When the interface changes enough
+that the pictures lie, retake them:
+
+```bash
+npm run site:demo                                   # the invented week, in /tmp
+HIPPOCAMPUS_DATA=/tmp/hippocampus-demo HIPPOCAMPUS_PORT=7979 \
+  node --experimental-strip-types scripts/demo-core.ts &   # the API over it, no collector
+npm run build && npx electron scripts/screenshots.cjs /tmp/shots
+```
+
+Then convert them to WebP into `site/img/` (a PNG of the app is 2.6 MB; the
+WebP is under 120 KB) and check that the text beside each picture still
+describes it — the Rhythm copy names Thursday at 16h because the capture picks
+that cell. `npm run site` serves it; `npm run site:build` builds it into
+`site/dist`.
+

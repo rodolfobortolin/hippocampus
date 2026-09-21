@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hippocampus — your Mac's memory of your day</title>
+  <meta name="description" content="Hippocampus keeps where your time went — all local, every day — and gives it back as charts, a journal and a conversation. It never takes a screenshot.">
+  <meta name="theme-color" content="#07080a">
+  <meta property="og:title" content="Hippocampus">
+  <meta property="og:description" content="Your Mac already knows where your time went. Hippocampus keeps it — all local, every day.">
+  <meta property="og:image" content="img/today.webp">
+  <link rel="icon" href="favicon.png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <nav class="bar">
+    <a class="brand" href="./">
+      <img src="brand.png" alt="" width="18" height="28">
+      <span>Hippocampus</span>
+    </a>
+    <div class="links">
+      <a href="#screens">Screens</a>
+      <a href="#principles">Principles</a>
+      <a class="gh" href="https://github.com/rodolfobortolin/hippocampus">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="pitch">
+      <p class="eyebrow"><i></i>Open source · macOS · everything stays on your Mac</p>
+      <h1>Your Mac already knows where your <b>time went</b>.</h1>
+      <p class="lead">
+        Hippocampus keeps it — all local, every day — and gives it back as charts,
+        as a journal, and as a conversation you can have out loud.
+      </p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/rodolfobortolin/hippocampus">Get it on GitHub</a>
+        <a class="button" href="https://github.com/rodolfobortolin/hippocampus/releases/tag/v0.1.0">v0.1.0 release notes</a>
+      </div>
+      <p class="fine">Never takes a screenshot. No server, no account, no dashboard.</p>
+    </div>
+
+    <figure class="orb" aria-label="The Hippocampus core, the sphere you talk to">
+      <canvas id="core"></canvas>
+      <figcaption id="core-state">click to speak</figcaption>
+    </figure>
+  </header>
+
+  <section class="shot" aria-label="The Today screen">
+    <div class="window">
+      <div class="chrome"><i></i><i></i><i></i></div>
+      <img src="img/today.webp" width="2560" height="1378"
+        alt="The Today screen: 8.1 hours measured, 32 minutes of delegated agent work, 64% focused, the day as a coloured ribbon, and time by category.">
+    </div>
+  </section>
+
+  <section class="keeps">
+    <h2>What it <b>keeps</b></h2>
+    <p class="kicker">Text and events, never pixels. Everything below is read from what your Mac already writes down.</p>
+    <div class="grid">
+      <article style="--dot: var(--code)">
+        <h3>Every window, every four seconds</h3>
+        <p>The app in front, the window title, the tab you were on, and when you stepped away.</p>
+      </article>
+      <article style="--dot: var(--writing)">
+        <h3>Writing or reading</h3>
+        <p>Keys, clicks and scroll as counts — which is what tells writing from reading, without keeping a word.</p>
+      </article>
+      <article style="--dot: var(--ai)">
+        <h3>Work you delegated</h3>
+        <p>Time an agent spent working while you were away counts as work, not as absence.</p>
+      </article>
+      <article style="--dot: var(--ember)">
+        <h3>What came out of your hands</h3>
+        <p>Commits, commands, and what you asked Claude Code and Codex, joined to the time they happened in.</p>
+      </article>
+      <article style="--dot: var(--communication)">
+        <h3>Calls and what was playing</h3>
+        <p>The microphone open for a meeting, the track in the background, the screen each window was on.</p>
+      </article>
+      <article style="--dot: var(--research)">
+        <h3>What kind of work it was</h3>
+        <p>Each window is sorted into code, research, writing, meetings or leisure — and left unlabelled rather than guessed.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="screens" class="screens">
+    <div class="row">
+      <div class="text">
+        <p class="eyebrow small">Rhythm</p>
+        <h2>Ask the heatmap a <b>question</b></h2>
+        <p>Hour by weekday, over a week, a month or three. Click a cell and every chart beneath it
+        answers the obvious question — what was I actually doing on Thursdays at four?</p>
+      </div>
+      <div class="window small"><div class="chrome"><i></i><i></i><i></i></div>
+        <img src="img/rhythm-filtered.webp" width="2560" height="1378" loading="lazy"
+          alt="The Rhythm screen with one cell of the hour-by-weekday heatmap picked, and the charts below narrowed to Thursday at 4pm.">
+      </div>
+    </div>
+
+    <div class="row flip">
+      <div class="text">
+        <p class="eyebrow small">Chat</p>
+        <h2>Talk to <b>your own day</b></h2>
+        <p>Type or speak. Claude Code answers from the local database — with a table when a table is
+        the answer — and a live voice you can interrupt, if you want one.</p>
+      </div>
+      <div class="window small"><div class="chrome"><i></i><i></i><i></i></div>
+        <img src="img/chat.webp" width="2560" height="1378" loading="lazy"
+          alt="The Chat screen: an answer about where the week went, with a table of time and commits per project.">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="text">
+        <p class="eyebrow small">Journal</p>
+        <h2>A journal written like a <b>git log</b></h2>
+        <p>Every evening, a summary of the day lands in your Obsidian vault. A record of what happened —
+        never a verdict on the person who did it.</p>
+      </div>
+      <div class="window small"><div class="chrome"><i></i><i></i><i></i></div>
+        <img src="img/journal.webp" width="2560" height="1378" loading="lazy"
+          alt="The Journal screen listing past days with their written summaries.">
+      </div>
+    </div>
+  </section>
+
+  <section id="principles" class="principles">
+    <h2>What it <b>will not</b> do</h2>
+    <div class="rules">
+      <div>
+        <h3>Take a screenshot</h3>
+        <p>Not one, ever. Most apps in this category record the screen and send it to a vision model;
+        this one reads what is already text. It costs almost nothing and never lights the orange dot.</p>
+      </div>
+      <div>
+        <h3>Send your day anywhere</h3>
+        <p>No server, no account, no admin dashboard. There is nothing an employer could log into —
+        impossible by construction, not by policy. Your keys stay in the macOS Keychain.</p>
+      </div>
+      <div>
+        <h3>Give you a score</h3>
+        <p>Nobody does eight focused hours. A short day, a scattered day and a day of meetings are facts,
+        not failures — and when measuring stopped, it says so instead of calling the day empty.</p>
+      </div>
+    </div>
+    <p class="langs">In Portuguese, English, Spanish, French and German — the interface, the journal and the voice.</p>
+  </section>
+
+  <footer>
+    <div>
+      <img src="brand.png" alt="" width="14" height="22">
+      <span>Hippocampus · MIT · © 2026 Rodolfo Bortolin</span>
+    </div>
+    <p>The screens above show an invented week, not anyone's real day.</p>
+  </footer>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

@@ -20,3 +20,6 @@ build/icon-*.png
 release/
 native/bin/
 public/intro.mp4
+
+# The built website; the source is site/.
+site/dist/

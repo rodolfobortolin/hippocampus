@@ -25,7 +25,10 @@
     "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test \"tests/*.test.ts\"",
     "dist": "npm run build && electron-builder --mac --arm64",
     "notarize": "sh scripts/notarize.sh",
-    "build:icons": "sh scripts/build-icons.sh"
+    "build:icons": "sh scripts/build-icons.sh",
+    "site": "vite --config site/vite.config.ts",
+    "site:build": "vite build --config site/vite.config.ts",
+    "site:demo": "rm -rf /tmp/hippocampus-demo && mkdir -p /tmp/hippocampus-demo && HIPPOCAMPUS_DATA=/tmp/hippocampus-demo node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/demo-data.ts"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
