@@ -1,5 +1,15 @@
 /** Strips secrets out of any text before storing it or sending it to a model. */
 const patterns: [RegExp, string][] = [
+  // A private key pasted whole — a .p8 for Apple, a PEM for a server. First,
+  // before anything else can cut it into pieces; and a block that lost its
+  // END line to a cut still goes, up to where the base64 stops.
+  [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, '«private key»'],
+  [/-----BEGIN [A-Z ]*PRIVATE KEY-----[A-Za-z0-9+/=\s]*/g, '«private key»'],
+  // Stripe writes its keys with underscores, which the pattern below — made
+  // for OpenAI's and Anthropic's hyphens — never matched: a secret test key
+  // pasted into a request was stored as it was typed.
+  [/\b(sk|rk|pk)_(live|test)_[A-Za-z0-9]{16,}/g, '«key»'],
+  [/\bwhsec_[A-Za-z0-9]{16,}/g, '«key»'],
   [/\b(sk|pk|rk)-[A-Za-z0-9_-]{16,}/g, '«key»'],
   [/\bapikey_[A-Za-z0-9_]{16,}/g, '«key»'],
   [/\b(ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{16,}/g, '«token»'],

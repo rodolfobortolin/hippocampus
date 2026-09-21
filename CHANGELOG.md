@@ -6,6 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Stripe keys and private keys pasted into a request are no longer stored, and
+  any stored before this are taken out of what is kept. They were read at the
+  close of the day and could have reached a model, or a note.
 - The app updates itself: it looks for a new release on GitHub when it opens
   and every four hours, downloads it in the background, and installs it when
   it restarts — from the menu bar or Settings, which also shows the version.

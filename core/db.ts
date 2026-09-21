@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite'
 import { paths } from './config.ts'
 import { humanText } from './prompts.ts'
+import { redact } from './redact.ts'
 
 export const db = new DatabaseSync(paths.db)
 
@@ -283,6 +284,25 @@ export function getMeta(key: string, fallback = ''): string {
 export function setMeta(key: string, value: string): void {
   db.prepare('insert into meta(key, value) values (?, ?) on conflict(key) do update set value = excluded.value')
     .run(key, value)
+}
+
+// Once the redaction learned Stripe's keys and private key blocks: what was
+// stored before it did goes through it again. The requests and the typing are
+// what the close of the day reads and hands to Claude Code, and a secret must
+// not reach a model, or a note, because it was pasted before the pattern
+// existed. Only the rows that could hold one are rewritten.
+if (getMeta('redact.keys') !== '1') {
+  const suspects = `({c} like '%PRIVATE KEY%' or {c} like '%sk\\_%' escape '\\'
+    or {c} like '%rk\\_%' escape '\\' or {c} like '%pk\\_%' escape '\\' or {c} like '%whsec\\_%' escape '\\')`
+  for (const [table, column] of [['ai_turns', 'prompt'], ['typing', 'text']]) {
+    const where = suspects.replaceAll('{c}', column)
+    const fix = db.prepare(`update ${table} set ${column} = ? where id = ?`)
+    for (const row of db.prepare(`select id, ${column} as text from ${table} where ${where}`).all() as { id: number; text: string }[]) {
+      const clean = redact(row.text)
+      if (clean !== row.text) fix.run(clean, row.id)
+    }
+  }
+  setMeta('redact.keys', '1')
 }
 
 // Turns an agent's log calls "user" that no person typed — a background task
