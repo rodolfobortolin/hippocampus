@@ -17,9 +17,12 @@ Computer History       ─┘                                             ▼
                                              Obsidian vault
 ```
 
-Nothing leaves this machine. The keys are yours and live in the macOS Keychain,
-entered inside the app itself. With no keys at all it still measures, draws and
-stores: only the classification, the narrative and the chat go dark.
+The database lives on this machine and nowhere else. To label each window and
+write up the day it goes through jev and Claude Code, under your own keys and
+login, with window titles and a summary of the day. The keys are yours and live
+in the macOS Keychain, entered inside the app itself. With no keys at all it
+still measures, draws and stores: only the classification, the narrative and the
+chat go dark.
 
 ## Text and events, not pixels
 

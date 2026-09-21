@@ -6,7 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
-Nothing yet.
+- The app no longer says that nothing leaves the Mac. The database stays on it;
+  answering and writing up the day go through Claude Code and jev with what they
+  need, and the chat and Settings now say so.
 
 ## v0.2.0 — 2026-09-21
 

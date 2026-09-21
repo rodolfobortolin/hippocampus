@@ -8,7 +8,13 @@
   <meta name="theme-color" content="#07080a">
   <meta property="og:title" content="Hippocampus">
   <meta property="og:description" content="Your Mac already knows where your time went. Hippocampus keeps it — all local, every day.">
-  <meta property="og:image" content="img/today.webp">
+  <meta property="og:url" content="https://rodolfobortolin.github.io/hippocampus/">
+  <!-- Absolute, because a link preview is fetched from somewhere else and has
+       no page to resolve a relative path against. -->
+  <meta property="og:image" content="https://rodolfobortolin.github.io/hippocampus/img/today.webp">
+  <meta property="og:image:width" content="2560">
+  <meta property="og:image:height" content="1378">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="favicon.png">
   <link rel="stylesheet" href="./style.css">
   <!-- Before the first paint: the states that wait for a reveal only exist
@@ -33,7 +39,7 @@
 
   <header class="hero">
     <div class="pitch">
-      <p class="eyebrow enter" style="--i: 0"><i></i>Open source · macOS · everything stays on your Mac</p>
+      <p class="eyebrow enter" style="--i: 0"><i></i>Open source · macOS · stored only on your Mac</p>
       <h1 class="enter" style="--i: 1">Your Mac already knows where your <b>time went</b>.</h1>
       <p class="lead enter" style="--i: 2">
         Hippocampus keeps it — all local, every day — and gives it back as charts,
@@ -201,9 +207,12 @@
         this one reads what is already text. It costs almost nothing and never lights the orange dot.</p>
       </div>
       <div class="reveal" style="--i: 1">
-        <h3>Send your day anywhere</h3>
-        <p>No server, no account, no admin dashboard. There is nothing an employer could log into —
-        impossible by construction, not by policy. Your keys stay in the macOS Keychain.</p>
+        <h3>Keep your day on a server</h3>
+        <p>The database lives on your Mac and nowhere else: no server, no account, no admin dashboard,
+        nothing an employer could log into. Labelling windows and writing up the day go through jev and
+        Claude Code, under your own keys and login, with window titles and a summary of the day.
+        Without them it still measures and keeps everything; only the labels, the journal and the
+        chat go quiet.</p>
       </div>
       <div class="reveal" style="--i: 2">
         <h3>Give you a score</h3>

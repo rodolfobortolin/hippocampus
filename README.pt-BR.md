@@ -16,7 +16,10 @@ Computer History       ─┘                                             ▼
                                           vault do Obsidian (10 Diário)
 ```
 
-Nada sai desta máquina. As chaves são suas e ficam num `.env` que o git ignora.
+O banco fica nesta máquina e em nenhum outro lugar. Para rotular cada janela e
+escrever o dia, ele passa pelo jev e pelo Claude Code, com as suas chaves e o seu
+login, levando títulos de janela e um resumo do dia. As chaves são suas e ficam no
+Chaveiro do macOS, digitadas dentro do próprio app.
 Sem chave nenhuma o app continua medindo, desenhando e guardando: só a
 classificação, a narrativa e a conversa ficam desligadas.
 

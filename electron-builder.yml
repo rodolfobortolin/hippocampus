@@ -83,7 +83,7 @@ mac:
     # Asked only after the Calendar switch is turned on in Settings.
     NSCalendarsFullAccessUsageDescription: >-
       Hippocampus reads the names and times of your meetings to name the calls
-      it already measures. Nothing leaves this machine.
+      it already measures. They are stored only on this Mac.
     NSCalendarsUsageDescription: >-
       Hippocampus reads the names and times of your meetings to name the calls
-      it already measures. Nothing leaves this machine.
+      it already measures. They are stored only on this Mac.
