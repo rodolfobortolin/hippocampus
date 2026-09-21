@@ -6,7 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
-Nothing yet.
+- In the chat, an answer that looks something up first no longer runs its
+  opening note into the answer: each starts a paragraph of its own.
+- The Journal list shows as much of each day's summary as the row has room
+  for, ending in "…", instead of stopping mid-word.
 
 ## v0.3.1 — 2026-09-21
 
