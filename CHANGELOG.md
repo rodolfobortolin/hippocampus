@@ -6,6 +6,14 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The section in the vault keeps its heading above the markers, so other tools
+  that read a note by its headings — an Obsidian plugin, a script — no longer
+  write inside our block and lose what they wrote. Notes written the old way
+  are converted the next time the day is written.
+- A day's note nobody has written yet is created from the vault's own daily
+  template, with the properties and headings the other notes have.
+- Closing a day by hand uses your settings: the journal folder and the
+  language, instead of defaults of its own.
 - Delegated work counts every minute an agent worked, not only the minutes you
   were away: a morning of an agent working beside you had read "1min". The
   time with you away is still said, underneath. An agent's minutes now run

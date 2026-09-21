@@ -437,3 +437,11 @@ test('whatever covers the window keeps a strip to move it by', () => {
   assert.match(css, /\.onb-drag \{[^}]*-webkit-app-region: drag/)
   assert.match(read('src/components/Onboarding.tsx'), /className="onb-drag"/)
 })
+
+test('running the day close by hand uses the person\'s settings', () => {
+  // It writes into the vault: with the settings unread it used the default
+  // journal folder and the default language, not the ones the app runs with.
+  const rollup = read('core/rollup.ts')
+  const cli = rollup.slice(rollup.indexOf('if (import.meta.url'))
+  assert.match(cli, /applySettings\(\)/, 'core/rollup.ts, run as a command, should apply the settings first')
+})

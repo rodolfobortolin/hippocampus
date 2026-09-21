@@ -11,7 +11,7 @@ import { HOW_TO_WRITE, VAULT_HEADING, VAULT_LINE, TIMESHEET_HEADING, TIMESHEET_W
 import { PERSONAS } from './personas.ts'
 import { DOSSIER } from './dossier.ts'
 import { timesheet, timesheetTable } from './timesheet.ts'
-import { readSettings } from './settings.ts'
+import { readSettings, applySettings } from './settings.ts'
 
 const hours = hoursAndMinutes
 const clock = (ts: number | null) => (ts ? new Date(ts * 1000).toTimeString().slice(0, 5) : '—')
@@ -102,6 +102,9 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
   let narrative = ''
   let recap = ''
 
+  // Not narrating does not mean losing the one already written: the day is
+  // measured again and its section rewritten with the words it already has.
+  if (options.narrate === false) narrative = String(report.stored?.narrative ?? '')
   if (options.narrate !== false && report.activeSeconds > 300) {
     narrative = await ask(who.summary(day).replace('%DATA%', material), persona)
     recap = await ask(who.recap(day).replace('%DATA%', material), persona)
@@ -159,6 +162,10 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  // By hand, the same settings the app runs with: the language the day is
+  // written in, and the vault folder it is written into. Without this the
+  // command wrote the note into a folder of its own invention.
+  applySettings()
   const arg = process.argv.find((a) => /^\d{4}-\d{2}-\d{2}$/.test(a))
   const day = arg ?? dayOf(Date.now() / 1000 - 86_400)
   const narrate = !process.argv.includes('--no-narrative')
