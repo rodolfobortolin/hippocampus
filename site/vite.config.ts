@@ -16,7 +16,7 @@ export const SITE = 'https://hippocampus-black.vercel.app/'
 // download button would lead to a 404, so the page offers the source instead;
 // the release commit that first attaches a .dmg turns this on, and from then
 // on latest/download always finds one.
-export const DOWNLOAD = false
+export const DOWNLOAD = true
 const withDownload = (html: string) => DOWNLOAD
   ? html.replace(/<!-- source -->[\s\S]*?<!-- \/source -->/g, '')
   : html.replace(/<!-- download -->[\s\S]*?<!-- \/download -->/g, '')
