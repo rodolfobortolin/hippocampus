@@ -133,7 +133,11 @@ export type Period = {
   from: string; to: string
   /** What the summary was narrowed to; the map and the days never are. */
   slot: Slot
-  days: { day: string; active: number; idle: number; focusRatio: number | null; hasNarrative: boolean }[]
+  days: {
+    day: string; active: number; idle: number; focusRatio: number | null; hasNarrative: boolean
+    /** The other readings the trend can draw. */
+    delegated: number; switches: number; commits: number
+  }[]
   rhythm: number[][]
   /** The whole period — what the figures at the top describe. */
   summary: PeriodSummary

@@ -483,3 +483,33 @@ test('the routes the notes screen calls are the ones the core serves', () => {
     assert.ok(server.includes(`'${route}'`), `the core does not answer ${route}`)
   }
 })
+
+test('every reading the trend offers is counted and has words in five languages', () => {
+  const screen = read('src/components/Rhythm.tsx')
+  const core = read('core/metrics.ts')
+  const words = read('src/lib/strings.ts')
+
+  const list = /const MEASURES = \[([^\]]+)\] as const/.exec(screen)?.[1]
+  assert.ok(list, 'the list of readings is still declared where this looks for it')
+  const measures = [...list.matchAll(/'([a-z]+)'/g)].map((m) => m[1])
+  assert.ok(measures.length >= 3)
+
+  // Each one has to be a field rangeReport returns, or the line is drawn flat
+  // at zero and nothing says why.
+  const report = /export function rangeReport[\s\S]*?\n}/.exec(core)?.[0] ?? ''
+  for (const measure of measures) {
+    const counted = measure === 'active'
+      ? /as active/.test(report)
+      : new RegExp(`${measure}: ${measure}\\.get\\(|${measure},`).test(report)
+    assert.ok(counted, `rangeReport does not count ${measure}`)
+  }
+
+  // And a name, a note and a unit in each language: a missing one is a blank chip.
+  const blocks = [...words.matchAll(/trends: \{[\s\S]*?\n    \},/g)]
+  assert.equal(blocks.length, 5, 'five languages name the readings')
+  for (const block of blocks) {
+    for (const measure of measures) {
+      assert.match(block[0], new RegExp(`\\b${measure}: \\{ name:`), `${measure} is missing from a language`)
+    }
+  }
+})

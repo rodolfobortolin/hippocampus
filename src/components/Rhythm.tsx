@@ -4,6 +4,10 @@ import { duration, hours, addDays, today as todayString, number, topSlices, plur
 import { useLanguage } from '../lib/language.tsx'
 import { Heatmap, Trend, Bars, Donut } from './charts.tsx'
 
+/** What the trend can draw. The order is the order on screen. */
+const MEASURES = ['active', 'delegated', 'switches', 'commits'] as const
+type Measure = typeof MEASURES[number]
+
 export function Rhythm() {
   const t = useLanguage().t
   const WINDOWS = [
@@ -12,6 +16,7 @@ export function Rhythm() {
     { days: 90, name: t.rhythm.days90 },
   ]
   const [span, setSpan] = useState(30)
+  const [measure, setMeasure] = useState<Measure>('active')
   const [slot, setSlot] = useState<Slot>({})
   const [data, setData] = useState<Period | null>(null)
 
@@ -36,7 +41,25 @@ export function Rhythm() {
       ? `${t.common.at} ${String(slot.hour).padStart(2, '0')}${t.common.h}`
       : `· ${t.rhythm.wholeDay}`}`
     : ''
+  const pick: Record<Measure, { of: (d: any) => number; format: (n: number) => string; floor: number }> = {
+    active: { of: (d) => d.active, format: (n) => duration(n), floor: 3600 },
+    delegated: { of: (d) => d.delegated, format: (n) => duration(n), floor: 1800 },
+    switches: { of: (d) => d.switches, format: (n) => `${Math.round(n)} ${t.rhythm.trends.switches.unit}`, floor: 20 },
+    commits: { of: (d) => d.commits, format: (n) => `${n.toFixed(n < 10 ? 1 : 0)} ${t.rhythm.trends.commits.unit}`, floor: 5 },
+  }
+
   const measured = data.days.filter((d) => d.active > 60)
+  // Half against half, over worked days only — a fortnight of holidays should
+  // not read as "your work collapsed".
+  const worked = measured.map((d) => pick[measure].of(d))
+  const half = Math.floor(worked.length / 2)
+  const average = (list: number[]) => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0)
+  const before = average(worked.slice(0, half))
+  const after = average(worked.slice(worked.length - half))
+  const change = before > 0 ? (after - before) / before : 0
+  const direction = worked.length < 6 || Math.abs(change) < 0.05
+    ? t.rhythm.steady
+    : t.rhythm.movement(Math.round(Math.abs(change) * 100), change > 0, pick[measure].format(after))
   const mean = measured.length ? summary.total / measured.length : 0
   const total = hours(summary.total)
   const longest = [...measured].sort((a, b) => b.active - a.active)[0]
@@ -92,8 +115,19 @@ export function Rhythm() {
 
           {measured.length >= 3 && (
             <div className="panel">
-              <h3>{t.rhythm.trend} <em>{t.rhythm.activeTimePerDay}</em></h3>
-              <Trend days={data.days} />
+              <h3>{t.rhythm.trend} <em>{t.rhythm.trends[measure].note}</em></h3>
+              <div className="kinds" style={{ margin: '10px 0 14px' }}>
+                {MEASURES.map((option) => (
+                  <button key={option} className={`pill ${option === measure ? 'active' : ''}`}
+                    onClick={() => setMeasure(option)}>{t.rhythm.trends[option].name}</button>
+                ))}
+              </div>
+              {/* Where it is going, in words: the second half of the period
+                  against the first, over the days that were actually worked.
+                  A chart alone answers "how much", never "is this rising". */}
+              <p className="note" style={{ marginTop: 0, marginBottom: 14 }}>{direction}</p>
+              <Trend days={data.days} value={pick[measure].of} format={pick[measure].format}
+                floor={pick[measure].floor} />
             </div>
           )}
 

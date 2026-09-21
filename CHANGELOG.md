@@ -6,6 +6,12 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The trend in Rhythm says what it is drawing, and lets you change it: active
+  time, work delegated to agents, app switches or commits, each per day. Under
+  the title, where it is going — "rising 18%, the second half of the period
+  runs at 25 switches a day" — measured over the days you actually worked, so
+  a fortnight away does not read as a collapse.
+
 - Notes that outlive the day. At the close of the day the app reads what you
   asked your agents for and writes the few durable things into your own vault
   notes — project, knowledge, person, area, inbox — using the folders your

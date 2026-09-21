@@ -320,29 +320,43 @@ export function Heatmap({ grid, slot, onPick }: {
   )
 }
 
-export function Trend({ days }: { days: { day: string; active: number }[] }) {
+/**
+ * One reading per day, over the period — and which reading it is comes from
+ * outside: active time, work delegated to agents, app switches, commits.
+ *
+ * A chart that only ever drew one number could not answer the question people
+ * actually have ("is this going up?"), so the value and the way it is written
+ * are given in.
+ */
+export function Trend({ days, value, format, floor = 3600 }: {
+  days: { day: string }[]
+  value: (day: any) => number
+  format: (n: number) => string
+  /** The smallest top of the scale, so a quiet week is not drawn as a mountain. */
+  floor?: number
+}) {
   const t = useLanguage().t
   const [hovered, setSobre] = useState<number | null>(null)
   if (days.length < 3) return <p className="empty">{t.rhythm.needsThreeDays}</p>
 
   const width = 1000
   const height = 130
-  const largest = Math.max(...days.map((d) => d.active), 3600)
+  const largest = Math.max(...days.map(value), floor)
   const x = (i: number) => (i / (days.length - 1)) * width
   const y = (v: number) => height - (v / largest) * (height - 14) - 4
 
-  const points = days.map((d, i) => `${x(i)},${y(d.active)}`).join(' ')
-  const mean = days.reduce((sum, d) => sum + d.active, 0) / days.length
+  const points = days.map((d, i) => `${x(i)},${y(value(d))}`).join(' ')
+  const mean = days.reduce((sum, d) => sum + value(d), 0) / days.length
 
   return (
     <div>
       <div style={{ height: 18, marginBottom: 6, fontSize: 12, color: 'var(--text-mid)' }}>
         {hovered != null ? (
           <span className="appear">
-            {days[hovered].day} · <b style={{ fontWeight: 500 }}>{duration(days[hovered].active)}</b>
+            {days[hovered].day} · <b style={{ fontWeight: 500 }}>{format(value(days[hovered]))}</b>
           </span>
         ) : (
-          <span style={{ color: 'var(--text-dim)' }}>{t.common.averageOf} {duration(mean)} {t.common.perDay}</span>
+          <span style={{ color: 'var(--text-dim)' }}>{t.common.averageOf} {format(mean)} {t.common.perDay}</span>
         )}
       </div>
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: height }}>
@@ -364,7 +378,7 @@ export function Trend({ days }: { days: { day: string; active: number }[] }) {
             onMouseEnter={() => setSobre(i)} onMouseLeave={() => setSobre(null)} />
         ))}
         {hovered != null && (
-          <circle cx={x(hovered)} cy={y(days[hovered].active)} r="3.5" fill="var(--gold)"
+          <circle cx={x(hovered)} cy={y(value(days[hovered]))} r="3.5" fill="var(--gold)"
             style={{ filter: 'drop-shadow(0 0 6px var(--gold))' }} />
         )}
       </svg>

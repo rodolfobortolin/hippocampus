@@ -59,7 +59,11 @@ export type Strings = {
     longestDay: string; output: string; commits: string
     whenYouWork: string; hourByWeekday: string; sumOfPeriod: string; inTotal: string
     filterHint: string; showingOnly: string; wholeDay: string; clearFilter: string; nothingThen: string
-    trend: string; activeTimePerDay: string; averageOf: string; perMeasuredDay: string; needsThreeDays: string
+    trend: string; activeTimePerDay: string
+    /** What the trend is drawing, and how a reading of it is said. */
+    trends: Record<'active' | 'delegated' | 'switches' | 'commits', { name: string; note: string; unit: string }>
+    steady: string
+    movement: (percent: number, up: boolean, now: string) => string; averageOf: string; perMeasuredDay: string; needsThreeDays: string
     whereTimeWent: string; byCategory: string; projects: string; noProject: string
     signature: string; noShortcuts: string; sites: string; characters: string
     handsLead: (pct: number, app: string) => string; noHands: string
@@ -222,6 +226,15 @@ const pt: Strings = {
     sumOfPeriod: 'soma de todo o período', inTotal: 'no total',
     filterHint: 'clique numa célula ou num dia para ver só aquele horário abaixo', showingOnly: 'abaixo, só', wholeDay: 'o dia todo', clearFilter: 'ver o período todo', nothingThen: 'Nada medido nesse horário.',
     trend: 'tendência', activeTimePerDay: 'tempo ativo por dia', averageOf: 'média de',
+    trends: {
+      active: { name: 'tempo ativo', note: 'tempo nas suas mãos, por dia', unit: '' },
+      delegated: { name: 'trabalho delegado', note: 'tempo de agente produzindo, por dia', unit: '' },
+      switches: { name: 'trocas de aplicativo', note: 'quantas vezes o foco mudou de app, por dia', unit: 'trocas' },
+      commits: { name: 'commits', note: 'commits por dia', unit: 'commits' },
+    },
+    steady: 'sem mudança clara no período',
+    movement: (percent, up, now) =>
+      `${up ? 'subindo' : 'caindo'} ${percent}% — a segunda metade do período está em ${now} por dia`,
     perMeasuredDay: 'por dia medido', needsThreeDays: 'Precisa de pelo menos três dias medidos para a tendência.',
     whereTimeWent: 'onde o tempo foi no período', byCategory: 'por categoria',
     projects: 'projetos', noProject: 'Sem projeto atribuído ainda.',
@@ -471,6 +484,15 @@ const en: Strings = {
     sumOfPeriod: 'sum of the whole period', inTotal: 'in total',
     filterHint: 'click a cell or a day to see only that slot below', showingOnly: 'below, only', wholeDay: 'all day', clearFilter: 'show the whole period', nothingThen: 'Nothing was measured in that slot.',
     trend: 'trend', activeTimePerDay: 'active time per day', averageOf: 'average of',
+    trends: {
+      active: { name: 'active time', note: 'time in your hands, per day', unit: '' },
+      delegated: { name: 'delegated work', note: 'time an agent was producing, per day', unit: '' },
+      switches: { name: 'app switches', note: 'how often the focus changed app, per day', unit: 'switches' },
+      commits: { name: 'commits', note: 'commits per day', unit: 'commits' },
+    },
+    steady: 'no clear change over the period',
+    movement: (percent, up, now) =>
+      `${up ? 'rising' : 'falling'} ${percent}% — the second half of the period runs at ${now} a day`,
     perMeasuredDay: 'per measured day', needsThreeDays: 'Needs at least three measured days for a trend.',
     whereTimeWent: 'where the time went in the period', byCategory: 'by category',
     projects: 'projects', noProject: 'No project assigned yet.',
@@ -720,6 +742,15 @@ const es: Strings = {
     sumOfPeriod: 'suma de todo el periodo', inTotal: 'en total',
     filterHint: 'haz clic en una celda o en un día para ver solo esa franja abajo', showingOnly: 'abajo, solo', wholeDay: 'todo el día', clearFilter: 'ver todo el periodo', nothingThen: 'Nada medido en esa franja.',
     trend: 'tendencia', activeTimePerDay: 'tiempo activo por día', averageOf: 'media de',
+    trends: {
+      active: { name: 'tiempo activo', note: 'tiempo en tus manos, por día', unit: '' },
+      delegated: { name: 'trabajo delegado', note: 'tiempo de agente produciendo, por día', unit: '' },
+      switches: { name: 'cambios de app', note: 'cuántas veces el foco cambió de app, por día', unit: 'cambios' },
+      commits: { name: 'commits', note: 'commits por día', unit: 'commits' },
+    },
+    steady: 'sin cambio claro en el período',
+    movement: (percent, up, now) =>
+      `${up ? 'subiendo' : 'bajando'} ${percent}% — la segunda mitad del período va en ${now} al día`,
     perMeasuredDay: 'por día medido', needsThreeDays: 'Necesita al menos tres días medidos para la tendencia.',
     whereTimeWent: 'dónde fue el tiempo en el periodo', byCategory: 'por categoría',
     projects: 'proyectos', noProject: 'Sin proyecto asignado todavía.',
@@ -969,6 +1000,15 @@ const fr: Strings = {
     sumOfPeriod: 'somme de toute la période', inTotal: 'au total',
     filterHint: 'clique sur une case ou un jour pour ne voir que ce créneau en dessous', showingOnly: 'en dessous, seulement', wholeDay: 'toute la journée', clearFilter: 'voir toute la période', nothingThen: 'Rien de mesuré sur ce créneau.',
     trend: 'tendance', activeTimePerDay: 'temps actif par jour', averageOf: 'moyenne de',
+    trends: {
+      active: { name: 'temps actif', note: 'temps entre tes mains, par jour', unit: '' },
+      delegated: { name: 'travail délégué', note: 'temps où un agent produisait, par jour', unit: '' },
+      switches: { name: 'changements d’app', note: 'combien de fois le focus a changé d’app, par jour', unit: 'changements' },
+      commits: { name: 'commits', note: 'commits par jour', unit: 'commits' },
+    },
+    steady: 'pas de changement net sur la période',
+    movement: (percent, up, now) =>
+      `${up ? 'en hausse de' : 'en baisse de'} ${percent}% — la seconde moitié de la période tourne à ${now} par jour`,
     perMeasuredDay: 'par jour mesuré', needsThreeDays: 'Il faut au moins trois jours mesurés pour une tendance.',
     whereTimeWent: 'où est passé le temps sur la période', byCategory: 'par catégorie',
     projects: 'projets', noProject: 'Aucun projet attribué pour l’instant.',
@@ -1218,6 +1258,15 @@ const de: Strings = {
     sumOfPeriod: 'Summe des ganzen Zeitraums', inTotal: 'insgesamt',
     filterHint: 'klick auf ein Feld oder einen Tag, um darunter nur diese Zeit zu sehen', showingOnly: 'darunter nur', wholeDay: 'den ganzen Tag', clearFilter: 'ganzen Zeitraum zeigen', nothingThen: 'In dieser Zeit wurde nichts gemessen.',
     trend: 'Tendenz', activeTimePerDay: 'aktive Zeit pro Tag', averageOf: 'Durchschnitt von',
+    trends: {
+      active: { name: 'aktive Zeit', note: 'Zeit in deinen Händen, pro Tag', unit: '' },
+      delegated: { name: 'delegierte Arbeit', note: 'Zeit, in der ein Agent produzierte, pro Tag', unit: '' },
+      switches: { name: 'App-Wechsel', note: 'wie oft der Fokus die App wechselte, pro Tag', unit: 'Wechsel' },
+      commits: { name: 'Commits', note: 'Commits pro Tag', unit: 'Commits' },
+    },
+    steady: 'keine klare Veränderung im Zeitraum',
+    movement: (percent, up, now) =>
+      `${up ? 'steigend um' : 'fallend um'} ${percent}% — die zweite Hälfte des Zeitraums liegt bei ${now} pro Tag`,
     perMeasuredDay: 'pro gemessenem Tag', needsThreeDays: 'Für eine Tendenz braucht es mindestens drei gemessene Tage.',
     whereTimeWent: 'wohin die Zeit im Zeitraum ging', byCategory: 'nach Kategorie',
     projects: 'Projekte', noProject: 'Noch kein Projekt zugeordnet.',

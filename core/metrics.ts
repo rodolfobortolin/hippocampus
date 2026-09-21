@@ -235,10 +235,32 @@ export function rangeReport(from: string, to: string) {
     all<any>(`select day, focus_ratio, narrative, recap from days where day between ? and ?`, from, to)
       .map((row) => [row.day, row]))
 
+  // The other three readings the trend can draw, each per day. Counting them
+  // here, in SQL, is what makes the chart answer "is this going up?" over
+  // ninety days without building ninety day reports.
+  const delegated = new Map(all<any>(
+    `select day, count(*) * 60 as seconds from agent_minutes where day between ? and ? group by day`,
+    from, to).map((row) => [row.day, row.seconds as number]))
+
+  // A switch is a block whose app differs from the one before it, that day.
+  const switches = new Map(all<any>(
+    `select day, count(*) n from (
+       select day, app, lag(app) over (partition by day order by started_at) as before
+         from blocks where day between ? and ? and idle = 0)
+      where before is not null and app <> before group by day`, from, to)
+    .map((row) => [row.day, row.n as number]))
+
+  const commits = new Map(all<any>(
+    `select day, count(*) n from commits where day between ? and ? group by day`, from, to)
+    .map((row) => [row.day, row.n as number]))
+
   return days.map((row) => ({
     ...row,
     focusRatio: stored.get(row.day)?.focus_ratio ?? null,
     hasNarrative: Boolean(stored.get(row.day)?.narrative),
+    delegated: delegated.get(row.day) ?? 0,
+    switches: switches.get(row.day) ?? 0,
+    commits: commits.get(row.day) ?? 0,
   }))
 }
 
