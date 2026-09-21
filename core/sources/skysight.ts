@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import zlib from 'node:zlib'
 import { config, paths, dayOf } from '../config.ts'
+import { VERSION } from '../version.ts'
 import { db, getMeta, setMeta } from '../db.ts'
 import { redact } from '../redact.ts'
 import { shortcutLabel, hasModifier } from '../keys.ts'
@@ -44,7 +45,7 @@ export function skysightAvailable(): boolean {
  * tomorrow, and it stays worth checking.
  */
 const DENIED = 'skysight.denied'
-const PROBED = 'skysight.probed'
+const ALLOWED = 'skysight.allowed'
 
 /**
  * How long a "no" is taken at its word before the folder is touched again.
@@ -57,13 +58,25 @@ const PROBED = 'skysight.probed'
  */
 const PATIENCE = 6 * 60 * 60 * 1000
 
-/** Forgets the refusal, so it is tried again once permission is given. */
+/** Forgets both answers, so the folder is looked at again. */
 export function retryDeniedSkysight(): void {
   setMeta(DENIED, '')
-  setMeta(PROBED, '')
+  setMeta(ALLOWED, '')
 }
 
+/**
+ * Asked once per version of the app, not once every two minutes.
+ *
+ * The harvest runs every two minutes and used to re-ask the filesystem each
+ * time. Every one of those is a chance for macOS to raise its dialog, and the
+ * dialog does not say which app is asking or what for — so the answer is
+ * remembered against the version that asked, and a new build asks once.
+ */
 export async function checkSkysight(): Promise<boolean> {
+  if (getMeta(ALLOWED, '') === VERSION) {
+    available = true
+    return true
+  }
   const refusedAt = Number(getMeta(DENIED, '0'))
   if (refusedAt && Date.now() - refusedAt < PATIENCE) {
     available = false
@@ -72,6 +85,7 @@ export async function checkSkysight(): Promise<boolean> {
   try {
     await fs.access(segmentsDir)
     available = true
+    setMeta(ALLOWED, VERSION)
     setMeta(DENIED, '0')
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code
@@ -81,7 +95,6 @@ export async function checkSkysight(): Promise<boolean> {
     }
     available = false
   }
-  setMeta(PROBED, String(Date.now()))
   return available
 }
 

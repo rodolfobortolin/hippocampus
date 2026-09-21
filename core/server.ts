@@ -94,6 +94,8 @@ export function serve(collector?: Collector): http.Server {
         }
         delete body.keys
         const settings = saveSettings(body)
+        // The switch has to reach the session, not just the next answer.
+        if (settings.voiceMode !== 'live') closeLive?.()
         return json(response, {
           ...settings,
           languages: LANGUAGES,
@@ -261,6 +263,21 @@ export function serve(collector?: Collector): http.Server {
    */
   let session: string | undefined
   let nextScreen = 0
+  /** Set once the socket server is up; the settings route uses it to hang up. */
+  let closeLive: (() => void) | undefined
+
+  /**
+   * One live session for the whole app, not one per screen.
+   *
+   * There is one microphone and one person in front of it. With a session open
+   * in the panel and another in the sphere, both heard the same sentence, both
+   * delegated it, and both answered — one voice, then a second one over it.
+   */
+  let live: LiveVoice | undefined
+  closeLive = () => {
+    live?.close()
+    live = undefined
+  }
 
   sockets.on('connection', (socket, request) => {
     // Only the interface itself talks to the core.
@@ -270,7 +287,6 @@ export function serve(collector?: Collector): http.Server {
       return
     }
 
-    let live: LiveVoice | undefined
     /**
      * Which screen this is, so a broadcast answer can still say who asked.
      *
@@ -279,6 +295,9 @@ export function serve(collector?: Collector): http.Server {
      * out of the panel and the sphere at once, a beat apart.
      */
     const screenId = `screen-${++nextScreen}`
+    // The session this screen opened, so closing the socket only takes down
+    // its own.
+    let mine: LiveVoice | undefined
 
     // What belongs to the conversation goes to every screen; what belongs to
     // this particular connection — the WebRTC handshake — goes only here.
@@ -298,6 +317,11 @@ export function serve(collector?: Collector): http.Server {
      * there is a transcript to read.
      */
     const answer = async (text: string, speaks: LiveVoice | undefined) => {
+      // Turning the live voice off in Settings does not reach into an open
+      // session, and a session left open goes on speaking while the screen,
+      // now back in push mode, reads the same answer out through the speech
+      // endpoint. The setting is what decides who has the voice.
+      if (readSettings().voiceMode !== 'live') speaks = undefined
       // Said once, here, whether it was typed or spoken — so the panel does not
       // have to guess which turns it missed.
       send({ type: 'heard', text })
@@ -325,17 +349,32 @@ export function serve(collector?: Collector): http.Server {
       }
     }
 
+    /**
+     * The session belongs to one screen, so its comings and goings are told to
+     * that screen alone.
+     *
+     * Broadcasting them would have one screen closing its session tear down
+     * the peer connection of another, and one screen opening its own announce
+     * a session the others do not have.
+     */
+    const liveState = (on: boolean, seconds: number) =>
+      toThisScreen({ type: 'live', on, seconds })
+
     const stopLive = () => {
-      const seconds = live?.seconds ?? 0
-      live?.close()
-      live = undefined
-      send({ type: 'live', on: false, seconds })
+      const seconds = mine?.seconds ?? 0
+      if (live === mine) live = undefined
+      mine?.close()
+      mine = undefined
+      liveState(false, seconds)
     }
 
     const startLive = async (sdp: string) => {
       if (!liveAvailable()) {
-        return send({ type: 'error', error: 'The live voice needs the OpenAI key.' })
+        return toThisScreen({ type: 'error', error: 'The live voice needs the OpenAI key.' })
       }
+      // Whatever was open belongs to another screen, or to an earlier attempt
+      // by this one. Either way it goes: two of these is two microphones on one
+      // person, each hearing the same sentence and each answering it.
       live?.close()
       const session_ = new LiveVoice({
         onRequest: (text) => {
@@ -345,25 +384,29 @@ export function serve(collector?: Collector): http.Server {
         onSpoken: (text) => send({ type: 'spoken', text }),
         onHeard: () => send({ type: 'listening' }),
         onClosed: () => {
-          live = undefined
-          send({ type: 'live', on: false, seconds: session_.seconds })
+          // Only if it is still the one in hand: a session already replaced by
+          // another screen must not clear the replacement on its way out.
+          if (live === session_) live = undefined
+          if (mine === session_) mine = undefined
+          liveState(false, session_.seconds)
         },
-        onError: (message) => send({ type: 'error', error: `Live voice: ${message}` }),
+        onError: (message) => toThisScreen({ type: 'error', error: `Live voice: ${message}` }),
       })
       live = session_
+      mine = session_
       try {
         const opened = await session_.start(sdp, liveInstructions(), readSettings().liveVoice)
-        // The handshake belongs to the screen that made the offer, not to the
-        // others: an answer meant for one peer connection is useless anywhere
-        // else and would only confuse a second core that is not connecting.
+        // The handshake belongs to the screen that made the offer: an answer
+        // meant for one peer connection is useless anywhere else.
         toThisScreen({ type: 'live-answer', sdp: opened.sdp })
-        send({ type: 'live', on: true, seconds: 0 })
+        liveState(true, 0)
       } catch (error) {
-        live = undefined
+        if (live === session_) live = undefined
+        if (mine === session_) mine = undefined
         const message = (error as Error).message
         console.error('[live]', message)
-        send({ type: 'error', error: `Live voice: ${message}` })
-        send({ type: 'live', on: false, seconds: 0 })
+        toThisScreen({ type: 'error', error: `Live voice: ${message}` })
+        liveState(false, 0)
       }
     }
 
@@ -373,12 +416,16 @@ export function serve(collector?: Collector): http.Server {
       if (payload.type === 'live-offer' && payload.sdp) return void startLive(String(payload.sdp))
       if (payload.type === 'live-stop') return stopLive()
       if (payload.type !== 'question' || !payload.text) return
+      // A typed question is spoken by the live session when one is open, so
+      // the two ways of asking share one voice rather than talking over it.
       await answer(String(payload.text), live)
     })
 
     socket.on('close', () => {
-      live?.close()
-      live = undefined
+      // Only this screen's own session goes: another screen's has to survive.
+      if (live === mine) live = undefined
+      mine?.close()
+      mine = undefined
     })
   })
 

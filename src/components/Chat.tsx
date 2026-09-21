@@ -45,6 +45,13 @@ export function Chat({ status }: { status: Status | null }) {
   // the value it closed over on the first render.
   const liveRef = useRef(false)
   liveRef.current = liveOn || settings?.voiceMode === 'live'
+
+  // Switching the mode off in Settings has to let go of the microphone here
+  // too. Left open, the session keeps answering while this screen — back in
+  // push mode — reads the same answer out as well.
+  useEffect(() => {
+    if (settings && settings.voiceMode !== 'live' && live.phase !== 'off') live.stop()
+  }, [settings?.voiceMode, live.phase])
   // Listening records and transcribes; its level is the one from your microphone.
   const listening = useListening((utterance) => { askedByVoice.current = true; send(utterance) }, t.common)
   const isListening = listening.state === 'listening'

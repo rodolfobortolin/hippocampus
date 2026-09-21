@@ -54,6 +54,13 @@ export function FloatingCore() {
   const liveRef = useRef(false)
   liveRef.current = liveOn || liveWanted
 
+  // Switching the mode off in Settings has to let go of the microphone here
+  // too. Left open, the session keeps answering while this screen — back in
+  // push mode — reads the same answer out as well.
+  useEffect(() => {
+    if (settings && settings.voiceMode !== 'live' && live.phase !== 'off') live.stop()
+  }, [settings?.voiceMode, live.phase])
+
   // The core tags every answer with the screen that asked. Every screen shows
   // the whole conversation; only the one that asked reads it out loud.
   const myScreen = useRef('')
