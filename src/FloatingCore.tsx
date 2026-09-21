@@ -161,7 +161,11 @@ export function FloatingCore() {
   // rectangle, and a dark rectangle under the sphere is the one thing this
   // window is not supposed to put on someone's screen — the sphere floats over
   // whatever is there, or it is just an app in a box.
-  const said = listening.error || answer || question
+  // A live session that fails has to say so. Without this line the microphone
+  // opens, the session is refused, everything resets, and the screen looks
+  // exactly like a click that did nothing.
+  const liveTrouble = live.error === 'live-no-answer' ? t.chat.liveNoAnswer : live.error
+  const said = listening.error || liveTrouble || answer || question
   const hint = !connected ? t.chat.reconnecting
     : liveWanted ? (liveOn ? t.chat.liveOn : t.chat.liveStart)
     : t.chat.clickToSpeak

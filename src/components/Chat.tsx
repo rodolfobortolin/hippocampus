@@ -184,9 +184,10 @@ export function Chat({ status }: { status: Status | null }) {
           </div>
         ))}
 
-        {listening.error && (
+        {(listening.error || live.error) && (
           <div className="message theirs appear" style={{ color: 'var(--communication)' }}>
-            {listening.error}
+            {listening.error
+              || (live.error === 'live-no-answer' ? t.chat.liveNoAnswer : live.error)}
           </div>
         )}
 

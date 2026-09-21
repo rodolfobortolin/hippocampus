@@ -67,9 +67,18 @@ export function readKey(name: KeyName): string {
 }
 
 /**
- * Writes a secret into the Keychain. The value travels through standard input
- * rather than through the arguments — a process argument is readable by any
- * `ps` on the machine.
+ * Writes a secret into the Keychain.
+ *
+ * Through `security -i`, which takes the whole command on standard input, for
+ * two reasons that pull the same way.
+ *
+ * The value stays out of the arguments, so no `ps` on this machine can read
+ * it. And `-w` with no value falls back to an interactive prompt that **cuts
+ * the password at 128 characters** without a word — it stores the truncated
+ * one and exits zero. An OpenAI service-account key is 167 characters, so not
+ * one of them was ever stored whole: the app saved 128 of them and OpenAI
+ * answered "Incorrect API key provided" to a key the person had pasted
+ * correctly, twice.
  */
 export function writeKey(name: KeyName, value: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -78,11 +87,15 @@ export function writeKey(name: KeyName, value: string): Promise<void> {
       execFile('security', ['delete-generic-password', '-a', account, '-s', SERVICE], () => resolve())
       return
     }
-    const child = execFile('security',
-      ['add-generic-password', '-a', account, '-s', SERVICE, '-U', '-D', 'API key', '-w'],
-      (error) => (error ? reject(error) : resolve()))
-    // `security` asks for the password twice when `-w` comes with no value.
-    child.stdin?.end(`${value}\n${value}\n`)
+    // In batch mode the line is parsed as a command, so anything that could end
+    // the argument early would corrupt the secret rather than fail loudly.
+    if (/[\s"'\\]/.test(value)) {
+      reject(new Error('a key cannot contain spaces or quotes'))
+      return
+    }
+    const child = execFile('security', ['-i'], (error) => (error ? reject(error) : resolve()))
+    child.stdin?.end(
+      `add-generic-password -a ${account} -s ${SERVICE} -U -D "API key" -w ${value}\n`)
   })
 }
 

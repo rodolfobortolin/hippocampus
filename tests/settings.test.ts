@@ -47,3 +47,31 @@ test('the new shape wins over the old one', () => {
   assert.equal(settings.name, 'Newer')
   assert.equal(settings.language, 'fr-FR')
 })
+
+test('a key longer than 128 characters comes back whole', async () => {
+  // `security ... -w` with no value prompts for the password on stdin and cuts
+  // it at 128 characters, silently, exit code zero. An OpenAI service-account
+  // key is 167, so every one of them was stored truncated and refused by
+  // OpenAI — with the person looking at a key they had pasted correctly.
+  const { execFile } = await import('node:child_process')
+  const { promisify } = await import('node:util')
+  const run = promisify(execFile)
+
+  const account = 'hippocampus-length-test'
+  const service = 'HippocampusTest'
+  const secret = `sk-svcacct-${'x'.repeat(156)}`
+  assert.equal(secret.length, 167, 'the sample should be the length that broke')
+
+  const child = execFile('security', ['-i'], () => {})
+  child.stdin?.end(`add-generic-password -a ${account} -s ${service} -U -D "API key" -w ${secret}\n`)
+  await new Promise((done) => child.on('close', done))
+
+  try {
+    const { stdout } = await run('security',
+      ['find-generic-password', '-a', account, '-s', service, '-w'])
+    assert.equal(stdout.trim(), secret, 'the key must come back exactly as it went in')
+  } finally {
+    await run('security', ['delete-generic-password', '-a', account, '-s', service])
+      .catch(() => { /* nothing to clean up */ })
+  }
+})
