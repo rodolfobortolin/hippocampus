@@ -43,7 +43,8 @@
     "url": "%SITE%",
     "image": "%SITE%og.jpg",
     "applicationCategory": "ProductivityApplication",
-    "operatingSystem": "macOS",
+    "operatingSystem": "macOS 13 or later, Apple silicon",
+    "softwareRequirements": "Claude Code for the journal, notes and chat; a jev (TypeSafe) key for window labels; Obsidian optional",
     "softwareVersion": "%VERSION%",
     "license": "https://opensource.org/licenses/MIT",
     "isAccessibleForFree": true,
@@ -68,6 +69,7 @@
       </a>
       <div class="links">
         <a href="#how">How it works</a>
+        <a href="#needs">What it needs</a>
         <a href="#screens">Screens</a>
         <a href="#principles">Principles</a>
         <a class="gh" href="https://github.com/rodolfobortolin/hippocampus">GitHub</a>
@@ -98,7 +100,8 @@
       <!-- download -->
       <p class="fine enter" style="--i: 4">macOS 13 or later, Apple silicon. Signed and notarized; it updates itself.</p>
       <!-- /download -->
-      <p class="fine enter" style="--i: 4">Never takes a screenshot. No server, no account, no dashboard.</p>
+      <p class="fine enter" style="--i: 4">Never takes a screenshot. No server, no account, no dashboard.
+        Works best with <a href="#needs">Claude Code and jev</a>.</p>
     </div>
 
     <figure class="orb" aria-label="The Hippocampus core, the sphere you talk to">
@@ -178,6 +181,41 @@
         <li><b>Notes</b><span>projects, knowledge, people</span></li>
         <li><b>Conversation</b><span>typed or out loud</span></li>
       </ul>
+    </div>
+  </section>
+
+  <!-- What it needs. Said early and plainly: an app that needs two other
+       tools to be whole has to say so before the screenshots, not after them.
+       Each line says what the tool does here and what is left without it. -->
+  <section id="needs" class="needs">
+    <h2 class="reveal">What it <b>needs</b></h2>
+    <p class="kicker reveal">It measures on its own. The labels and the writing come from two tools you bring,
+      each under your own login or key.</p>
+    <div class="need-grid">
+      <div class="need reveal" style="--i: 0">
+        <p class="tag">Required</p>
+        <h3>A Mac with Apple silicon</h3>
+        <p>macOS 13 or later, and one permission — Accessibility — so it can read window titles.</p>
+      </div>
+      <div class="need reveal" style="--i: 1">
+        <p class="tag full">For the full picture</p>
+        <h3><a href="https://claude.com/product/claude-code" rel="noopener">Claude Code</a></h3>
+        <p>Writes the day's journal, keeps the notes and answers the chat, through the login already on
+          your Mac. Without it everything is still measured and charted — nothing is written.</p>
+      </div>
+      <div class="need reveal" style="--i: 2">
+        <p class="tag full">For the full picture</p>
+        <h3><a href="https://typesafe.ai" rel="noopener">jev</a>, by TypeSafe</h3>
+        <p>Labels every window with a category and a project, and focus is counted from those labels.
+          Without a key only what has an obvious purpose is sorted — an editor, Slack, a pull request —
+          so focus and projects come out partial.</p>
+      </div>
+      <div class="need reveal" style="--i: 3">
+        <p class="tag optional">Optional</p>
+        <h3><a href="https://obsidian.md" rel="noopener">Obsidian</a>, and a voice</h3>
+        <p>The journal and the notes are plain Markdown in a folder you pick; Obsidian is the nicest way to
+          read them. An OpenAI key lets you talk to it out loud.</p>
+      </div>
     </div>
   </section>
 
