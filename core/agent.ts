@@ -258,6 +258,23 @@ export type AgentEvent =
   | { type: 'end'; text: string }
   | { type: 'error'; error: string }
 
+/**
+ * A tool's name, as it is worth putting on screen.
+ *
+ * Our own lose the prefix, another server's keeps the server so it is clear
+ * where the answer came from, and the SDK's internal schema lookup gets no
+ * name at all — it queries nothing, and naming it would only make the panel
+ * look busy.
+ */
+function readable(name: string): string {
+  if (name.startsWith('mcp__hippocampus__')) return name.replace('mcp__hippocampus__', '')
+  const mcp = name.match(/^mcp__([^_]+(?:_[^_]+)*?)__(.+)$/)
+  if (mcp) return `${mcp[1]}: ${mcp[2]}`
+  // The lookup the SDK runs to discover the tools it was handed.
+  if (/^(ListMcpResources|ReadMcpResource|mcp__)/.test(name)) return ''
+  return name
+}
+
 /** Talks to Claude Code, with the local database as its tools. */
 export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<AgentEvent> {
   // A model that fits the request: jev judges the complexity before it starts.
@@ -320,10 +337,13 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
         for (const block of message.message?.content ?? []) {
           if (block.type === 'tool_use') {
             const name = String(block.name)
-            // The SDK's internal tool (schema lookup) is not a query against the
-            // database; the panel says "thinking" rather than a meaningless name.
-            yield { type: 'tool', name: name.startsWith('mcp__hippocampus__')
-              ? name.replace('mcp__hippocampus__', '') : '' }
+            // The SDK's internal schema lookup is not a query against anything,
+            // and a name for it on screen means nothing to anyone watching.
+            //
+            // Everything else is named, including Bash and the other machine's
+            // servers: with the wider tools on, what it is reaching for is the
+            // one thing worth showing while it works.
+            yield { type: 'tool', name: readable(name) }
           }
         }
       }
