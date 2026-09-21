@@ -259,18 +259,23 @@ p { color: var(--text-mid); }
 
 /* Outside the frame: the two services the day is sent to. No dashed border —
    they are not the Mac — and each with the logo of what it is. */
-.beyond { position: relative; margin: 60px auto 0; max-width: 700px; }
+.beyond { position: relative; margin: 60px auto 0; max-width: 980px; }
+/* The label sits over the wires, on the page's own black, so the middle wire
+   passes behind it instead of striking through the words. */
 .beyond .machine {
-  position: static; margin: 0 0 14px; text-align: center;
+  position: relative; z-index: 1; display: table; margin: 0 auto 14px; padding: 4px 12px;
+  background: var(--black); text-align: center;
   font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim);
 }
-.services { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; position: relative; z-index: 1; }
+.services { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; position: relative; z-index: 1; }
 .services li {
   display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 2px;
   align-items: center; padding: 13px 15px; border-radius: 14px;
   background: rgba(13, 15, 19, 0.94); border: 1px solid color-mix(in oklab, var(--c) 45%, transparent);
   box-shadow: 0 0 36px color-mix(in oklab, var(--c) 12%, transparent);
 }
+/* Dashed, like the calendar among the sources: only there if you use it. */
+.services li.optional { border-style: dashed; }
 .services li img { grid-row: 1 / 3; width: 28px; height: 28px; object-fit: contain; border-radius: 7px; }
 .services li b { font-size: 14.5px; font-weight: 600; }
 .services li b em { font-style: normal; font-weight: 400; color: var(--text-dim); }
