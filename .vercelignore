@@ -1,0 +1,12 @@
+# The website is built from site/ and the sphere in src/three/; nothing else
+# the repository holds belongs in an upload — above all not a .env with keys.
+.env
+.env.*
+release
+dist
+site/dist
+native/build
+build/*.app
+*.db
+*.db-*
+archive

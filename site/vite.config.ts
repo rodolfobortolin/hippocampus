@@ -10,7 +10,7 @@ const { version, funding } = JSON.parse(readFileSync(path.join(__dirname, '..', 
 // Where the site lives. Every tag that has to be an absolute address — the
 // canonical link, the link previews, the sitemap — is written from this one
 // line, so moving the site is a change here and nowhere else.
-export const SITE = 'https://rodolfobortolin.github.io/hippocampus/'
+export const SITE = 'https://hippocampus-black.vercel.app/'
 
 // The lunch link comes from the same file. Until there is one, the block that
 // offers it is left out of the page entirely: a button that leads nowhere is

@@ -177,8 +177,19 @@ describes it — the Rhythm copy names Thursday at 16h because the capture picks
 that cell. `npm run site` serves it; `npm run site:build` builds it into
 `site/dist`.
 
-It is published on GitHub Pages at https://rodolfobortolin.github.io/hippocampus/
-by `.github/workflows/site.yml`, which runs when `site/`, the sphere in
-`src/three/` or the lockfile change on main, and by hand. Nothing else
-publishes it, so a push that only touches the app leaves the site as it is.
+It is published on Vercel at https://hippocampus-black.vercel.app/ — the
+project `hippocampus` under rodolfobortolins-projects, connected to this
+repository. `vercel.json` says how it is built, and its `ignoreCommand` skips
+the build when a push touches neither `site/`, the sphere in `src/three/`, the
+lockfile nor `package.json` — the last one because the page names the version.
+So the release commit republishes it, and a push that only touches the app
+does not.
+
+The address is written once, as `SITE` in `site/vite.config.ts`; the canonical
+link, the link previews, `robots.txt` and `sitemap.xml` are all built from it.
+Moving the site to its own domain is that line and nothing else.
+
+The old address on GitHub Pages is kept only as a redirect, by
+`.github/workflows/site.yml`, so links already out there still land. It is not
+a second copy of the site: two copies compete with each other in search.
 

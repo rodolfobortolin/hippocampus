@@ -1,21 +1,18 @@
-# Publishes the website on GitHub Pages:
-# https://rodolfobortolin.github.io/hippocampus/
+# The website moved to Vercel: https://hippocampus-black.vercel.app/
 #
-# It runs when something the site is built from changes on main — the site
-# itself, and the sphere it borrows from the app — when a release is
-# published, since the page names the latest version, and by hand. Commits to
-# the app alone do not publish anything: the site would come out the same.
+# GitHub Pages keeps the old address alive as a redirect, and nothing more —
+# links to https://rodolfobortolin.github.io/hippocampus/ are out there, in
+# release notes and in people's bookmarks, and a copy of the site at two
+# addresses would compete with itself in search. Each page says where the site
+# is now, both to the browser (a refresh) and to a crawler (the canonical link).
+#
+# It runs when this file changes, and by hand.
 name: site
 
 on:
-  release:
-    types: [published]
   push:
     branches: [main]
     paths:
-      - 'site/**'
-      - 'src/three/**'
-      - 'package-lock.json'
       - '.github/workflows/site.yml'
   workflow_dispatch:
 
@@ -32,25 +29,17 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      # The site needs three.js and Vite, not Electron's 100 MB binary.
-      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run site:build
+      - name: Write the redirect
+        run: |
+          mkdir -p out
+          page='<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Hippocampus has moved</title><link rel="canonical" href="https://hippocampus-black.vercel.app/"><meta http-equiv="refresh" content="0; url=https://hippocampus-black.vercel.app/"><meta name="robots" content="noindex"></head><body><p>Hippocampus now lives at <a href="https://hippocampus-black.vercel.app/">https://hippocampus-black.vercel.app/</a>.</p></body></html>'
+          echo "$page" > out/index.html
+          echo "$page" > out/404.html
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: site/dist
+          path: out
 
-  # A release deploys from its tag, not from main. The github-pages
-  # environment allows both — main, and tags matching v* — in the
-  # repository's environment settings; without the tag rule the release
-  # run is refused.
   deploy:
     needs: build
     runs-on: ubuntu-latest

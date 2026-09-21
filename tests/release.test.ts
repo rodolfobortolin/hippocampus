@@ -43,16 +43,29 @@ test('the latest release in the changelog is the version the app reports', () =>
 
 test('the website publishes when the site changes, not on every commit', () => {
   // The same rule as the pipeline: a commit to the app alone would publish a
-  // site identical to the one already up.
-  const workflow = read('.github/workflows/site.yml')
-  const on = workflow.slice(workflow.indexOf('\non:'), workflow.indexOf('\npermissions:'))
-  assert.match(on, /paths:/, 'site.yml should only run when the files the site is built from change')
-  assert.match(on, /'site\/\*\*'/)
-  assert.match(on, /workflow_dispatch/, 'site.yml should be runnable by hand')
-  assert.match(on, /release:\s*\n\s*types: \[published\]/, 'site.yml should republish when a release goes out')
-  // And what it publishes is what `npm run site:build` writes.
-  assert.match(workflow, /path: site\/dist/)
+  // site identical to the one already up. It lives on Vercel now, and the rule
+  // is its ignoreCommand: skip unless something the site is built from moved.
+  const vercel = JSON.parse(read('vercel.json'))
+  assert.equal(vercel.buildCommand, 'npm run site:build')
+  assert.equal(vercel.outputDirectory, 'site/dist')
   assert.match(read('site/vite.config.ts'), /outDir: 'dist'/)
+  for (const path of ['site/', 'src/three/', 'package.json']) {
+    // package.json because the page names the version: the release commit
+    // has to republish it.
+    assert.ok(vercel.ignoreCommand.includes(path), `vercel.json should rebuild when ${path} changes`)
+  }
+})
+
+test('the old address only points at the new one', () => {
+  // GitHub Pages is kept for the links already out there. A second copy of
+  // the site would compete with the first in search, so it serves a redirect
+  // to the address the site itself declares — the same one, never another.
+  const site = /export const SITE = '([^']+)'/.exec(read('site/vite.config.ts'))?.[1]
+  assert.ok(site, 'the site address is declared once, in site/vite.config.ts')
+  const workflow = read('.github/workflows/site.yml')
+  assert.doesNotMatch(workflow, /site:build/, 'Pages must not build a second copy of the site')
+  assert.ok(workflow.includes(`rel="canonical" href="${site}"`), 'the redirect names the site as canonical')
+  assert.ok(workflow.includes(`url=${site}`), 'the redirect sends the browser to the site')
 })
 
 test('the website names the version from package.json, never a number of its own', () => {
