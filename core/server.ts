@@ -14,6 +14,7 @@ import { vaultReady } from './vault.ts'
 import { readSettings, saveSettings, writeKey, keyState, openaiBase, type KeyName } from './settings.ts'
 import { LANGUAGES } from './languages.ts'
 import { workItems, itemDetail } from './items.ts'
+import { timesheet } from './timesheet.ts'
 import { calendarAsk, calendarStatus, setCalendarStatus, keepMeetings, forgetMeetings } from './sources/calendar.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
 import { blockedBrowsers, retryDeniedBrowsers } from './sources/browser.ts'
@@ -160,6 +161,10 @@ export function serve(collector?: Collector): http.Server {
         const to = query.get('to') ?? today()
         const from = query.get('from') ?? dayOf(Date.now() / 1000 - 29 * 86_400)
         return json(response, workItems(from, to))
+      }
+      if (route === '/api/timesheet') {
+        const to = query.get('to') ?? today()
+        return json(response, timesheet(query.get('from') ?? dayOf(Date.now() / 1000 - 6 * 86_400), to))
       }
       if (route === '/api/item') {
         const key = query.get('key') ?? ''

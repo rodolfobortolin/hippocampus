@@ -172,3 +172,13 @@ test('a Jira address pasted into a question teaches where its prefix lives', () 
   assert.equal(items.find((item) => item.key === 'OPS-10')?.org, 'globex')
   assert.equal(items.find((item) => item.key === 'OPS-10')?.site, 'jira')
 })
+
+test('a ticket only ever seen in a focused tab still teaches its client to the commits', () => {
+  // No visit in the history at all: the tab was measured, never recorded by the browser.
+  seed()
+  db.exec('delete from visits')
+  const sup12 = workItems(DAY, DAY).items.filter((item) => item.key === 'SUP-12')
+  assert.equal(sup12.length, 1, 'the commit joins the tab\'s line instead of starting one with no client')
+  assert.equal(sup12[0].org, 'acme')
+  assert.equal(sup12[0].commits, 1)
+})

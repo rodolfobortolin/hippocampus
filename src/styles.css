@@ -653,6 +653,20 @@ button.piece-line:hover { background: var(--panel-high); }
 .moment-text { color: var(--text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moment-text em { font-style: normal; color: var(--text-dim); }
 
+/* The week's draft timesheet: numbers in columns, made to be checked. */
+.sheet-scroll { overflow-x: auto; margin: 0 -4px; }
+.sheet { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.sheet th { font-size: 11px; font-weight: 500; color: var(--text-dim); text-align: right; padding: 0 8px 8px; white-space: nowrap; }
+.sheet td { padding: 6px 8px; text-align: right; color: var(--text-mid); border-top: 1px solid var(--border); white-space: nowrap; }
+.sheet td:first-child, .sheet th:first-child { text-align: left; }
+.sheet td:first-child { max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+.sheet-client td { color: var(--gold); font-weight: 500; border-top-color: var(--border-live); }
+.sheet-line { padding-left: 20px !important; color: var(--text) !important; }
+.sheet-line b { font-weight: 600; color: var(--gold); }
+.sheet-line span { color: var(--text-mid); }
+.sheet-agent { color: var(--ai) !important; opacity: 0.85; }
+.sheet-unassigned td { color: var(--text-dim); font-style: italic; }
+
 /* ---------- the hands ---------- */
 
 .writing { display: flex; flex-direction: column; gap: 9px; }

@@ -95,6 +95,7 @@ export type Settings = {
   /** Whether the conversation may reach beyond this app's own database. */
   wideTools: boolean
   calendar: boolean
+  timesheet: boolean
   /** '' until the helper has asked; then 'granted' or 'denied'. */
   calendarStatus: string
   liveVoices: string[]
@@ -136,6 +137,8 @@ export type WritingKind = 'ai' | 'chat' | 'mail' | 'search' | 'code' | 'web' | '
 
 // The pieces of work are shaped in the core; the screen only reads them.
 export type { Meeting } from '../../core/sources/calendar.ts'
+export type { Timesheet, TimesheetClient, TimesheetLine } from '../../core/timesheet.ts'
+import type { Timesheet } from '../../core/timesheet.ts'
 import type { Meeting } from '../../core/sources/calendar.ts'
 export type { Item, Org, Touch, WorkItems } from '../../core/items.ts'
 export type { PageKind } from '../../core/pages.ts'
@@ -164,6 +167,7 @@ export const api = {
   },
   days: () => get<StoredDay[]>('/api/days'),
   items: (from: string, to: string) => get<WorkItems>(`/api/items?from=${from}&to=${to}`),
+  timesheet: (from: string, to: string) => get<Timesheet>(`/api/timesheet?from=${from}&to=${to}`),
   item: (key: string, from: string, to: string) =>
     get<{ item: Item | null; touches: Touch[] }>(`/api/item?key=${encodeURIComponent(key)}&from=${from}&to=${to}`),
   close: (day: string, narrate = true) =>

@@ -74,6 +74,8 @@ export type Strings = {
     browser: string; browserTime: string; browserVisits: string; timeSince: (day: string) => string
     empty: string; emptyNote: string
     kinds: Record<PageKind, string>
+    timesheet: string; timesheetNote: string; thisWeek: string; previousWeek: string; nextWeek: string
+    unassigned: string; total: string; agentColumn: string; noTimesheet: string
   }
   journal: {
     title: string; subtitle: string; noDays: string; fillsTomorrow: string
@@ -108,6 +110,7 @@ export type Strings = {
     caption: string; captionNote: string
     wideTools: string; wideToolsNote: string; wideToolsOn: string
     calendar: string; calendarNote: string; calendarWaiting: string; calendarGranted: string; calendarDenied: string
+    timesheet: string; timesheetNote: string
     save: string; saved: string; saving: string; test: string; working: string; failed: string
     agents: string; agentsNote: string; agentsOn: string; agentsOff: string
     agentsApprove: string; agentsWhere: string
@@ -214,6 +217,9 @@ const pt: Strings = {
       slides: 'apresentações', design: 'design', video: 'vídeos', mail: 'e-mail', meeting: 'reuniões', chat: 'conversas',
       ai: 'IA', search: 'busca', docs: 'documentação', 'sign-in': 'login', page: 'outras páginas',
     },
+    timesheet: 'rascunho de apontamento', timesheetNote: 'foco medido por cliente e peça de trabalho, para conferir; o tempo do agente vem à parte',
+    thisWeek: 'esta semana', previousWeek: 'semana anterior', nextWeek: 'semana seguinte',
+    unassigned: 'sem cliente', total: 'total', agentColumn: 'agente', noTimesheet: 'Nenhum foco medido nesta semana.',
   },
   journal: {
     title: 'Diário', subtitle: 'o que o computador viu, escrito pelo Claude Code',
@@ -266,6 +272,7 @@ const pt: Strings = {
     caption: 'legenda no núcleo flutuante', captionNote: 'escrever na tela o que ouviu e o que respondeu — desligue para deixar só a esfera',
     wideTools: 'ferramentas ampliadas', wideToolsNote: 'desligado, ele responde só do que foi medido aqui e nada sai da máquina', wideToolsOn: 'ligado: ele pode ler arquivos, rodar comandos e buscar na web sem perguntar, e usa os seus servidores MCP',
     calendar: 'reuniões do calendário', calendarNote: 'desligado, nada do Calendário é lido e nenhuma permissão é pedida. Ligado, o ajudante pede acesso uma vez e traz nome e horário das reuniões; desligar apaga o que veio', calendarWaiting: 'ligado — o ajudante pede a permissão em até dez minutos', calendarGranted: 'ligado: nome e horário das reuniões, lidos neste Mac; desligar apaga o que veio', calendarDenied: 'o macOS negou o acesso — autorize o Hippocampus Focus em Ajustes do Sistema → Privacidade e Segurança → Calendários',
+    timesheet: 'rascunho de apontamento', timesheetNote: 'para quem cobra por hora: as horas da semana por cliente e ticket, na aba Trabalho e, às sextas, no diário. Um registro para conferir, não uma avaliação',
     save: 'salvar', saved: 'salvo', saving: 'salvando…', test: 'testar', working: 'funcionando', failed: 'falhou',
     agents: 'medir sozinho, desde o login',
     agentsNote: 'o coletor, o leitor de janela e a escuta sobem com o Mac e voltam se caírem',
@@ -377,6 +384,9 @@ const en: Strings = {
       slides: 'slides', design: 'design', video: 'videos', mail: 'email', meeting: 'meetings', chat: 'chat',
       ai: 'AI', search: 'search', docs: 'docs', 'sign-in': 'sign-in', page: 'other pages',
     },
+    timesheet: 'timesheet draft', timesheetNote: 'measured focus by client and piece of work, to check; the agent\'s time is apart',
+    thisWeek: 'this week', previousWeek: 'previous week', nextWeek: 'next week',
+    unassigned: 'no client', total: 'total', agentColumn: 'agent', noTimesheet: 'No focus measured this week.',
   },
   journal: {
     title: 'Journal', subtitle: 'what the computer saw, written by Claude Code',
@@ -429,6 +439,7 @@ const en: Strings = {
     caption: 'caption on the floating core', captionNote: 'write what it heard and what it answered — turn it off to leave just the sphere',
     wideTools: 'wider tools', wideToolsNote: 'off, it answers only from what was measured here and nothing leaves the machine', wideToolsOn: 'on: it can read files, run commands and search the web without asking, and it uses your MCP servers',
     calendar: 'calendar meetings', calendarNote: 'off, nothing in Calendar is read and no permission is asked. On, the helper asks once and brings meeting names and times; turning it off deletes what came', calendarWaiting: 'on — the helper asks for permission within ten minutes', calendarGranted: 'on: meeting names and times, read on this Mac; turning it off deletes what came', calendarDenied: 'macOS denied access — allow Hippocampus Focus in System Settings → Privacy & Security → Calendars',
+    timesheet: 'timesheet draft', timesheetNote: 'for anyone who bills by the hour: the week\'s hours by client and ticket, in the Work tab and, on Fridays, in the journal. A record to check, not a judgement',
     save: 'save', saved: 'saved', saving: 'saving…', test: 'test', working: 'working', failed: 'failed',
     agents: 'measure on its own, from login',
     agentsNote: 'the collector, the window reader and the listener start with the Mac and come back if they fall',
@@ -540,6 +551,9 @@ const es: Strings = {
       slides: 'presentaciones', design: 'diseño', video: 'vídeos', mail: 'correo', meeting: 'reuniones', chat: 'chat',
       ai: 'IA', search: 'búsqueda', docs: 'documentación', 'sign-in': 'inicio de sesión', page: 'otras páginas',
     },
+    timesheet: 'borrador de horas', timesheetNote: 'foco medido por cliente y pieza de trabajo, para revisar; el tiempo del agente va aparte',
+    thisWeek: 'esta semana', previousWeek: 'semana anterior', nextWeek: 'semana siguiente',
+    unassigned: 'sin cliente', total: 'total', agentColumn: 'agente', noTimesheet: 'Ningún foco medido esta semana.',
   },
   journal: {
     title: 'Diario', subtitle: 'lo que el ordenador vio, escrito por Claude Code',
@@ -592,6 +606,7 @@ const es: Strings = {
     caption: 'subtítulo en el núcleo flotante', captionNote: 'escribir lo que oyó y lo que respondió — desactívalo para dejar solo la esfera',
     wideTools: 'herramientas ampliadas', wideToolsNote: 'desactivado, responde solo con lo medido aquí y nada sale de la máquina', wideToolsOn: 'activado: puede leer archivos, ejecutar comandos y buscar en la web sin preguntar, y usa tus servidores MCP',
     calendar: 'reuniones del calendario', calendarNote: 'apagado, no se lee nada del Calendario ni se pide permiso. Encendido, el ayudante pide acceso una vez y trae nombre y hora de las reuniones; apagarlo borra lo que llegó', calendarWaiting: 'encendido — el ayudante pide el permiso en menos de diez minutos', calendarGranted: 'encendido: nombre y hora de las reuniones, leídos en este Mac; apagarlo borra lo que llegó', calendarDenied: 'macOS negó el acceso — autoriza Hippocampus Focus en Ajustes del Sistema → Privacidad y seguridad → Calendarios',
+    timesheet: 'borrador de horas', timesheetNote: 'para quien factura por hora: las horas de la semana por cliente y ticket, en la pestaña Trabajo y, los viernes, en el diario. Un registro para revisar, no una evaluación',
     save: 'guardar', saved: 'guardado', saving: 'guardando…', test: 'probar', working: 'funciona', failed: 'falló',
     agents: 'medir solo, desde el inicio de sesión',
     agentsNote: 'el recolector, el lector de ventanas y la escucha arrancan con el Mac y vuelven si se caen',
@@ -703,6 +718,9 @@ const fr: Strings = {
       slides: 'présentations', design: 'design', video: 'vidéos', mail: 'e-mail', meeting: 'réunions', chat: 'discussions',
       ai: 'IA', search: 'recherche', docs: 'documentation', 'sign-in': 'connexion', page: 'autres pages',
     },
+    timesheet: 'brouillon de feuille de temps', timesheetNote: 'temps au premier plan par client et élément de travail, à vérifier ; le temps de l’agent est à part',
+    thisWeek: 'cette semaine', previousWeek: 'semaine précédente', nextWeek: 'semaine suivante',
+    unassigned: 'sans client', total: 'total', agentColumn: 'agent', noTimesheet: 'Aucun temps mesuré cette semaine.',
   },
   journal: {
     title: 'Journal', subtitle: 'ce que l’ordinateur a vu, écrit par Claude Code',
@@ -755,6 +773,7 @@ const fr: Strings = {
     caption: 'légende sur le noyau flottant', captionNote: 'écrire ce qu’il a entendu et ce qu’il a répondu — désactive pour ne laisser que la sphère',
     wideTools: 'outils élargis', wideToolsNote: 'désactivé, il répond seulement avec ce qui a été mesuré ici et rien ne sort de la machine', wideToolsOn: 'activé : il peut lire des fichiers, lancer des commandes et chercher sur le web sans demander, et il utilise tes serveurs MCP',
     calendar: 'réunions du calendrier', calendarNote: 'désactivé, rien n’est lu dans Calendrier et aucune autorisation n’est demandée. Activé, l’assistant demande l’accès une fois et apporte le nom et l’heure des réunions ; le désactiver efface ce qui est venu', calendarWaiting: 'activé — l’assistant demande l’autorisation d’ici dix minutes', calendarGranted: 'activé : nom et heure des réunions, lus sur ce Mac ; le désactiver efface ce qui est venu', calendarDenied: 'macOS a refusé l’accès — autorise Hippocampus Focus dans Réglages Système → Confidentialité et sécurité → Calendriers',
+    timesheet: 'brouillon de feuille de temps', timesheetNote: 'pour qui facture à l’heure : les heures de la semaine par client et ticket, dans l’onglet Travail et, le vendredi, dans le journal. Un relevé à vérifier, pas un jugement',
     save: 'enregistrer', saved: 'enregistré', saving: 'enregistrement…', test: 'tester', working: 'fonctionne', failed: 'a échoué',
     agents: 'mesurer tout seul, dès l’ouverture de session',
     agentsNote: 'le collecteur, le lecteur de fenêtre et l’écoute démarrent avec le Mac et reviennent s’ils tombent',
@@ -866,6 +885,9 @@ const de: Strings = {
       slides: 'Präsentationen', design: 'Design', video: 'Videos', mail: 'E-Mail', meeting: 'Meetings', chat: 'Chat',
       ai: 'KI', search: 'Suche', docs: 'Doku', 'sign-in': 'Anmeldung', page: 'andere Seiten',
     },
+    timesheet: 'Entwurf der Zeiterfassung', timesheetNote: 'gemessener Fokus nach Kunde und Arbeitselement, zum Prüfen; die Zeit des Agenten steht getrennt',
+    thisWeek: 'diese Woche', previousWeek: 'vorige Woche', nextWeek: 'nächste Woche',
+    unassigned: 'ohne Kunde', total: 'gesamt', agentColumn: 'Agent', noTimesheet: 'Diese Woche kein Fokus gemessen.',
   },
   journal: {
     title: 'Tagebuch', subtitle: 'was der Rechner gesehen hat, geschrieben von Claude Code',
@@ -918,6 +940,7 @@ const de: Strings = {
     caption: 'Untertitel am schwebenden Kern', captionNote: 'schreiben, was er gehört und geantwortet hat — aus lässt nur die Kugel stehen',
     wideTools: 'erweiterte Werkzeuge', wideToolsNote: 'aus antwortet er nur aus dem hier Gemessenen, und nichts verlässt den Rechner', wideToolsOn: 'an: er darf Dateien lesen, Befehle ausführen und im Web suchen, ohne zu fragen, und nutzt deine MCP-Server',
     calendar: 'Kalendertermine', calendarNote: 'aus, wird nichts aus dem Kalender gelesen und keine Berechtigung erfragt. An, fragt der Helfer einmal und bringt Namen und Zeiten der Termine; ausschalten löscht, was kam', calendarWaiting: 'an — der Helfer fragt innerhalb von zehn Minuten nach der Berechtigung', calendarGranted: 'an: Namen und Zeiten der Termine, auf diesem Mac gelesen; ausschalten löscht, was kam', calendarDenied: 'macOS hat den Zugriff verweigert — erlaube Hippocampus Focus in Systemeinstellungen → Datenschutz & Sicherheit → Kalender',
+    timesheet: 'Entwurf der Zeiterfassung', timesheetNote: 'für alle, die nach Stunden abrechnen: die Stunden der Woche nach Kunde und Ticket, im Tab Arbeit und freitags im Tagebuch. Eine Aufzeichnung zum Prüfen, keine Bewertung',
     save: 'speichern', saved: 'gespeichert', saving: 'speichert…', test: 'testen', working: 'funktioniert', failed: 'fehlgeschlagen',
     agents: 'von der Anmeldung an selbst messen',
     agentsNote: 'Sammler, Fensterleser und Mithören starten mit dem Mac und kommen zurück, wenn sie ausfallen',

@@ -10,6 +10,8 @@ import { dossier } from './rollup.ts'
 import { searchEpisodes, lastTime, type Episode } from './episodes.ts'
 import { pickModel } from './jev.ts'
 import { workItems, itemDetail, orgName } from './items.ts'
+import { timesheet, timesheetTable } from './timesheet.ts'
+import { TIMESHEET_WORDS } from './languages.ts'
 import { readSettings } from './settings.ts'
 
 const hours = hoursAndMinutes
@@ -166,6 +168,16 @@ const tools = [
         + `${item.commits ? `, ${item.commits} commits` : ''}${item.prompts ? `, ${item.prompts} prompts` : ''}`)
       const since = found.timeSince ? `Focus time is measured since ${found.timeSince}; before that only visits, commits and prompts exist.\n\n` : ''
       return say(since + [wanted ? '' : `Clients:\n${orgs.join('\n')}\n`, `Items:\n${lines.join('\n')}`].join('\n'))
+    },
+  },
+  {
+    name: 'timesheet',
+    description: 'A draft timesheet for a range — usually a week: measured focus by client and by piece of work (ticket, Confluence space, repository, project), a column per day, with the agent\'s time apart and the time with no client stated. Use it for "build my timesheet for the week", "how many hours did client X get". It is a draft for the person to check, never a judgement: present it as a table and say how much had no client.',
+    inputSchema: range,
+    handler: async ({ from, to }: { from: string; to: string }) => {
+      const sheet = timesheet(from, to)
+      if (!sheet.days.length && !sheet.clients.length) return say('Nothing was measured in that range.')
+      return say(timesheetTable(sheet, TIMESHEET_WORDS[validLanguage(config.lang)]))
     },
   },
   {

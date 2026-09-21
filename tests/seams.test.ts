@@ -354,3 +354,17 @@ test('the calendar the helper reads is the one the core asks for and keeps', () 
   assert.match(helper, /ask\["wanted"\] as\? Bool == true/)
   assert.match(read('core/settings.ts'), /calendar: false,/, 'off until asked for')
 })
+
+test('the week\'s timesheet and the day\'s section live side by side in one note', async () => {
+  const { replaceSection } = await import('../core/vault.ts')
+  const note = replaceSection('# 2026-09-18\n\nmy own words', 'the day', 'On the computer')
+  const both = replaceSection(note, '| client | total |', 'Timesheet draft', 'timesheet')
+  assert.ok(both.includes('the day'), 'writing the timesheet left the day alone')
+  assert.ok(both.includes('| client | total |'))
+  assert.ok(both.includes('my own words'))
+  // Writing each again replaces only itself.
+  const again = replaceSection(replaceSection(both, 'the day, rewritten', 'On the computer'), '| client | 1:00 |', 'Timesheet draft', 'timesheet')
+  assert.equal(again.match(/## On the computer/g)?.length, 1)
+  assert.equal(again.match(/## Timesheet draft/g)?.length, 1)
+  assert.ok(again.includes('the day, rewritten') && again.includes('| client | 1:00 |') && !again.includes('| client | total |'))
+})

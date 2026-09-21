@@ -74,6 +74,12 @@ export type Settings = {
    * helper under its own name.
    */
   calendar: boolean
+  /**
+   * Whether the week's hours are drafted by client and piece of work — for
+   * someone who bills by the hour. For anyone else a timesheet reads as
+   * surveillance, so it stays off until asked for.
+   */
+  timesheet: boolean
 }
 
 export type Region = 'global' | 'eu'
@@ -165,6 +171,7 @@ const DEFAULTS: Settings = {
   caption: true,
   wideTools: false,
   calendar: false,
+  timesheet: false,
 }
 
 /**
@@ -209,6 +216,7 @@ export function readSettings(): Settings {
       caption: data.caption !== false,
       wideTools: data.wideTools === true,
       calendar: data.calendar === true,
+      timesheet: data.timesheet === true,
     }
   } catch {
     return { ...DEFAULTS }

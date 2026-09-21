@@ -63,7 +63,7 @@ export const orgName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g
 /** Kinds that name one specific thing, worth a line of their own. */
 const SPECIFIC = new Set<PageKind>(['ticket', 'wiki', 'pull-request', 'issue', 'doc', 'sheet', 'slides', 'design', 'video', 'repo', 'board', 'space'])
 /** Kinds that are not work anyone would want listed. */
-const NOISE = new Set<PageKind>(['sign-in'])
+export const NOISE = new Set<PageKind>(['sign-in'])
 
 function idOf(page: Page): string {
   if (SPECIFIC.has(page.kind) && page.key) return `${page.site}:${page.org ?? ''}:${page.key}`
@@ -107,7 +107,7 @@ export type Touch = {
  * Before the first switch the reflog remembers, the branch is the one that
  * switch moved away from.
  */
-function branchLookup(): (repo: string | null | undefined, at: number) => string | null {
+export function branchLookup(): (repo: string | null | undefined, at: number) => string | null {
   const moves = new Map<string, { ts: number; branch: string; from: string | null }[]>()
   for (const row of all<{ repo: string; ts: number; branch: string; from_branch: string | null }>(
     `select repo, ts, branch, from_branch from branches order by repo, ts`)) {
@@ -136,10 +136,11 @@ function branchLookup(): (repo: string | null | undefined, at: number) => string
  * written that way in the commits.
  *
  * And where each prefix lives: any Jira address that names one of its keys —
- * in the browser history, or pasted into a question or a commit message —
- * says which site and whose. The most frequent one wins.
+ * a tab measured in focus, the browser history, or an address pasted into a
+ * question or a commit message — says which site and whose. The most
+ * frequent one wins.
  */
-function ticketKnowledge(): { prefixes: Set<string>; homes: Map<string, { site: string; org?: string }> } {
+export function ticketKnowledge(): { prefixes: Set<string>; homes: Map<string, { site: string; org?: string }> } {
   const prefixes = new Set<string>()
   const seen = new Map<string, Map<string, { site: string; org?: string; n: number }>>()
   const learn = (address: string) => {
@@ -156,7 +157,8 @@ function ticketKnowledge(): { prefixes: Set<string>; homes: Map<string, { site: 
   for (const row of all<{ text: string | null; address: number }>(
     `select subject text, 0 address from commits
      union all select prompt, 0 from ai_turns
-     union all select url, 1 from visits where url like '%/browse/%' or url like '%selectedIssue=%'`)) {
+     union all select url, 1 from visits where url like '%/browse/%' or url like '%selectedIssue=%'
+     union all select url, 1 from blocks where url like '%/browse/%' or url like '%selectedIssue=%'`)) {
     for (const key of ticketKeys(row.text)) prefixes.add(key.split('-')[0])
     if (row.address) learn(row.text ?? '')
     else if (row.text?.includes('://')) for (const address of row.text.match(/https?:\/\/[^\s<>()\]\["']+/g) ?? []) learn(address)

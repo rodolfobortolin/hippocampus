@@ -36,6 +36,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   times appear on the day beside how much of each had a microphone open.
   The helper asks macOS once, under its own name; turning it off deletes what
   came.
+- A timesheet draft, off until you turn it on: the week's measured focus by
+  client and by ticket, space or project, with the agent's time apart and the
+  time with no client stated. In the Work tab, in the conversation, and on
+  Fridays in the journal.
 
 ## v0.1.0 — 2026-09-21
 

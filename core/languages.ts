@@ -212,3 +212,26 @@ export const VAULT_HEADING: Record<Language, string> = {
   'fr-FR': 'Sur l’ordinateur',
   'de-DE': 'Am Rechner',
 }
+
+/** The heading of the week's timesheet draft, written into Friday's note. */
+export const TIMESHEET_HEADING: Record<Language, string> = {
+  'pt-BR': 'Rascunho de apontamento da semana',
+  'en-US': 'Timesheet draft for the week',
+  'es-ES': 'Borrador de horas de la semana',
+  'fr-FR': 'Brouillon de feuille de temps de la semaine',
+  'de-DE': 'Entwurf der Wochenzeiterfassung',
+}
+
+/** The words of the timesheet table, in the language it is read in. */
+export const TIMESHEET_WORDS: Record<Language, { client: string; total: string; agent: string; unassigned: string; note: string }> = {
+  'pt-BR': { client: 'cliente', total: 'total', agent: 'agente', unassigned: 'sem cliente',
+    note: 'Rascunho para conferir: foco medido por cliente e peça de trabalho; o tempo do agente vem à parte.' },
+  'en-US': { client: 'client', total: 'total', agent: 'agent', unassigned: 'no client',
+    note: 'A draft to check: measured focus by client and piece of work; the agent\'s time is apart.' },
+  'es-ES': { client: 'cliente', total: 'total', agent: 'agente', unassigned: 'sin cliente',
+    note: 'Borrador para revisar: foco medido por cliente y pieza de trabajo; el tiempo del agente va aparte.' },
+  'fr-FR': { client: 'client', total: 'total', agent: 'agent', unassigned: 'sans client',
+    note: 'Brouillon à vérifier : temps au premier plan par client et élément de travail ; le temps de l’agent est à part.' },
+  'de-DE': { client: 'Kunde', total: 'gesamt', agent: 'Agent', unassigned: 'ohne Kunde',
+    note: 'Entwurf zum Prüfen: gemessener Fokus nach Kunde und Arbeitselement; die Zeit des Agenten steht getrennt.' },
+}

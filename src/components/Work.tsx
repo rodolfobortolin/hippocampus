@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { api, type Item, type PageKind, type Touch, type WorkItems } from '../lib/api.ts'
-import { addDays, clock, dayOf, duration, number, plural, shortDate, today as todayString } from '../lib/format.ts'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { api, type Item, type PageKind, type Timesheet, type Touch, type WorkItems } from '../lib/api.ts'
+import { addDays, clock, dayOf, duration, number, plural, shortDate, today as todayString, weekdayNames } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
 import type { Strings } from '../lib/strings.ts'
 
@@ -58,6 +58,10 @@ export function Work() {
   const [kind, setKind] = useState<PageKind | null>(null)
   const [open, setOpen] = useState<string | null>(null)
   const [shown, setShown] = useState(25)
+  const [drafting, setDrafting] = useState(false)
+
+  // The timesheet is only for someone who asked for it.
+  useEffect(() => { api.settings().then((s) => setDrafting(!!s.timesheet)).catch(() => {}) }, [])
 
   const to = todayString()
   const from = addDays(to, -(span - 1))
@@ -215,9 +219,99 @@ export function Work() {
               ) : <p className="empty">{t.common.nothingHere}</p>}
             </div>
           </div>
+
+          {drafting && <WeekSheet t={t} />}
         </div>
       )}
     </>
+  )
+}
+
+const hm = (seconds: number) => {
+  const minutes = Math.round(seconds / 60)
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`
+}
+
+/**
+ * The week as a draft timesheet: a row per client and per line under it, a
+ * column per day, the total, and the agent's time apart. It is laid out to be
+ * checked and copied, not admired — and the time with no client sits at the
+ * bottom, in plain sight.
+ */
+function WeekSheet({ t }: { t: Strings }) {
+  const [offset, setOffset] = useState(0)
+  const [sheet, setSheet] = useState<Timesheet | null>(null)
+  const today = todayString()
+  // Weeks start on Monday, the way timesheets are filled in.
+  const weekday = new Date(`${today}T12:00:00`).getDay()
+  const monday = addDays(today, -((weekday + 6) % 7) + 7 * offset)
+  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+  const names = weekdayNames()
+
+  useEffect(() => {
+    let alive = true
+    api.timesheet(monday, days[6] > today ? today : days[6]).then((d) => alive && setSheet(d))
+    return () => { alive = false }
+  }, [monday])
+
+  const empty = sheet && !sheet.clients.length && !sheet.unassigned
+  return (
+    <div className="panel">
+      <h3>
+        <span>{t.work.timesheet} <em>{shortDate(days[0])} – {shortDate(days[6])}</em></span>
+        <span className="nav">
+          <button type="button" onClick={() => setOffset(offset - 1)}>{t.work.previousWeek}</button>
+          <button type="button" disabled={offset === 0} onClick={() => setOffset(0)}>{t.work.thisWeek}</button>
+          <button type="button" disabled={offset >= 0} onClick={() => setOffset(offset + 1)}>{t.work.nextWeek}</button>
+        </span>
+      </h3>
+      <p className="note" style={{ marginTop: -6, marginBottom: 14 }}>{t.work.timesheetNote}</p>
+      {!sheet ? <p className="empty">{t.today.loading}</p> : empty ? <p className="empty">{t.work.noTimesheet}</p> : (
+        <div className="sheet-scroll">
+          <table className="sheet">
+            <thead>
+              <tr>
+                <th />
+                {days.map((day) => <th key={day}>{names[new Date(`${day}T12:00:00`).getDay()]}</th>)}
+                <th>{t.work.total}</th>
+                <th>{t.work.agentColumn}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sheet.clients.map((client) => (
+                <Fragment key={client.org}>
+                  <tr className="sheet-client">
+                    <td>{client.org}</td>
+                    {days.map((day) => <td key={day}>{client.days[day] ? hm(client.days[day]) : ''}</td>)}
+                    <td>{hm(client.seconds)}</td>
+                    <td className="sheet-agent">{client.agentSeconds ? hm(client.agentSeconds) : ''}</td>
+                  </tr>
+                  {client.lines.map((line) => (
+                    <tr key={line.what}>
+                      <td className="sheet-line">
+                        {line.kind === 'ticket' ? <b>{line.what}</b> : line.what}
+                        {line.label && <span> {line.label}</span>}
+                      </td>
+                      {days.map((day) => <td key={day}>{line.days[day] ? hm(line.days[day]) : ''}</td>)}
+                      <td>{hm(line.seconds)}</td>
+                      <td className="sheet-agent">{line.agentSeconds ? hm(line.agentSeconds) : ''}</td>
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+              {sheet.unassigned > 0 && (
+                <tr className="sheet-unassigned">
+                  <td>{t.work.unassigned}</td>
+                  {days.map((day) => <td key={day} />)}
+                  <td>{hm(sheet.unassigned)}</td>
+                  <td />
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -272,6 +272,13 @@ export function Settings() {
             </button>
           </Field>
 
+          <Field label={t.settings.timesheet} note={t.settings.timesheetNote}>
+            <button className={`switch ${settings.timesheet ? 'active' : ''}`}
+              onClick={() => store({ timesheet: !settings.timesheet })}>
+              <i />
+            </button>
+          </Field>
+
           <Field label={t.settings.keepTyping} note={t.settings.keepTypingNote}>
             <button className={`switch ${settings.keepTyping ? 'active' : ''}`}
               onClick={() => store({ keepTyping: !settings.keepTyping })}>

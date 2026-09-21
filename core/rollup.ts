@@ -7,9 +7,11 @@ import { buildEpisodes } from './episodes.ts'
 import { knownProjects } from './metrics.ts'
 import { ask } from './claude.ts'
 import { writeDaySection } from './vault.ts'
-import { HOW_TO_WRITE, VAULT_HEADING, validLanguage } from './languages.ts'
+import { HOW_TO_WRITE, VAULT_HEADING, TIMESHEET_HEADING, TIMESHEET_WORDS, validLanguage } from './languages.ts'
 import { PERSONAS } from './personas.ts'
 import { DOSSIER } from './dossier.ts'
+import { timesheet, timesheetTable } from './timesheet.ts'
+import { readSettings } from './settings.ts'
 
 const hours = hoursAndMinutes
 const clock = (ts: number | null) => (ts ? new Date(ts * 1000).toTimeString().slice(0, 5) : '—')
@@ -139,6 +141,15 @@ export async function rollup(day: string, options: { narrate?: boolean } = {}): 
       report.apps.slice(0, 5).map((a) => `${a.name} ${hours(a.seconds)}`).join(' · '),
     ].join('\n')
     vaultFile = writeDaySection(day, body, VAULT_HEADING[language])
+  }
+
+  // On Fridays, for someone who asked for it: the week so far as a draft
+  // timesheet, in its own section of the same note.
+  if (readSettings().timesheet && new Date(`${day}T12:00:00`).getDay() === 5) {
+    const words = TIMESHEET_WORDS[language]
+    const monday = dayOf(new Date(`${day}T12:00:00`).getTime() / 1000 - 4 * 86_400)
+    writeDaySection(day, `${words.note}\n\n${timesheetTable(timesheet(monday, day), words)}`,
+      TIMESHEET_HEADING[language], 'timesheet')
   }
 
   return { day, classified, episodes, narrative, recap, vaultFile }
