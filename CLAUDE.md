@@ -155,6 +155,9 @@ a test failing, never in the middle of a change that is only half done.
    release without `latest-mac.yml` is one no installed app updates to.
    Without notarization macOS refuses to open it on any other Mac, so a download
    would be a trap; say in the notes that it has to be built from source.
+   The first release that attaches a .dmg also sets `DOWNLOAD = true` in
+   `site/vite.config.ts`, which swaps the website's "Get it on GitHub" for a
+   download button pointing at `releases/latest/download/Hippocampus-arm64.dmg`.
 
 **Updates.** The installed app checks the latest GitHub release on start and
 every four hours (`startUpdates` in `app/main.cjs`), downloads it in the

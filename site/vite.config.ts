@@ -12,6 +12,15 @@ const { version, funding } = JSON.parse(readFileSync(path.join(__dirname, '..', 
 // line, so moving the site is a change here and nowhere else.
 export const SITE = 'https://hippocampus-black.vercel.app/'
 
+// Whether the latest release carries a notarized .dmg. Until one does, the
+// download button would lead to a 404, so the page offers the source instead;
+// the release commit that first attaches a .dmg turns this on, and from then
+// on latest/download always finds one.
+export const DOWNLOAD = false
+const withDownload = (html: string) => DOWNLOAD
+  ? html.replace(/<!-- source -->[\s\S]*?<!-- \/source -->/g, '')
+  : html.replace(/<!-- download -->[\s\S]*?<!-- \/download -->/g, '')
+
 // The lunch link comes from the same file. Until there is one, the block that
 // offers it is left out of the page entirely: a button that leads nowhere is
 // worse than no button.
@@ -31,7 +40,7 @@ export default defineConfig({
   server: { port: 5180 },
   plugins: [{
     name: 'version',
-    transformIndexHtml: (html) => withLunch(html.replaceAll('%VERSION%', version).replaceAll('%SITE%', SITE)),
+    transformIndexHtml: (html) => withDownload(withLunch(html.replaceAll('%VERSION%', version).replaceAll('%SITE%', SITE))),
     // The two files crawlers ask for first, written from the same address.
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'robots.txt', source: `User-agent: *\nAllow: /\n\nSitemap: ${SITE}sitemap.xml\n` })
