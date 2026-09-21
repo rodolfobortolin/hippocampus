@@ -19,7 +19,9 @@ Computer History       ─┘                                             ▼
 
 The database lives on this machine and nowhere else. To label each window and
 write up the day it goes through jev and Claude Code, under your own keys and
-login, with window titles and a summary of the day. The keys are yours and live
+login: jev gets window titles; Claude Code gets the day — its figures, the
+sites, what you asked your agents and, when Codex's Computer History is on, a
+few lines of what you typed. The keys are yours and live
 in the macOS Keychain, entered inside the app itself. With no keys at all it
 still measures, draws and stores: only the classification, the narrative and the
 chat go dark.

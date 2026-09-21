@@ -10,6 +10,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   opening note into the answer: each starts a paragraph of its own.
 - The Journal list shows as much of each day's summary as the row has room
   for, ending in "…", instead of stopping mid-word.
+- The note under "keep what you type" in Settings says that a few lines of it
+  go to Claude Code with the day's summary. It only mentioned the redaction.
 
 ## v0.3.1 — 2026-09-21
 
