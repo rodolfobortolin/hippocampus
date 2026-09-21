@@ -169,7 +169,7 @@ HIPPOCAMPUS_DATA=/tmp/hippocampus-demo HIPPOCAMPUS_PORT=7979 \
 npm run build && npx electron scripts/screenshots.cjs /tmp/shots
 ```
 
-Then convert them to WebP into `site/img/` (a PNG of the app is 2.6 MB; the
+Then convert them to WebP into `site/public/img/` (a PNG of the app is 2.6 MB; the
 WebP is under 120 KB) and check that the text beside each picture still
 describes it — the Rhythm copy names Thursday at 16h because the capture picks
 that cell. `npm run site` serves it; `npm run site:build` builds it into

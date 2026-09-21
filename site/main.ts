@@ -1,4 +1,9 @@
 import { Core, type CoreState } from '../src/three/Core.ts'
+import { setUpMotion } from './motion.ts'
+import { setUpViewer } from './viewer.ts'
+
+setUpMotion()
+setUpViewer()
 
 /**
  * The sphere at the top of the page is the one from the app, running the same

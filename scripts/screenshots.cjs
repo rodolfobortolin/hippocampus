@@ -1,7 +1,9 @@
 // Photographs the app for the website, running over the demo database.
 //
 // Start the demo core first (see scripts/demo-core.ts), then:
-//   npx electron scripts/screenshots.cjs site/img
+//   npx electron scripts/screenshots.cjs /tmp/shots
+//
+// It writes PNGs; the website takes them as WebP in site/public/img.
 //
 // It opens the interface the demo core serves, pointed at that core with
 // `?core=`, so nothing real is on screen: the real core and the real data are
@@ -12,7 +14,7 @@ const { app, BrowserWindow } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 
-const OUT = path.resolve(process.argv[2] ?? 'site/img')
+const OUT = path.resolve(process.argv[2] ?? path.join(require('node:os').tmpdir(), 'hippocampus-shots'))
 const PORT = Number(process.env.DEMO_PORT ?? 7979)
 const ADDRESS = `http://127.0.0.1:${PORT}/?core=${PORT}`
 
