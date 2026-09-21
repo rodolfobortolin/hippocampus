@@ -90,8 +90,12 @@ export function Chat({ status }: { status: Status | null }) {
         else setState('idle')
         askedByVoice.current = false
       }
-      // The wake word toggles: speaking, it goes quiet; quiet, it starts listening.
-      if (data.type === 'wake') {
+      // The wake word toggles: speaking, it goes quiet; quiet, it starts
+      // listening. The core broadcasts it to every open screen, so this runs
+      // while the floating core is answering the same word — and without the
+      // mode check the panel would record a second copy of the same sentence
+      // through a second microphone.
+      if (data.type === 'wake' && settings?.voiceMode !== 'live') {
         if (speaking) voice.stop()
         else if (listening.state === 'idle' && !thinking) listening.toggle()
       }
@@ -102,6 +106,8 @@ export function Chat({ status }: { status: Status | null }) {
       if (data.type === 'listening') setState('listening')
       if (data.type === 'heard' && data.text) {
         setMessages((current) => [...current, { of: 'me', text: String(data.text) }])
+        // A new turn clears what went wrong in the last one.
+        listening.clearError()
       }
       if (data.type === 'error') {
         setThinking(false)

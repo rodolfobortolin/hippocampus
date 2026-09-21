@@ -37,6 +37,7 @@ export function FloatingCore() {
   const answerRef = useRef('')
   const speakAnswer = useRef<(text: string) => void>(() => {})
   const dragged = useRef(false)
+  const wakePending = useRef(false)
   const toCore = useRef<(message: unknown) => boolean>(() => false)
   const { level: liveLevel, setExternalLevel } = useAudioLevel()
 
@@ -68,7 +69,12 @@ export function FloatingCore() {
     if (data.type === 'live-answer') void live.accept(String(data.sdp))
     if (data.type === 'live' && !data.on) live.dropped()
     if (data.type === 'listening') setState('listening')
-    if (data.type === 'heard' && data.text) { setQuestion(String(data.text)); setAnswer('') }
+    if (data.type === 'heard' && data.text) {
+      setQuestion(String(data.text))
+      setAnswer('')
+      // A new turn clears what went wrong in the last one.
+      listening.clearError()
+    }
     if (data.type === 'error') { setState('error'); setAnswer(data.error) }
   })
 
@@ -85,6 +91,14 @@ export function FloatingCore() {
    * opens the session or closes it, and in between it is simply listening.
    */
   const wake = () => {
+    // The shortcut creates this window and tells it to wake on the same breath,
+    // so the first call can land before the settings have arrived. Acting then
+    // means guessing the mode, and guessing wrong opens the microphone twice:
+    // the recorder now, the live session on the next press, both listening.
+    if (!settings) {
+      wakePending.current = true
+      return
+    }
     if (liveWanted) {
       if (liveOn) live.stop()
       else if (live.phase !== 'connecting') void live.start()
@@ -95,6 +109,13 @@ export function FloatingCore() {
   }
   const wakeRef = useRef(wake)
   wakeRef.current = wake
+
+  // Whatever asked while the settings were still on their way.
+  useEffect(() => {
+    if (!settings || !wakePending.current) return
+    wakePending.current = false
+    wakeRef.current()
+  }, [settings])
 
   useEffect(() => { api.status().then(setStatus).catch(() => {}) }, [])
 
@@ -165,7 +186,9 @@ export function FloatingCore() {
   // opens, the session is refused, everything resets, and the screen looks
   // exactly like a click that did nothing.
   const liveTrouble = live.error === 'live-no-answer' ? t.chat.liveNoAnswer : live.error
-  const said = listening.error || liveTrouble || answer || question
+  // An answer is newer than the complaint above it. Put the error first and a
+  // single "I did not catch that" pins itself over every reply that follows.
+  const said = answer || listening.error || liveTrouble || question
   const hint = !connected ? t.chat.reconnecting
     : liveWanted ? (liveOn ? t.chat.liveOn : t.chat.liveStart)
     : t.chat.clickToSpeak

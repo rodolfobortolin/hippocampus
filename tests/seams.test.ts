@@ -263,3 +263,20 @@ test('a journal section written under the old name is replaced, not duplicated',
   assert.ok(!after.includes('the old text'), 'the old text should be gone')
   assert.ok(after.includes('notes of my own, below'), 'what the person wrote must survive')
 })
+
+test('no screen decides how to listen before it knows the mode', () => {
+  // The shortcut creates the floating window and tells it to wake on the same
+  // breath, so the first wake can land before /api/settings has answered.
+  // Acting then means guessing the mode, and guessing wrong opens the
+  // microphone twice: the recorder now, the live session on the next press.
+  for (const file of screens) {
+    const source = read(file)
+    for (const [call] of source.matchAll(/^.*listening\.toggle\(\).*$/gm)) {
+      // The line itself, or the branch it sits in, has to know about live mode.
+      const at = source.indexOf(call)
+      const around = source.slice(Math.max(0, at - 700), at)
+      assert.ok(/liveWanted|liveOn|voiceMode/.test(around),
+        `${file} starts the recorder at "${call.trim()}" without checking the voice mode`)
+    }
+  }
+})
