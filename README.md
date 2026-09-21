@@ -262,10 +262,15 @@ first open, a Developer ID app Apple has never seen. Store a credential once and
 one command does the rest:
 
 ```bash
-xcrun notarytool store-credentials hippocampus \
-  --apple-id YOU@EXAMPLE.COM --team-id YOURTEAM --password APP-SPECIFIC-PASSWORD
+xcrun notarytool store-credentials hippocampus --apple-id YOU@EXAMPLE.COM --team-id YOURTEAM
 npm run notarize
 ```
+
+Without `--password` the password is asked for without echoing, so it never
+lands in your shell's history. `npm run notarize` leaves three files in
+`release/vX.Y.Z/`: the `.dmg` to download, and the zip and `latest-mac.yml`
+that installed copies update from — the app looks for a new release on GitHub
+when it opens and every four hours, and installs it on restart.
 
 The app-specific password is generated at appleid.apple.com — it is not your
 Apple ID password, and it lives in the Keychain, never in the repository.
