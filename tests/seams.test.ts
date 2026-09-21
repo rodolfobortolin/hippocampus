@@ -429,3 +429,11 @@ test('the walkthrough asks the core only for routes it serves', () => {
     assert.ok(fs.existsSync(path.join(root, 'public', 'logos', logo)), `public/logos/${logo}`)
   }
 })
+
+test('whatever covers the window keeps a strip to move it by', () => {
+  // The walkthrough sits over the app, and over the app's drag strip with it:
+  // the window could not be moved until it was finished.
+  const css = read('src/styles.css')
+  assert.match(css, /\.onb-drag \{[^}]*-webkit-app-region: drag/)
+  assert.match(read('src/components/Onboarding.tsx'), /className="onb-drag"/)
+})

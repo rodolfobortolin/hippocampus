@@ -255,6 +255,9 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
 
   return (
     <div className="onboarding" role="dialog" aria-modal="true" aria-label={o.welcomeTitle}>
+      {/* It covers the app's own drag strip, so it carries one: the window
+          still moves by its top edge while the walkthrough is open. */}
+      <div className="onb-drag" />
       <div className="onb-top">
         <div className="onb-progress" aria-label={o.stepOf(index + 1, STEPS.length)}>
           <i style={{ transform: `scaleX(${(index + 1) / STEPS.length})` }} />

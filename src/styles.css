@@ -706,6 +706,7 @@ button.piece-line:hover { background: var(--panel-high); }
     var(--black);
   overflow-y: auto; -webkit-app-region: no-drag;
 }
+.onb-drag { position: fixed; top: 0; left: 0; right: 0; height: 36px; -webkit-app-region: drag; }
 .onb-top { display: flex; align-items: center; gap: 18px; }
 .onb-progress { flex: 1; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
 .onb-progress i {
