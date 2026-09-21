@@ -215,6 +215,23 @@ input, textarea { font: inherit; color: inherit; }
 .pill i { width: 6px; height: 6px; border-radius: 50%; display: block; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+/* Under the ribbon the legend is also its filter. The picked pill lights; the
+   others step back while one is picked, and every pill says it can be pressed. */
+.legend button.pill { cursor: pointer; transition: border-color .15s, color .15s, opacity .15s; }
+.legend button.pill:hover { border-color: var(--border-live); color: var(--text); }
+.legend button.pill:active { transform: scale(0.97); }
+.legend button.pill[aria-pressed='true'] { border-color: rgba(255, 209, 102, 0.45); color: var(--text); background: var(--panel-high); }
+.legend.picking button.pill:not([aria-pressed='true']) { opacity: 0.55; }
+.ribbon-only { display: inline-flex; align-items: center; gap: 8px; }
+.ribbon-only i { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+.ribbon-only b { font-weight: 500; color: var(--text); }
+.ribbon-only span { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.ribbon-only button {
+  margin-left: 4px; padding: 2px 9px; border-radius: 99px; font-size: 11.5px;
+  border: 1px solid var(--border); color: var(--text-mid);
+}
+.ribbon-only button:hover { border-color: var(--border-live); color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .legend button.pill:active { transform: none; } }
 
 /* ---------- chat ---------- */
 

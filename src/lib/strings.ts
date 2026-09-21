@@ -37,6 +37,8 @@ export type Strings = {
     switches: string; switchesNote: (n: number) => string
     dominated: string; biggestSlice: string
     ribbon: string; stretches: string; tooShort: string; hoverRibbon: string
+    /** The legend under the ribbon filters it. */
+    ribbonPick: string; ribbonAll: string
     focusShape: string; sessions: string; shapeNote: string; noSession: string
     medianOf: string; longestWas: string
     whereTimeWent: string; byCategory: string; projects: string; noProject: string
@@ -193,6 +195,7 @@ const pt: Strings = {
     dominated: 'aplicativo que dominou', biggestSlice: 'maior fatia foi',
     ribbon: 'a fita do dia', stretches: 'trechos', tooShort: 'curtos demais para desenhar',
     hoverRibbon: 'passe o mouse na fita para ver a janela',
+    ribbonPick: 'clique numa categoria para ver só ela', ribbonAll: 'ver tudo',
     focusShape: 'a forma do foco', sessions: 'sessões sustentadas',
     shapeNote: 'minutos por tamanho de sessão — trecho de 15min com 75% de foco, sem quebra maior que 2min',
     noSession: 'Nenhuma sessão de foco sustentada neste dia.',
@@ -451,6 +454,7 @@ const en: Strings = {
     dominated: 'app that dominated', biggestSlice: 'biggest slice was',
     ribbon: 'the day as a ribbon', stretches: 'stretches', tooShort: 'too short to draw',
     hoverRibbon: 'hover the ribbon to see the window',
+    ribbonPick: 'click a category to see only that', ribbonAll: 'show all',
     focusShape: 'the shape of focus', sessions: 'sustained sessions',
     shapeNote: 'minutes by session length — a 15min window at 75% focus, with no break longer than 2min',
     noSession: 'No focus session held together on this day.',
@@ -709,6 +713,7 @@ const es: Strings = {
     dominated: 'aplicación que dominó', biggestSlice: 'la mayor porción fue',
     ribbon: 'la cinta del día', stretches: 'tramos', tooShort: 'demasiado cortos para dibujar',
     hoverRibbon: 'pasa el ratón por la cinta para ver la ventana',
+    ribbonPick: 'haz clic en una categoría para ver solo esa', ribbonAll: 'ver todo',
     focusShape: 'la forma del foco', sessions: 'sesiones sostenidas',
     shapeNote: 'minutos por tamaño de sesión — tramo de 15min con 75% de foco, sin pausa mayor de 2min',
     noSession: 'Ninguna sesión de foco se sostuvo este día.',
@@ -967,6 +972,7 @@ const fr: Strings = {
     dominated: 'application dominante', biggestSlice: 'la plus grosse part revient à',
     ribbon: 'la journée en ruban', stretches: 'segments', tooShort: 'trop courts pour être dessinés',
     hoverRibbon: 'survole le ruban pour voir la fenêtre',
+    ribbonPick: 'clique sur une catégorie pour ne voir qu’elle', ribbonAll: 'tout voir',
     focusShape: 'la forme de la concentration', sessions: 'sessions tenues',
     shapeNote: 'minutes par durée de session — fenêtre de 15 min à 75 % de concentration, sans pause de plus de 2 min',
     noSession: 'Aucune session de concentration n’a tenu ce jour-là.',
@@ -1225,6 +1231,7 @@ const de: Strings = {
     dominated: 'App, die dominiert hat', biggestSlice: 'das größte Stück ging an',
     ribbon: 'der Tag als Band', stretches: 'Abschnitte', tooShort: 'zu kurz zum Zeichnen',
     hoverRibbon: 'fahre über das Band, um das Fenster zu sehen',
+    ribbonPick: 'klicke auf eine Kategorie, um nur sie zu sehen', ribbonAll: 'alles zeigen',
     focusShape: 'die Form der Konzentration', sessions: 'durchgehaltene Sitzungen',
     shapeNote: 'Minuten nach Sitzungslänge — 15-Minuten-Fenster mit 75 % Fokus, ohne Pause über 2 Minuten',
     noSession: 'An diesem Tag hat keine Fokus-Sitzung gehalten.',

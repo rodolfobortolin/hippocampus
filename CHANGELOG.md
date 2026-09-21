@@ -6,6 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The categories under the day's ribbon filter it: pick one and only its
+  stretches stay lit, with how long they added up to; the same one again, or
+  "show all", brings the whole day back.
 - The app's own window is labelled as looking after the work, instead of
   "unlabelled".
 

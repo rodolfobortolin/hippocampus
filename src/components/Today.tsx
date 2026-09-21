@@ -23,6 +23,9 @@ const bridge = (globalThis as any).hippocampus as {
 export function Today({ status }: { status: Status | null }) {
   const { t, category } = useLanguage()
   const [day, setDay] = useState(todayString())
+  // The category picked in the ribbon's legend; another day starts whole again.
+  const [only, setOnly] = useState<string | null>(null)
+  useEffect(() => setOnly(null), [day])
   const [data, setData] = useState<Day | null>(null)
   const [error, setError] = useState('')
 
@@ -147,12 +150,15 @@ export function Today({ status }: { status: Status | null }) {
                 {data.timelineHidden > 0 && ` · ${number(data.timelineHidden)} ${t.today.tooShort}`}
               </em>
             </h3>
-            <Ribbon blocks={data.timeline} day={day} />
-            <div className="legend">
+            <Ribbon blocks={data.timeline} day={day} only={only} onClear={() => setOnly(null)} />
+            {/* The legend is the filter: one category at a time, and the same
+                one again shows the whole day. */}
+            <div className={`legend ${only ? 'picking' : ''}`}>
               {data.categories.slice(0, 8).map((c) => (
-                <span key={c.name} className="pill">
+                <button key={c.name} type="button" className="pill" aria-pressed={only === c.name}
+                  onClick={() => setOnly(only === c.name ? null : c.name)}>
                   <i style={{ background: colour(c.name) }} />{category(c.name)}
-                </span>
+                </button>
               ))}
             </div>
           </div>

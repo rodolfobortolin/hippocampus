@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { colour, duration, weekdayNames, number, shortDate } from '../lib/format.ts'
+import { colour, duration, weekdayNames, number, shortDate, plural } from '../lib/format.ts'
 import { useLanguage } from '../lib/language.tsx'
 import type { RibbonBlock, Slice, Slot } from '../lib/api.ts'
 
@@ -82,10 +82,24 @@ export function Donut({ slices, total }: { slices: Slice[]; total: number }) {
   )
 }
 
-/** The day's ribbon: each band is a continuous stretch in the same app. */
-export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; day: string; dayStart?: number }) {
-  const t = useLanguage().t
+/**
+ * The day's ribbon: each band is a continuous stretch in the same app.
+ *
+ * With `only`, one category is picked from the legend under it: its bands stay
+ * lit and the rest fade to a trace, so the shape of the day is still there to
+ * place them in — hiding the rest would leave bands floating in an empty hour.
+ */
+export function Ribbon({ blocks, day, dayStart = 4, only = null, onClear }: {
+  blocks: RibbonBlock[]; day: string; dayStart?: number
+  only?: string | null
+  onClear?: () => void
+}) {
+  const { t, category } = useLanguage()
   const [hovered, setSobre] = useState<RibbonBlock | null>(null)
+  const matches = (block: RibbonBlock) =>
+    !only || (!block.idle && !block.delegated && (block.category ?? 'unlabelled') === only)
+  const picked = only ? blocks.filter(matches) : []
+  const pickedSeconds = picked.reduce((sum, block) => sum + (block.end - block.start), 0)
   const [year, month, d] = day.split('-').map(Number)
   const base = new Date(year, month - 1, d, dayStart).getTime() / 1000
   const end = base + 24 * 3600
@@ -105,8 +119,15 @@ export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; d
             {!hovered.delegated && hovered.title ? ` · ${hovered.title.slice(0, 70)}` : ''}
             <span style={{ color: 'var(--text-dim)' }}> · {duration(hovered.end - hovered.start)}</span>
           </span>
+        ) : only ? (
+          <span className="ribbon-only appear">
+            <i style={{ background: colour(only) }} />
+            <b>{category(only)}</b>
+            <span>{duration(pickedSeconds)} · {plural(picked.length, t.counts.stretch)}</span>
+            {onClear && <button type="button" onClick={onClear}>{t.today.ribbonAll}</button>}
+          </span>
         ) : (
-          <span style={{ color: 'var(--text-dim)' }}>{t.today.hoverRibbon}</span>
+          <span style={{ color: 'var(--text-dim)' }}>{t.today.hoverRibbon} · {t.today.ribbonPick}</span>
         )}
       </div>
 
@@ -122,12 +143,17 @@ export function Ribbon({ blocks, day, dayStart = 4 }: { blocks: RibbonBlock[]; d
           const tone = block.delegated ? 'var(--ai)' : block.idle ? 'var(--unlabelled)' : colour(block.category)
           const height = block.delegated ? 22 : block.idle ? 16 : 30
           const top = block.delegated ? 8 : block.idle ? 13 : 3
+          // A band that is not the picked category is only a trace, and does
+          // not answer the pointer: hovering the gap between two picked bands
+          // should not name a window that is not what you asked to see.
+          const away = !matches(block)
           return (
             <rect
               key={index} x={x} y={top} width={w} height={height} rx={2}
               fill={tone}
-              opacity={block.delegated ? 0.55 : block.idle ? 0.3 : hovered && hovered !== block ? 0.4 : 0.9}
-              style={{ transition: 'opacity .18s' }}
+              opacity={away ? 0.07
+                : block.delegated ? 0.55 : block.idle ? 0.3 : hovered && hovered !== block ? 0.4 : 0.9}
+              style={{ transition: 'opacity .18s', pointerEvents: away ? 'none' : undefined }}
               onMouseEnter={() => setSobre(block)} onMouseLeave={() => setSobre(null)}
             />
           )
