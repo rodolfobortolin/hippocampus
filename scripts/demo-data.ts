@@ -50,15 +50,15 @@ const WINDOWS: Window[] = [
   { app: 'Google Chrome', bundle: 'com.google.Chrome', title: 'Pull request #214 · acme/harbor', host: 'github.com', url: 'https://github.com/acme/harbor/pull/214', category: 'code', project: 'harbor', writing: 0.3 },
   { app: 'Google Chrome', bundle: 'com.google.Chrome', title: 'Pull request #88 · acme/atlas', host: 'github.com', url: 'https://github.com/acme/atlas/pull/88', category: 'code', project: 'atlas', writing: 0.3 },
   { app: 'Google Chrome', bundle: 'com.google.Chrome', title: 'Array.prototype.flatMap() - MDN', host: 'developer.mozilla.org', url: 'https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap', category: 'research', project: 'atlas', writing: 0.05 },
-  { app: 'Google Chrome', bundle: 'com.google.Chrome', title: 'Cursor-based pagination – design notes', host: 'notion.so', url: 'https://notion.so/acme/pagination', category: 'writing', project: 'harbor', writing: 0.5 },
-  { app: 'Google Chrome', bundle: 'com.google.Chrome', title: 'How Postgres indexes actually work - YouTube', host: 'youtube.com', url: 'https://youtube.com/watch?v=demo1', category: 'research', project: 'harbor', writing: 0.02 },
+  { app: 'Google Chrome', bundle: 'com.google.Chrome', title: 'Orders API: cursor pagination - Engineering - Confluence', host: 'acme.atlassian.net', url: 'https://acme.atlassian.net/wiki/spaces/ENG/pages/2211/Orders+API+cursor+pagination', category: 'writing', project: 'harbor', writing: 0.5 },
+  { app: 'Google Chrome', bundle: 'com.google.Chrome', title: '[HAR-142] Cursor pagination for GET /orders - Jira', host: 'acme.atlassian.net', url: 'https://acme.atlassian.net/browse/HAR-142', category: 'research', project: 'harbor', writing: 0.25 },
   { app: 'Google Chrome', bundle: 'com.google.Chrome', title: 'Inbox (3) - alex@acme.dev', host: 'mail.google.com', url: 'https://mail.google.com/mail/u/0/', category: 'communication', project: null, writing: 0.4 },
   { app: 'Google Chrome', bundle: 'com.google.Chrome', title: 'Best espresso grinders under $300 - YouTube', host: 'youtube.com', url: 'https://youtube.com/watch?v=demo2', category: 'distraction', project: null, writing: 0.02 },
   { app: 'Figma', bundle: 'com.figma.Desktop', title: 'Checkout — v3', category: 'design', project: 'atlas', writing: 0.2 },
   { app: 'Slack', bundle: 'com.tinyspeck.slackmacgap', title: '#harbor-dev — acme', category: 'communication', project: 'harbor', writing: 0.55 },
   { app: 'Slack', bundle: 'com.tinyspeck.slackmacgap', title: '#design — acme', category: 'communication', project: 'atlas', writing: 0.5 },
   { app: 'zoom.us', bundle: 'us.zoom.xos', title: 'Zoom Meeting', category: 'communication', project: null, writing: 0.05 },
-  { app: 'Finder', bundle: 'com.apple.finder', title: 'Downloads', category: 'admin', project: null, writing: 0.1 },
+  { app: 'Google Chrome', bundle: 'com.google.Chrome', title: '[GLX-17] Reconciliation drifts by one cent - Jira', host: 'globex.atlassian.net', url: 'https://globex.atlassian.net/browse/GLX-17', category: 'admin', project: 'ledger', writing: 0.3 },
 ]
 
 // How the day tends to go: deep code in the morning, talk after lunch, a mix
@@ -103,22 +103,22 @@ for (const w of WINDOWS) {
 
 const COMMITS: Record<string, string[]> = {
   harbor: [
-    'Paginate the orders endpoint by cursor', 'Return 404 instead of an empty page', 'Index orders by customer and date',
-    'Cap the page size at 200', 'Test the last page of a cursor', 'Log slow queries over 300ms', 'Retry the webhook twice before failing',
+    'HAR-142: Paginate the orders endpoint by cursor', 'HAR-142: Return 404 instead of an empty page', 'HAR-151: Index orders by customer and date',
+    'HAR-142: Cap the page size at 200', 'HAR-142: Test the last page of a cursor', 'HAR-151: Log slow queries over 300ms', 'HAR-155: Retry the webhook twice before failing',
   ],
   atlas: [
-    'Move the coupon field above the total', 'Show the shipping estimate before payment', 'Keep the cart when the session expires',
-    'Tighten the checkout spacing on small screens', 'Load card brands lazily', 'Announce payment errors to screen readers',
+    'ATL-88: Move the coupon field above the total', 'ATL-90: Show the shipping estimate before payment', 'ATL-88: Keep the cart when the session expires',
+    'ATL-88: Tighten the checkout spacing on small screens', 'ATL-90: Load card brands lazily', 'ATL-93: Announce payment errors to screen readers',
   ],
 }
 const PROMPTS: Record<string, string[]> = {
   harbor: [
-    'add cursor pagination to GET /orders and keep the old offset param working for a release',
+    'HAR-142: add cursor pagination to GET /orders and keep the old offset param working for a release',
     'why does this query plan do a sequential scan on orders',
     'write a test for the last page when the cursor points past the end',
   ],
   atlas: [
-    'the checkout total jumps when the coupon applies — find where the layout shifts',
+    'ATL-88: the checkout total jumps when the coupon applies — find where the layout shifts',
     'make the payment error message readable by VoiceOver',
     'split Checkout.tsx into smaller components without changing behaviour',
   ],
@@ -242,6 +242,58 @@ for (let back = 20; back >= 0; back--) {
       `- ${switches} app switches; most of them between the editor, the terminal and Claude.`,
       `A day that belonged to harbor. Pagination went in before lunch, the agent finished the tests while you were out, and the afternoon went to review and a couple of messages in #harbor-dev.`,
       stop + 3600)
+  }
+}
+
+// The branches each repository sat on. They are what ties a question or an
+// agent's minutes that name no ticket to the ticket the work was for.
+const insertBranch = db.prepare(`insert or ignore into branches (repo, ts, day, branch, from_branch) values (?, ?, ?, ?, ?)`)
+for (const [repo, back, branch, from] of [
+  ['harbor', 20, 'feature/har-142-cursor-pagination', 'main'],
+  ['harbor', 9, 'feature/har-151-slow-queries', 'feature/har-142-cursor-pagination'],
+  ['harbor', 3, 'feature/har-155-webhook-retries', 'main'],
+  ['atlas', 20, 'feature/atl-88-coupon-layout', 'main'],
+  ['atlas', 6, 'feature/atl-93-voiceover-errors', 'feature/atl-88-coupon-layout'],
+  ['ledger', 20, 'feature/glx-17-reconcile', 'main'],
+] as const) {
+  const ts = toTs(addDays(today, -back), 8, 40)
+  insertBranch.run(repo, ts, dayOf(ts), branch, from)
+}
+
+// A second client, smaller: a few hours a week on globex's ledger. Drawn from
+// a seed of its own, so the days above come out exactly as they always have.
+seed = 777
+for (let back = 20; back >= 0; back--) {
+  const day = addDays(today, -back)
+  const weekday = new Date(`${day}T12:00:00`).getDay()
+  if (weekday === 0 || weekday === 6 || random() < 0.4) continue
+  for (let c = 0; c < Math.floor(between(1, 3)); c++) {
+    const ts = toTs(day, Math.floor(between(15, 18)), Math.floor(between(0, 59)))
+    insertCommit.run(`demo${ts}ledger`, 'ledger', ts, day,
+      pick(['GLX-17: Round at the ledger, not at the line', 'GLX-17: Reconcile in integer cents', 'GLX-21: Export the month as CSV']),
+      Math.floor(between(1, 4)), Math.floor(between(6, 80)), Math.floor(between(1, 30)))
+  }
+  insertTurn.run(`demo-turn-ledger-${day}`, toTs(day, 16, 10), day, 'ledger', `demo-${day}-ledger`,
+    'GLX-17: find where a cent is lost between the invoice lines and the ledger total', JSON.stringify(['Read', 'Grep']))
+  insertVisit.run(toTs(day, 16, 5), day, 'https://globex.atlassian.net/wiki/spaces/OPS/pages/77/Ledger+runbook', 'globex.atlassian.net', 'Ledger runbook - Operations - Confluence')
+  insertVisit.run(toTs(day, 16, 20), day, 'https://globex.atlassian.net/browse/GLX-21', 'globex.atlassian.net', '[GLX-21] Monthly CSV export - Jira')
+}
+
+// The tickets behind acme's branches, opened now and then: it is the history
+// that gives each one its title.
+const TICKETS: [string, string, number, number][] = [
+  ['HAR-151', 'Slow queries on the orders list', 9, 4],
+  ['HAR-155', 'Webhook deliveries fail on the first timeout', 3, 0],
+  ['ATL-88', 'Coupon field shifts the total while typing', 20, 7],
+  ['ATL-90', 'Shipping estimate before payment', 16, 10],
+  ['ATL-93', 'Payment errors are silent to screen readers', 6, 0],
+]
+for (const [key, title, fromBack, toBack] of TICKETS) {
+  for (let back = fromBack; back >= toBack; back--) {
+    const day = addDays(today, -back)
+    const weekday = new Date(`${day}T12:00:00`).getDay()
+    if (weekday === 0 || weekday === 6) continue
+    insertVisit.run(toTs(day, 9, 15), day, `https://acme.atlassian.net/browse/${key}`, 'acme.atlassian.net', `[${key}] ${title} - Jira`)
   }
 }
 

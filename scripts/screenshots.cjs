@@ -82,6 +82,15 @@ app.whenReady().then(async () => {
   await wait(2500)
   await shoot(win, 'rhythm-filtered')
 
+  // The pieces of work, over the last week: a week is covered by the focus
+  // samples, so the screen shows time rather than counting visits.
+  await click(win, 'Work')
+  await wait(2000)
+  await click(win, '7 days')
+  await wait(2500)
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: 20, y: 700 })
+  await shoot(win, 'work')
+
   await click(win, 'Journal')
   await wait(2000)
   await shoot(win, 'journal')

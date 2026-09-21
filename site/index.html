@@ -76,7 +76,8 @@
       </article>
       <article style="--dot: var(--communication)">
         <h3>Calls and what was playing</h3>
-        <p>The microphone open for a meeting, the track in the background, the screen each window was on.</p>
+        <p>The microphone or camera open for a call — named after the meeting, if you let it read your
+        calendar — the track in the background, the screen each window was on.</p>
       </article>
       <article style="--dot: var(--research)">
         <h3>What kind of work it was</h3>
@@ -101,6 +102,20 @@
 
     <div class="row flip">
       <div class="text">
+        <p class="eyebrow small">Work</p>
+        <h2>The ticket, not just <b>the app</b></h2>
+        <p>A Jira tab, a question to Claude Code and a commit that name the same ticket become one
+        line, with the client behind it read from the address. Work on a branch counts for the ticket
+        it is named after. Click a ticket for every moment that touched it, in order.</p>
+      </div>
+      <div class="window small"><div class="chrome"><i></i><i></i><i></i></div>
+        <img src="img/work.webp" width="2560" height="1378" loading="lazy"
+          alt="The Work screen: a week's time by client — acme across Jira, GitHub and Confluence, globex on Jira — and the tickets and pull requests under it, each with its time in focus, the agent's time, visits, commits and requests.">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="text">
         <p class="eyebrow small">Chat</p>
         <h2>Talk to <b>your own day</b></h2>
         <p>Type or speak. Claude Code answers from the local database — with a table when a table is
@@ -108,11 +123,11 @@
       </div>
       <div class="window small"><div class="chrome"><i></i><i></i><i></i></div>
         <img src="img/chat.webp" width="2560" height="1378" loading="lazy"
-          alt="The Chat screen: an answer about where the week went, with a table of time and commits per project.">
+          alt="The Chat screen: an answer about where the week went — a table of time per client, with the time no client covers stated, then the tickets that took it.">
       </div>
     </div>
 
-    <div class="row">
+    <div class="row flip">
       <div class="text">
         <p class="eyebrow small">Journal</p>
         <h2>A journal written like a <b>git log</b></h2>
