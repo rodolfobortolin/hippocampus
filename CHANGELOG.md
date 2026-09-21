@@ -6,6 +6,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- What came out of your hands lists every request of the day and reaches the
+  bottom of its panel, instead of stopping at twelve and 250 pixels.
 - The categories under the day's ribbon filter it: pick one and only its
   stretches stay lit, with how long they added up to; the same one again, or
   "show all", brings the whole day back. The panels made of the same windows

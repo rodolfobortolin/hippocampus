@@ -899,3 +899,9 @@ button.piece-line:hover { background: var(--panel-high); }
    picked category's warmth: the panels beside it that are not narrowed must
    not be mistaken for it. */
 .panel h3 em.only-tag { color: var(--gold); margin-left: 8px; }
+
+/* A panel whose list takes the rest of the row's height. The basis is zero so
+   the list never sets the row's height itself: the neighbour does, and the
+   list scrolls inside whatever is left, never below 250px. */
+.panel.fill { display: flex; flex-direction: column; }
+.panel.fill .fill-rows { flex: 1 1 0; min-height: 250px; overflow-y: auto; }

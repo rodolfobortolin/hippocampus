@@ -247,12 +247,15 @@ export function Today({ status }: { status: Status | null }) {
           </div>
 
           <div className="grid g2">
-            <div className="panel">
+            {/* A column, so the list can take whatever height the row has — the
+                panel beside it sets it — instead of stopping at 250px with
+                empty space under it. */}
+            <div className="panel fill">
               <h3>
                 {t.today.whatCameOut}
                 <em>{plural(data.commits.length, t.counts.commit)} · {plural(data.aiTurns.length, t.counts.aiRequest)}</em>
               </h3>
-              <div className="rows" style={{ maxHeight: 250, overflowY: 'auto' }}>
+              <div className="rows fill-rows">
                 {data.commits.map((commit, i) => (
                   <div key={i} className="row" style={{ gridTemplateColumns: '1fr auto' }}>
                     <span className="name">
@@ -261,7 +264,9 @@ export function Today({ status }: { status: Status | null }) {
                     <span className="value">+{commit.insertions}/−{commit.deletions}</span>
                   </div>
                 ))}
-                {data.aiTurns.slice(-12).map((turno, i) => (
+                {/* Every request of the day: the list scrolls inside its panel now,
+                    so the twelve it used to stop at are no longer the room it has. */}
+                {data.aiTurns.slice(-200).map((turno, i) => (
                   <div key={`ia-${i}`} className="row" style={{ gridTemplateColumns: '1fr auto' }}>
                     <span className="name" title={turno.prompt}>
                       <span style={{ color: 'var(--ai)' }}>{turno.project}</span> · {turno.prompt}
