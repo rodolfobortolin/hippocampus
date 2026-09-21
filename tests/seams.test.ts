@@ -299,3 +299,21 @@ test('a permission is only reported missing once the helper has said so', () => 
     }
   }
 })
+
+test('the wider tools are off until asked for', async () => {
+  // Turning them on lets the assistant act on the machine without stopping to
+  // ask, and lets what it looks at leave. That is a decision, so it cannot be
+  // the default, and it cannot arrive through a settings file that predates it.
+  const { readSettings } = await import('../core/settings.ts')
+  const defaults = read('core/settings.ts')
+  assert.ok(/wideTools:\s*false/.test(defaults),
+    'core/settings.ts should default wideTools to false')
+  assert.ok(/wideTools:\s*data\.wideTools === true/.test(defaults),
+    'anything other than an explicit true must read as off')
+  assert.equal(typeof readSettings().wideTools, 'boolean')
+
+  // And the gate itself: the allowlist is only dropped when the flag is on.
+  const agent = read('core/agent.ts')
+  assert.ok(/wide \? \{\} : \{ allowedTools:/.test(agent),
+    'core/agent.ts should keep the allowlist unless wideTools is on')
+})

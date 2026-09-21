@@ -1,6 +1,6 @@
 import { query, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { HOW_TO_WRITE, LANGUAGES, validLanguage } from './languages.ts'
+import { HOW_TO_WRITE, LANGUAGES, validLanguage, type Language } from './languages.ts'
 import { PERSONAS } from './personas.ts'
 import { config, today, dayOf } from './config.ts'
 import { all } from './db.ts'
@@ -8,6 +8,7 @@ import { dayReport, rangeReport, heatmap, onThisDay } from './metrics.ts'
 import { dossier } from './rollup.ts'
 import { searchEpisodes, lastTime, type Episode } from './episodes.ts'
 import { pickModel } from './jev.ts'
+import { readSettings } from './settings.ts'
 
 const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h${String(Math.round((seconds % 3600) / 60)).padStart(2, '0')}`
 const say = (value: unknown) => ({
@@ -211,6 +212,21 @@ const server = createSdkMcpServer({
   alwaysLoad: true,
 })
 
+/**
+ * What the model is told it can reach, beyond this app's own database.
+ *
+ * Without this it does not know: the tools are there, but the persona says it
+ * is the memory of one machine, and a model told that does not go looking for
+ * a browser or an inbox.
+ */
+const WIDE: Record<Language, string> = {
+  'pt-BR': `Você também tem o resto do Claude Code nesta máquina: ler arquivos, rodar comandos, buscar na web, e os servidores MCP que ele já configurou. Use quando a pergunta pedir algo que não está no banco — o tempo lá fora, um arquivo, um e-mail, o que está numa página. Continue consultando o banco para tudo que é sobre o dia dele. Diga o que fez quando sair da máquina.`,
+  'en-US': `You also have the rest of Claude Code on this machine: reading files, running commands, searching the web, and the MCP servers already configured here. Use them when the question asks for something the database does not hold — the weather outside, a file, an email, what is on a page. Keep using the database for anything about their day. Say what you did when you leave the machine.`,
+  'es-ES': `También tienes el resto de Claude Code en esta máquina: leer archivos, ejecutar comandos, buscar en la web y los servidores MCP ya configurados. Úsalos cuando la pregunta pida algo que la base no tiene — el tiempo fuera, un archivo, un correo, lo que hay en una página. Sigue usando la base para todo lo que sea sobre su día. Di lo que hiciste cuando salgas de la máquina.`,
+  'fr-FR': `Tu as aussi le reste de Claude Code sur cette machine : lire des fichiers, lancer des commandes, chercher sur le web, et les serveurs MCP déjà configurés. Sers-t'en quand la question demande ce que la base n'a pas — la météo dehors, un fichier, un mail, ce qu'il y a sur une page. Continue d'utiliser la base pour tout ce qui concerne sa journée. Dis ce que tu as fait quand tu sors de la machine.`,
+  'de-DE': `Du hast auch den Rest von Claude Code auf diesem Rechner: Dateien lesen, Befehle ausführen, im Web suchen, und die hier schon eingerichteten MCP-Server. Nutze sie, wenn die Frage etwas verlangt, das die Datenbank nicht hat — das Wetter draußen, eine Datei, eine Mail, was auf einer Seite steht. Für alles über seinen Tag bleibt die Datenbank. Sag, was du getan hast, wenn du den Rechner verlässt.`,
+}
+
 function persona(): string {
   const language = validLanguage(config.lang)
   const who = PERSONAS[language]
@@ -228,6 +244,7 @@ function persona(): string {
     ),
     '',
     who.tone,
+    ...(readSettings().wideTools ? ['', WIDE[language]] : []),
   ].join('\n')
 }
 
@@ -248,10 +265,25 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
   const route = config.claudeModel ? null : await pickModel(prompt)
   if (route) yield { type: 'model', model: route.model, level: route.level }
 
+  /**
+   * How far the conversation may reach.
+   *
+   * Narrow — the default — allows only this app's own tools, so an answer can
+   * come from nothing but what was measured on this machine. The MCP servers
+   * configured elsewhere on the machine are already loaded by Claude Code
+   * underneath; this list is the gate, not their absence.
+   *
+   * Wide hands over the rest of Claude Code and every one of those servers.
+   * The working directory moves to the home folder then, because reading files
+   * and running commands from inside the app's data folder would reach almost
+   * nothing.
+   */
+  const wide = readSettings().wideTools
+
   const run = query({
     prompt,
     options: {
-      cwd: config.dataDir,
+      cwd: wide ? config.home : config.dataDir,
       ...(config.claudeModel ? { model: config.claudeModel } : route ? { model: route.model } : {}),
       ...(sessionId ? { resume: sessionId } : {}),
       permissionMode: 'bypassPermissions',
@@ -261,7 +293,11 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
       includePartialMessages: true,
       systemPrompt: { type: 'preset', preset: 'claude_code', append: persona() },
       mcpServers: { hippocampus: server },
-      allowedTools: tools.map((tool) => `mcp__hippocampus__${tool.name}`),
+      // Omitting the list is what opens the gate: Claude Code's own defaults
+      // then apply, which is every tool it has plus every MCP server already
+      // configured on this machine.
+      ...(wide ? {} : { allowedTools: tools.map((tool) => `mcp__hippocampus__${tool.name}`) }),
+      // Nothing here can show a dialog and wait for an answer.
       disallowedTools: ['AskUserQuestion'],
     },
   })

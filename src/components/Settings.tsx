@@ -251,6 +251,15 @@ export function Settings() {
             </button>
           </Field>
 
+          <Field
+            label={t.settings.wideTools}
+            note={settings.wideTools ? t.settings.wideToolsOn : t.settings.wideToolsNote}>
+            <button className={`switch ${settings.wideTools ? 'active' : ''}`}
+              onClick={() => store({ wideTools: !settings.wideTools })}>
+              <i />
+            </button>
+          </Field>
+
           <Field label={t.settings.keepTyping} note={t.settings.keepTypingNote}>
             <button className={`switch ${settings.keepTyping ? 'active' : ''}`}
               onClick={() => store({ keepTyping: !settings.keepTyping })}>

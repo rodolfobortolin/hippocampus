@@ -77,6 +77,8 @@ export type Settings = {
   region: 'global' | 'eu'
   /** Whether the floating core writes what it heard and what it answered. */
   caption: boolean
+  /** Whether the conversation may reach beyond this app's own database. */
+  wideTools: boolean
   liveVoices: string[]
   /** False when there is no OpenAI key, which is what the live voice needs. */
   liveAvailable: boolean

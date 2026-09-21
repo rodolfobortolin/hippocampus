@@ -53,6 +53,19 @@ export type Settings = {
    * wrong is still said — an error nobody can see is worse than no caption.
    */
   caption: boolean
+  /**
+   * Whether the conversation may use anything beyond this app's own database.
+   *
+   * Off, it answers only from what was measured on this machine, and nothing
+   * it does reaches the network or the filesystem. On, it gets the rest of
+   * Claude Code — reading files, running commands, searching the web — and
+   * every MCP server already configured on the machine.
+   *
+   * It is off until asked for, because turning it on changes two things at
+   * once: the assistant can act on the machine without stopping to ask, and
+   * what it looks at can leave it.
+   */
+  wideTools: boolean
 }
 
 export type Region = 'global' | 'eu'
@@ -142,6 +155,7 @@ const DEFAULTS: Settings = {
   liveVoice: 'marin',
   region: 'global',
   caption: true,
+  wideTools: false,
 }
 
 /**
@@ -184,6 +198,7 @@ export function readSettings(): Settings {
       liveVoice: String(data.liveVoice ?? DEFAULTS.liveVoice),
       region: data.region === 'eu' ? 'eu' : 'global',
       caption: data.caption !== false,
+      wideTools: data.wideTools === true,
     }
   } catch {
     return { ...DEFAULTS }
