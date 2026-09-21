@@ -6,6 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The ranges in Work no longer squeeze: "7 days" stopped breaking over two
+  lines when the subtitle was long, and a client called "acme" is no longer
+  drawn as "a…".
 - The section in the vault keeps its heading above the markers, so other tools
   that read a note by its headings — an Obsidian plugin, a script — no longer
   write inside our block and lose what they wrote. Notes written the old way
