@@ -333,13 +333,6 @@ p { color: var(--text-mid); }
 html:not(.js) .merge .trace { opacity: 0.35; }
 html:not(.js) .merge .joined { opacity: 1; top: auto; bottom: -46px; }
 
-.principles .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 28px; }
-.principles .rules div { border-top: 1px solid var(--border-live); padding-top: 18px; }
-.principles h3 { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
-.principles h3::before { content: 'Never '; color: var(--ember); font-weight: 300; }
-.principles .rules p { margin: 0; font-size: 15px; line-height: 1.6; }
-.langs { margin-top: 40px; font-size: 15px; color: var(--text-dim); }
-
 footer {
   max-width: 1160px; margin: 72px auto 0; padding-block: 24px 40px; border-top: 1px solid var(--border);
   display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13.5px; color: var(--text-dim);
@@ -410,7 +403,7 @@ footer p { margin: 0; color: var(--text-dim); }
   .hero { grid-template-columns: 1fr; padding-block: 16px 16px; text-align: left; }
   .orb { order: -1; }
   .orb canvas { width: min(320px, 80vw); }
-  .keeps .grid, .principles .rules { grid-template-columns: 1fr; }
+  .keeps .grid { grid-template-columns: 1fr; }
   .row, .row.flip { grid-template-columns: 1fr; gap: 20px; }
   .row.flip .text { order: 0; }
   .screens { gap: 56px; }
