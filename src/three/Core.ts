@@ -52,7 +52,10 @@ const ALPHA_FROM_BRIGHTNESS = {
       float radius = length(vUv - 0.5) * 2.0;
       alpha *= 1.0 - smoothstep(0.62, 0.98, radius);
       if (alpha < 0.004) discard;
-      gl_FragColor = vec4(colour.rgb, alpha);
+      // Premultiplied. With straight alpha Safari drew the halo at full colour
+      // wherever its alpha was fading, so on an iPhone the fade above became
+      // an opaque disc around the sphere.
+      gl_FragColor = vec4(colour.rgb * alpha, alpha);
     }`,
 }
 
@@ -112,7 +115,7 @@ export class Core {
       typeof options === 'boolean' ? { compact: options, dust: !options } : options
     this.compact = compact
     this.renderer = new THREE.WebGLRenderer({
-      canvas: canvas, antialias: true, alpha: true, premultipliedAlpha: false,
+      canvas: canvas, antialias: true, alpha: true,
     })
     this.renderer.setClearColor(0x000000, 0)
     // Above 2 the cost grows and nobody sees the difference.
