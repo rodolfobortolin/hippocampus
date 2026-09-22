@@ -79,6 +79,7 @@ export class Core {
   private readonly dust: THREE.Points
   private readonly clock = new THREE.Clock()
   private readonly compact: boolean
+  private readonly glow: number
 
   private state: CoreState = 'idle'
   private level = 0
@@ -109,11 +110,15 @@ export class Core {
    */
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    options: { compact?: boolean; dust?: boolean } | boolean = {},
+    options: { compact?: boolean; dust?: boolean; glow?: number } | boolean = {},
   ) {
-    const { compact = false, dust = true } =
+    // `glow` scales the bloom. The website turns it down: there the sphere
+    // performs on its own, and on a phone held close its hottest states
+    // bloomed to a white blob.
+    const { compact = false, dust = true, glow = 1 } =
       typeof options === 'boolean' ? { compact: options, dust: !options } : options
     this.compact = compact
+    this.glow = glow
     this.renderer = new THREE.WebGLRenderer({
       canvas: canvas, antialias: true, alpha: true,
     })
@@ -233,13 +238,14 @@ export class Core {
     this.draw()
   }
 
-  setState(state: CoreState): void {
+  /** Without `flash` the colour changes and nothing bursts: for a change nobody caused. */
+  setState(state: CoreState, { flash = true } = {}): void {
     if (state === this.state) return
     this.state = state
     const visual = LOOKS[state]
     this.targetA.set(visual.a)
     this.targetB.set(visual.b)
-    this.flash = Math.max(this.flash, 0.35)
+    if (flash) this.flash = Math.max(this.flash, 0.35)
   }
 
   /** 0 to 1: the volume of whoever is speaking now. */
@@ -297,9 +303,9 @@ export class Core {
     }
 
     this.dust.rotation.y -= dt * 0.03 * this.smoothSpin
-    this.bloom.strength = (this.compact ? 0.5 : 0.72)
+    this.bloom.strength = this.glow * ((this.compact ? 0.5 : 0.72)
       + this.smoothEnergy * (this.compact ? 0.3 : 0.5)
-      + this.smoothLevel * (this.compact ? 0.3 : 0.55)
+      + this.smoothLevel * (this.compact ? 0.3 : 0.55))
 
     this.composer.render()
   }

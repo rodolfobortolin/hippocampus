@@ -20,7 +20,7 @@ const caption = document.getElementById('core-state')
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches
 
 if (canvas) {
-  const core = new Core(canvas, { compact: false, dust: true })
+  const core = new Core(canvas, { compact: false, dust: true, glow: 0.65 })
   new ResizeObserver(() => core.resize()).observe(canvas)
 
   const WORDS: Record<CoreState, string> = {
@@ -32,20 +32,24 @@ if (canvas) {
     error: '',
   }
 
+  // No burst on a staged change: on a phone, held close, the act flashed
+  // white five times a cycle. The click still bursts, through pulse(),
+  // because someone did that.
   let state: CoreState = 'idle'
   const show = (next: CoreState) => {
     state = next
-    core.setState(next)
+    core.setState(next, { flash: false })
     if (caption) caption.textContent = WORDS[next]
   }
 
   // Speech is bursts with gaps, not a steady tone: two sines at unrelated
-  // rates, clipped at zero, read like syllables.
+  // rates, clipped at zero, read like syllables. It peaks near 0.6, not 1:
+  // at full level the sphere bloomed to a white blob on a phone.
   let started = performance.now()
   const voice = () => {
     const t = (performance.now() - started) / 1000
-    const level = state === 'speaking' ? Math.max(0, Math.sin(t * 7.3) * 0.6 + Math.sin(t * 2.1) * 0.5)
-      : state === 'listening' ? Math.max(0, Math.sin(t * 5.1) * 0.35 + Math.sin(t * 1.7) * 0.3)
+    const level = state === 'speaking' ? Math.max(0, Math.sin(t * 7.3) * 0.35 + Math.sin(t * 2.1) * 0.25)
+      : state === 'listening' ? Math.max(0, Math.sin(t * 5.1) * 0.2 + Math.sin(t * 1.7) * 0.18)
       : 0
     core.setLevel(level)
     requestAnimationFrame(voice)
@@ -78,7 +82,8 @@ if (canvas) {
   orb?.setAttribute('role', 'button')
   const listen = () => {
     clearTimeout(timer)
-    core.pulse()
+    // Half strength: at full, the answer to a tap on a phone was a white blob.
+    core.pulse(0.5)
     show('listening')
     started = performance.now()
     step = 2
