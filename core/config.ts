@@ -92,8 +92,6 @@ export const config = {
   typesafeKey: plain('TYPESAFE_API_KEY'),
   typesafeModel: plain('TYPESAFE_MODEL', 'jev-latest'),
   openaiKey: plain('OPENAI_API_KEY'),
-  /** The fast hands: on-screen actions through Groq, when turned on. */
-  groqKey: plain('GROQ_API_KEY'),
   openaiBaseUrl: plain('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
   /** The OpenAI voice the core answers with. */
   voice: env('VOICE', 'onyx'),

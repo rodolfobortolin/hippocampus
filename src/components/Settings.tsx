@@ -94,7 +94,6 @@ export function Settings() {
   const [journalFolder, setJournalFolder] = useState('')
   const [jev, setJev] = useState('')
   const [openai, setOpenai] = useState('')
-  const [groq, setGroq] = useState('')
   const [state, setState] = useState<'' | 'saving' | 'saved'>('')
   const [agents, setAgents] = useState<AgentStates | null>(null)
   const [capturing, setCapturing] = useState(false)
@@ -147,7 +146,7 @@ export function Settings() {
     setRepos(await api.repos(chosen).catch(() => null))
   }
 
-  const keyLabel = (which: 'jev' | 'openai' | 'groq') => {
+  const keyLabel = (which: 'jev' | 'openai') => {
     const where = settings.keys[which]
     return where === 'keychain' ? t.settings.inTheKeychain
       : where === 'environment' ? `${t.settings.isSet} · .env`
@@ -287,10 +286,8 @@ export function Settings() {
 
           <Field
             label={t.settings.fastHands}
-            note={settings.keys.groq === 'empty' ? t.settings.groqNote
-              : settings.fastHands ? t.settings.fastHandsOn : t.settings.fastHandsNote}>
+            note={settings.fastHands ? t.settings.fastHandsOn : t.settings.fastHandsNote}>
             <button className={`switch ${settings.fastHands ? 'active' : ''}`}
-              disabled={settings.keys.groq === 'empty'}
               onClick={() => store({ fastHands: !settings.fastHands })}>
               <i />
             </button>
@@ -404,20 +401,6 @@ export function Settings() {
               </button>
               {settings.keys.openai === 'keychain' && (
                 <button onClick={() => store({ keys: { openai: '' } })}>{t.settings.remove}</button>
-              )}
-            </div>
-          </Field>
-
-          <Field label={`${t.settings.groqKey} · ${t.settings.optional}`} note={t.settings.groqNote}>
-            <div className="path">
-              <input type="password" value={groq} placeholder={keyLabel('groq')}
-                onChange={(e) => setGroq(e.target.value)} />
-              <button disabled={!groq.trim()}
-                onClick={() => { void store({ keys: { groq: groq.trim() } }); setGroq('') }}>
-                {t.settings.save}
-              </button>
-              {settings.keys.groq === 'keychain' && (
-                <button onClick={() => store({ keys: { groq: '' } })}>{t.settings.remove}</button>
               )}
             </div>
           </Field>

@@ -103,7 +103,7 @@ export function serve(collector?: Collector): http.Server {
           languages: LANGUAGES,
           liveVoices: LIVE_VOICES,
           liveAvailable: liveAvailable(),
-          keys: { jev: keyState('jev'), openai: keyState('openai'), groq: keyState('groq') },
+          keys: { jev: keyState('jev'), openai: keyState('openai') },
         })
       }
 
@@ -113,7 +113,7 @@ export function serve(collector?: Collector): http.Server {
         const body = JSON.parse(Buffer.concat(chunks).toString() || '{}')
         // The keys never come back through the API: only their state. What
         // comes in here goes straight to the Keychain and leaves memory.
-        for (const name of ['jev', 'openai', 'groq'] as KeyName[]) {
+        for (const name of ['jev', 'openai'] as KeyName[]) {
           const value = body.keys?.[name]
           if (typeof value === 'string') await writeKey(name, value.trim())
         }
@@ -130,7 +130,7 @@ export function serve(collector?: Collector): http.Server {
           languages: LANGUAGES,
           liveVoices: LIVE_VOICES,
           liveAvailable: liveAvailable(),
-          keys: { jev: keyState('jev'), openai: keyState('openai'), groq: keyState('groq') },
+          keys: { jev: keyState('jev'), openai: keyState('openai') },
         })
       }
 
@@ -462,13 +462,13 @@ export function serve(collector?: Collector): http.Server {
         // fast hands, when they are on; everything else — and whatever the
         // hands give back — to Claude Code, on the model jev picked.
         const routed = config.claudeModel ? null : await pickModel(text)
-        // When jev does not answer in time the hands try anyway: they hand a
-        // question back in about half a second, while sending an action to
-        // Claude Code costs most of a minute. jev's median was 2.3 s one
+        // When jev does not answer in time the hands try anyway: a question
+        // costs a few seconds to come back from them, while an action sent to
+        // the chat costs most of a minute. jev's median was 2.3 s one
         // afternoon, against a 2.5 s ceiling, so this is not a rare path.
         const onScreen = routed ? routed.onScreen >= 0.6 : true
         if (readSettings().fastHands && handsAvailable() && onScreen) {
-          send({ type: 'model', model: 'groq · gpt-oss-120b', level: 0 })
+          send({ type: 'model', model: 'haiku · hands', level: 0 })
           const quick = await fastHands(text, (step) => {
             send({ type: 'tool', name: step })
             speaks?.progress(step)

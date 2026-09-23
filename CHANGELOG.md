@@ -6,10 +6,14 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
-- Fast hands, off by default: with a Groq key in Settings, jev sends each
-  on-screen action — open an app, press something, read the result — to a
-  fast model on Groq, which does it in about a second a step instead of the
-  several Claude Code takes. Everything else still goes to Claude Code.
+- Fast hands, off by default: jev sends each on-screen action — open an app,
+  press something, read the result — to Haiku in a lean session that reads
+  the window's controls instead of a screenshot: 125 − 38 on Calculator in
+  about 13 seconds, where the chat took most of a minute. Everything else
+  still goes to the chat.
+- Pressing something on screen no longer takes your mouse: controls are
+  pressed through Accessibility, and when a click is needed the pointer goes
+  back to where you left it.
 - Simple questions in the chat are answered by the quick model again. Since
   20 September every question went to the largest one, whatever it asked.
 - Asked to press something on screen — a button, a tab, a row — it now finds

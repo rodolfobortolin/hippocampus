@@ -67,10 +67,9 @@ export type Settings = {
    */
   wideTools: boolean
   /**
-   * Whether on-screen actions go to the fast hands on Groq. jev judges each
-   * request; an action — open this, press that — is done there in seconds,
-   * and anything else still goes to Claude Code. Off until asked for: it
-   * needs a Groq key, and the names of the controls on screen go to Groq.
+   * Whether on-screen actions go to the fast hands: jev judges each request,
+   * and an action — open this, press that — is done by Haiku in a session
+   * with nothing loaded but its own tools; anything else goes to the chat.
    */
   fastHands: boolean
   /**
@@ -118,7 +117,7 @@ export type KeyState = 'keychain' | 'environment' | 'empty'
 
 const SERVICE = 'Hippocampus'
 const OLD_SERVICE = 'Hipocampo'
-const ACCOUNTS = { jev: 'typesafe-api-key', openai: 'openai-api-key', groq: 'groq-api-key' } as const
+const ACCOUNTS = { jev: 'typesafe-api-key', openai: 'openai-api-key' } as const
 export type KeyName = keyof typeof ACCOUNTS
 
 function fromKeychain(account: string, service: string): string {
@@ -177,8 +176,7 @@ export function writeKey(name: KeyName, value: string): Promise<void> {
 
 export function keyState(name: KeyName): KeyState {
   if (readKey(name)) return 'keychain'
-  const fromEnvironment = name === 'jev' ? process.env.TYPESAFE_API_KEY
-    : name === 'groq' ? process.env.GROQ_API_KEY : process.env.OPENAI_API_KEY
+  const fromEnvironment = name === 'jev' ? process.env.TYPESAFE_API_KEY : process.env.OPENAI_API_KEY
   return (fromEnvironment ?? '').trim() ? 'environment' : 'empty'
 }
 
@@ -279,7 +277,6 @@ export function applySettings(settings: Settings = readSettings()): Settings {
   config.codeRoot = settings.codeRoot
   config.typesafeKey = readKey('jev') || (process.env.TYPESAFE_API_KEY ?? '').trim()
   config.openaiKey = readKey('openai') || (process.env.OPENAI_API_KEY ?? '').trim()
-  config.groqKey = readKey('groq') || (process.env.GROQ_API_KEY ?? '').trim()
   return settings
 }
 

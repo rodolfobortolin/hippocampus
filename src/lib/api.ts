@@ -134,7 +134,7 @@ export type Settings = {
   liveAvailable: boolean
   languages: Record<string, { name: string; flag: string; intl: string }>
   /** Only the state of the keys comes back through the API — never the value. */
-  keys: { jev: 'keychain' | 'environment' | 'empty'; openai: 'keychain' | 'environment' | 'empty'; groq: 'keychain' | 'environment' | 'empty' }
+  keys: { jev: 'keychain' | 'environment' | 'empty'; openai: 'keychain' | 'environment' | 'empty' }
 }
 
 /** One weekday (0 is Sunday), one hour, or both. */

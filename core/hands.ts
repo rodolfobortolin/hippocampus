@@ -1,36 +1,41 @@
-// The fast hands: on-screen actions through Groq, when turned on in Settings.
+// The fast hands: on-screen actions done by Haiku, when turned on in Settings.
 //
-// Claude Code answers every request with a fresh agent session: three to five
-// seconds to start, one to nine seconds a turn, four more to finish. For "click
-// Play" or "open Calculator and do 12 × 7" that is most of a minute. A model
-// on Groq answers a tool call in about half a second, and the controls come as
-// text from Accessibility rather than as a screenshot, so a step costs about a
-// second in all.
+// The chat's Claude Code session loads everything on this Mac — the person's
+// settings, plugins, hooks and MCP servers — and spends one to nine seconds a
+// turn on the larger models: 12 × 7 on Calculator took 55 to 75 s. The hands
+// run a session with none of that: no settings from disk, no built-in tools,
+// only five tools of their own, on Haiku, with the controls read as text from
+// Accessibility instead of a screenshot.
 //
 // It is only hands. Anything that is not an action on the screen — a question
 // about the day, a summary, anything that needs the database — is handed back
-// to Claude Code at once, and the person never sees the difference.
+// to the chat at once.
+//
+// They ran on Groq first, which was faster per step; the free tier's 8,000
+// tokens a minute allowed about one task a minute, and it was one more service
+// seeing what is on screen. This needs no key beyond the `claude` login.
 
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { query, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
+import { z } from 'zod'
 import { config } from './config.ts'
 import { LANGUAGES, validLanguage } from './languages.ts'
-import { listControls, pressControl, NoAccessibility, type Controls } from './screen.ts'
+import { listControls, pressControl, NoAccessibility, NoControls, type Controls } from './screen.ts'
 
 const run = promisify(execFile)
-const ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
-const MODEL = process.env.HIPPOCAMPUS_HANDS_MODEL || 'openai/gpt-oss-120b'
-/** A task that needs more than this is not a quick one; Claude Code takes it. */
-const MAX_STEPS = 14
-/** Listing the whole tree of a busy window can run to hundreds; the model reads them all, so keep it bounded. */
+const MODEL = process.env.HIPPOCAMPUS_HANDS_MODEL || 'claude-haiku-4-5-20251001'
+/** A task that needs more than this is not a quick one; the chat takes it. */
+const MAX_TURNS = 16
+/** A busy window lists hundreds of controls; the model reads them all, so keep it bounded. */
 const MAX_CONTROLS = 220
 
-export const handsAvailable = () => Boolean(config.groqKey)
+export const handsAvailable = () => true
 
 const SYSTEM = (language: string) => `You are the hands of Hippocampus on this Mac. You do what the person asks on their screen, fast, with these tools:
 - open_app: open or bring an app to the front, by its name.
-- controls: list the controls (buttons, rows, tabs, fields…) of the window on top, or of the app named, each with a number.
-- press: press a control by its number from the latest controls list.
+- controls: list the controls (buttons, rows, tabs, fields…) of the window on top, or of the app named, as "Role: name".
+- press: press a control by its exact name from the latest controls list.
 - read: read the text the window shows — a result on a display, a status, a title.
 - hand_off: give the request to the other assistant.
 
@@ -42,108 +47,140 @@ Rules:
 - Never press to send, buy, pay, delete, sign, accept terms or confirm anything that cannot be undone unless the person asked for exactly that.
 - When done, reply with one short sentence in ${language} saying what you did and, if they asked for a result, what it is. No lists, no markdown.`
 
-const TOOLS = [
-  { type: 'function', function: {
-    name: 'open_app', description: 'Open an app, or bring it to the front, by name.',
-    parameters: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] } } },
-  { type: 'function', function: {
-    name: 'controls', description: 'List the controls of the window on top, or of the app named.',
-    parameters: { type: 'object', properties: { app: { type: 'string' } } } } },
-  { type: 'function', function: {
-    name: 'press', description: 'Press a control by its number from the latest controls list.',
-    parameters: { type: 'object', properties: { index: { type: 'integer' } }, required: ['index'] } } },
-  { type: 'function', function: {
-    name: 'read', description: 'Read the text shown in the window on top, or in the app named.',
-    parameters: { type: 'object', properties: { app: { type: 'string' } } } } },
-  { type: 'function', function: {
-    name: 'hand_off', description: 'This is not a quick on-screen action: give it to the other assistant.',
-    parameters: { type: 'object', properties: {} } } },
-]
-
 export type HandsResult =
   | { done: true; text: string; steps: number; ms: number }
   | { done: false; reason: string }
 
-type Message = { role: string; content?: string | null; tool_calls?: any[]; tool_call_id?: string }
-
-async function ask(messages: Message[]): Promise<any> {
-  const response = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${config.groqKey}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, messages, tools: TOOLS, tool_choice: 'auto', temperature: 0 }),
-    signal: AbortSignal.timeout(15_000),
-  })
-  if (!response.ok) throw new Error(`Groq ${response.status}: ${(await response.text()).slice(0, 200)}`)
-  return (await response.json() as any).choices?.[0]?.message
-}
+const say = (text: string) => ({ content: [{ type: 'text' as const, text }] })
 
 /**
  * Tries the request as an on-screen action. `onStep` names each step as it
- * happens, for the line under the question. A `done: false` means Claude Code
- * should answer instead — handed off, out of steps, or Groq unreachable.
+ * happens, for the line under the question. A `done: false` means the chat
+ * should answer instead — handed off, out of turns, or something failed.
  */
 export async function fastHands(request: string, onStep: (name: string) => void): Promise<HandsResult> {
-  if (!handsAvailable()) return { done: false, reason: 'no key' }
   const started = Date.now()
   const language = LANGUAGES[validLanguage(config.lang)].name
-  const messages: Message[] = [
-    { role: 'system', content: SYSTEM(language) },
-    { role: 'user', content: request },
-  ]
   let listed: Controls | undefined
-  try {
-    for (let step = 0; step < MAX_STEPS; step++) {
-      const message = await ask(messages)
-      if (!message) return { done: false, reason: 'no answer' }
-      const calls = message.tool_calls ?? []
-      if (!calls.length) {
-        return { done: true, text: String(message.content ?? '').trim(), steps: step, ms: Date.now() - started }
-      }
-      messages.push({ role: 'assistant', content: message.content ?? null, tool_calls: calls })
-      for (const call of calls) {
-        const name = call.function?.name
-        let args: any = {}
-        try { args = JSON.parse(call.function?.arguments || '{}') } catch { /* empty arguments */ }
-        if (name === 'hand_off') return { done: false, reason: 'handed off' }
-        let result = ''
-        if (name === 'open_app') {
-          onStep(`open ${args.name}`)
+  let handedOff = false
+  let steps = 0
+  const stop = new AbortController()
+
+  const server = createSdkMcpServer({
+    name: 'hands',
+    version: '1.0.0',
+    alwaysLoad: true,
+    tools: [
+      {
+        name: 'open_app',
+        description: 'Open an app, or bring it to the front, by name.',
+        inputSchema: { name: z.string() },
+        handler: async ({ name }: { name: string }) => {
+          steps++
+          onStep(`open ${name}`)
           try {
-            await run('/usr/bin/open', ['-a', String(args.name)], { timeout: 8_000 })
+            await run('/usr/bin/open', ['-a', name], { timeout: 8_000 })
             await new Promise((resolve) => setTimeout(resolve, 600))
-            result = `${args.name} is open and in front.`
+            return say(`${name} is open and in front.`)
           } catch {
-            result = `There is no app called "${args.name}".`
+            return say(`There is no app called "${name}".`)
           }
-        } else if (name === 'controls') {
+        },
+      },
+      {
+        name: 'controls',
+        description: 'List the controls of the window on top, or of the app named.',
+        inputSchema: { app: z.string().optional() },
+        handler: async ({ app }: { app?: string }) => {
+          steps++
           onStep('controls')
-          listed = await listControls(args.app ? String(args.app) : undefined)
+          listed = await listControls(app)
+          // By name, not by number: with numbered lines and buttons that are
+          // digits, a model pressed the index it meant as a digit.
           const lines = listed.controls.slice(0, MAX_CONTROLS)
-            .map((control, index) => `${index} ${control.role.replace(/^AX/, '')}: ${control.label}`)
-          result = `${listed.app} — ${listed.window || 'window'}\n${lines.join('\n') || '(no controls)'}`
-        } else if (name === 'read') {
-          onStep('read')
-          const seen = await listControls(args.app ? String(args.app) : undefined, { text: true })
-          const texts = seen.controls.filter((control) => control.role === 'AXStaticText').map((control) => control.label)
-          result = texts.length ? texts.slice(0, 120).join('\n') : '(no text in the window)'
-        } else if (name === 'press') {
-          const control = listed?.controls[Number(args.index)]
+            .map((control) => `${control.role.replace(/^AX/, '')}: ${control.label}`)
+          return say(`${listed.app} — ${listed.window || 'window'}\n${lines.join('\n') || '(no controls)'}`)
+        },
+      },
+      {
+        name: 'press',
+        description: 'Press a control by its exact name, as the latest controls list shows it. When several share the name, nth picks which (1 is the first).',
+        inputSchema: { name: z.string(), nth: z.number().int().optional() },
+        handler: async ({ name, nth }: { name: string; nth?: number }) => {
+          steps++
+          const wanted = name.trim().toLowerCase()
+          const same = listed?.controls.filter((candidate) => candidate.label.trim().toLowerCase() === wanted) ?? []
+          const control = same[Math.max(0, (nth ?? 1) - 1)] ?? same[0]
           if (!listed || !control) {
-            result = 'No such number in the latest controls list; list the controls first.'
-          } else {
-            onStep(`press ${control.label}`)
-            await pressControl(listed, control)
-            result = `Pressed "${control.label}".`
+            return say(`No control called "${name}" in the latest list; list the controls first, and use a name exactly as shown.`)
           }
-        } else {
-          result = `Unknown tool ${name}.`
-        }
-        messages.push({ role: 'tool', tool_call_id: call.id, content: result })
+          onStep(`press ${control.label}`)
+          try {
+            await pressControl(listed, control)
+            return say(`Pressed "${control.label}".`)
+          } catch (error) {
+            if (error instanceof NoControls) return say(`"${control.label}" changed or is gone; call controls again.`)
+            throw error
+          }
+        },
+      },
+      {
+        name: 'read',
+        description: 'Read the text shown in the window on top, or in the app named.',
+        inputSchema: { app: z.string().optional() },
+        handler: async ({ app }: { app?: string }) => {
+          steps++
+          onStep('read')
+          const seen = await listControls(app, { text: true })
+          const texts = seen.controls.filter((control) => control.role === 'AXStaticText').map((control) => control.label)
+          return say(texts.length ? texts.slice(0, 120).join('\n') : '(no text in the window)')
+        },
+      },
+      {
+        name: 'hand_off',
+        description: 'This is not a quick on-screen action: give it to the other assistant.',
+        inputSchema: {},
+        handler: async () => {
+          handedOff = true
+          stop.abort()
+          return say('Handed off.')
+        },
+      },
+    ] as any,
+  })
+
+  const session = query({
+    prompt: request,
+    options: {
+      model: MODEL,
+      abortController: stop,
+      // Isolation: none of this Mac's settings, plugins, hooks or MCP servers,
+      // and none of Claude Code's own tools. Loading them is what made every
+      // chat answer start several seconds late.
+      settingSources: [],
+      strictMcpConfig: true,
+      tools: [],
+      systemPrompt: SYSTEM(language),
+      mcpServers: { hands: server },
+      allowedTools: ['open_app', 'controls', 'press', 'read', 'hand_off'].map((name) => `mcp__hands__${name}`),
+      permissionMode: 'bypassPermissions',
+      maxTurns: MAX_TURNS,
+      cwd: config.dataDir,
+    },
+  })
+
+  try {
+    for await (const message of session as any) {
+      if (message.type === 'result') {
+        if (handedOff) return { done: false, reason: 'handed off' }
+        if (message.subtype !== 'success') return { done: false, reason: String(message.subtype) }
+        return { done: true, text: String(message.result ?? '').trim(), steps, ms: Date.now() - started }
       }
     }
-    return { done: false, reason: 'too many steps' }
+    return { done: false, reason: handedOff ? 'handed off' : 'no result' }
   } catch (error) {
-    // Without Accessibility the hands have nothing to press; Claude Code can
+    if (handedOff) return { done: false, reason: 'handed off' }
+    // Without Accessibility the hands have nothing to press; the chat can
     // still look at the screen and say so.
     if (error instanceof NoAccessibility) return { done: false, reason: 'no accessibility' }
     console.error('[hands]', (error as Error).message)

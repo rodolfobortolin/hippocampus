@@ -25,8 +25,7 @@ suas chaves e o seu login: o jev recebe títulos de janela, para rotulá-los; o
 Claude Code recebe o dia — os números, os sites, o que você pediu aos seus
 agentes e, com o Computer History do Codex ligado, algumas linhas do que você
 digitou — e, quando você pede para ele olhar, uma imagem da sua tela; a OpenAI
-recebe a sua voz, só enquanto você fala com ele; e o Groq, se você ligar as mãos
-rápidas, recebe os nomes dos controles da janela em que ele está agindo. As chaves são suas e ficam no
+recebe a sua voz, só enquanto você fala com ele. As chaves são suas e ficam no
 Chaveiro do macOS, digitadas dentro do próprio app. Sem chave nenhuma ele
 continua medindo, desenhando e guardando: só a classificação, a narrativa e a
 conversa ficam desligadas.
@@ -104,7 +103,7 @@ muda o que você lê.
 
 ## Chaves
 
-Três chaves, todas opcionais, todas guardadas no **Chaveiro do macOS** e
+Duas chaves, as duas opcionais, as duas guardadas no **Chaveiro do macOS** e
 digitadas na tela de Ajustes do próprio app. Nunca passam por arquivo de
 configuração e nunca aparecem num commit. Quando você digita uma, ela vai para o
 Chaveiro pela entrada padrão, e não como argumento de comando — argumentos de
@@ -114,7 +113,6 @@ processo são legíveis por qualquer `ps` na máquina.
 | --- | --- | --- |
 | **jev (TypeSafe)** | categoria, projeto e foco por janela | o tempo por app continua; nada é agrupado por assunto |
 | **OpenAI** | transcrever o que você fala, falar as respostas e a voz ao vivo | a voz do sistema lê as respostas e não há voz ao vivo; a conversa não muda |
-| **Groq** | as mãos rápidas: ações na tela em segundos | as ações na tela passam pelo Claude Code, que leva alguns segundos por passo |
 
 A conversa é sempre o Claude Code, pelo login do `claude` que já está na
 máquina — sem chave de API, sem conta nova, sem custo além da assinatura que
@@ -264,11 +262,12 @@ coisa em todo lugar. Pergunte digitando ou em voz alta.
   o nome**. Peça para **clicar** e ele clica, depois que o ponteiro pousa onde
   você consegue ver — e não envia, compra, apaga nem confirma nada a menos que
   seja exatamente isso que você pediu.
-- **Mãos rápidas**, desligadas por padrão e com uma chave do Groq: o jev julga
-  cada pedido, e uma ação na tela — abrir isto, apertar aquilo, ler o resultado —
-  é feita por um modelo rápido no Groq em cerca de um segundo por passo, lendo os
-  controles da janela pela Acessibilidade em vez de uma imagem. O resto, e o que
-  as mãos não conseguirem terminar, vai para o Claude Code.
+- **Mãos rápidas**, desligadas por padrão: o jev julga cada pedido, e uma ação
+  na tela — abrir isto, apertar aquilo, ler o resultado — é feita pelo Haiku numa
+  sessão sem nada carregado além das próprias ferramentas, lendo os controles da
+  janela pela Acessibilidade em vez de uma imagem: cerca de um segundo por passo.
+  Apertar um controle assim não mexe no seu mouse; a faísca mostra onde foi. O
+  resto, e o que as mãos não conseguirem terminar, vai para a conversa.
 - **Ferramentas ampliadas**, desligadas por padrão, entregam a ele o resto do
   Claude Code neste Mac: arquivos, comandos, a web, os seus servidores MCP —
   digitando ou falando, sem perguntar antes.
