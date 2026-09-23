@@ -26,18 +26,11 @@ in the macOS Keychain, entered inside the app itself. With no keys at all it
 still measures, draws and stores: only the classification, the narrative and the
 chat go dark.
 
-## Text and events, not pixels
+## Text and events
 
-Almost every app in this category records the screen and sends it to a vision
-model. That is why they cost so much (a popular competitor burns roughly ten
-dollars in a working day, at about a million input tokens per hour), drain the
-battery, light up the orange screen-sharing dot, and cannot be sold in the EU.
-
-Hippocampus never takes a single screenshot. It reads what is already text: the
-focused window title, the tab URL, the commands, the commits, what you asked
-Claude Code. It comes out two orders of magnitude cheaper, runs on a native
-helper costing a few milliseconds per sample — and "I have never taken a
-screenshot" is a sentence the others cannot say.
+Hippocampus measures from what is already text: the focused window title, the
+tab URL, the commands, the commits, what you asked Claude Code. It runs on a
+native helper costing a few milliseconds per sample.
 
 There is also no server, no account and no admin dashboard. There is nothing an
 employer could log into to look at your day: the most common fear in this

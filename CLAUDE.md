@@ -1,8 +1,8 @@
 # Hippocampus
 
 A local measure of your day on a Mac. Read `README.md` for what it is and
-`CONTRIBUTING.md` for the two rules that are not up for negotiation — never
-take a screenshot, and never score the person.
+`CONTRIBUTING.md` for the rule that is not up for negotiation — never score
+the person.
 
 ## Commit messages
 

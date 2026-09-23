@@ -3,13 +3,7 @@
 Thanks for looking. A few things are worth knowing before you spend an evening
 on this, because some of them are not obvious from the code.
 
-## Two rules that are not up for negotiation
-
-**No screenshots.** Hippocampus reads what is already text — window titles, tab
-URLs, commands, commits. It never captures the screen, and it never will. This
-is what makes it cheap, battery-friendly, free of the orange recording dot, and
-sellable in the EU. A pull request that adds screen capture, OCR or a vision
-model will be declined no matter how well it is written.
+## One rule that is not up for negotiation
 
 **No scoring the person.** The journal is a `git log`: a record of what
 happened, not a verdict on who did it. No productivity score, no streak, no

@@ -23,19 +23,11 @@ Chaveiro do macOS, digitadas dentro do próprio app.
 Sem chave nenhuma o app continua medindo, desenhando e guardando: só a
 classificação, a narrativa e a conversa ficam desligadas.
 
-## Texto e eventos, não pixels
+## Texto e eventos
 
-Quase todo app desta categoria grava a tela e manda para um modelo de visão.
-É por isso que eles custam caro (um concorrente popular queima por volta de
-dez dólares num expediente, com cerca de um milhão de tokens de entrada por
-hora), comem bateria, acendem o ícone laranja de compartilhamento de tela e
-não podem ser vendidos na União Europeia.
-
-O Hippocampus não tira um único screenshot. Ele lê o que já é texto: o título da
-janela em foco, a URL da aba, os comandos, os commits, o que você pediu ao
-Claude Code. Sai mais barato em duas ordens de grandeza, roda com um helper
-nativo de alguns milissegundos por amostra — e "nunca tirei um screenshot" é
-uma frase que os outros não conseguem dizer.
+O Hippocampus mede a partir do que já é texto: o título da janela em foco, a URL
+da aba, os comandos, os commits, o que você pediu ao Claude Code. Roda com um
+helper nativo de alguns milissegundos por amostra.
 
 Também não existe servidor, nem conta, nem painel de administrador. Não há
 nada que um empregador possa ligar para olhar o seu dia: o medo mais comum
