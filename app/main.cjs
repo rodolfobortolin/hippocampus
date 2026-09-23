@@ -324,12 +324,15 @@ function openCore(takeFocus = true) {
  * left it, already listening, without stealing focus from what you were doing —
  * which is why `showInactive` and not `show`.
  */
-function callCore() {
+function callCore({ wordHeard = false } = {}) {
   const isNew = !coreWindow
   openCore(false)
   const wake = () => coreWindow?.webContents.send('core:wake')
   if (isNew) coreWindow.webContents.once('did-finish-load', wake)
-  else wake()
+  // The wake word also reaches a window that already exists through its own
+  // socket. Telling it again here toggles it twice — the live session opened
+  // and, still connecting, closed on the same word.
+  else if (!wordHeard) wake()
 }
 
 /**
@@ -395,7 +398,7 @@ function watchTheCore() {
   watcher.on('message', (raw) => {
     let event
     try { event = JSON.parse(String(raw)) } catch { return } // not JSON, not ours
-    if (event.type === 'wake') callCore()
+    if (event.type === 'wake') callCore({ wordHeard: true })
     if (event.type === 'point') pointAt(event)
   })
   const reconnect = () => {
