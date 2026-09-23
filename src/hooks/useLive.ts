@@ -40,27 +40,46 @@ export function useLive(opts: {
     setPhase('off')
   }, [])
 
-  /** How loud it is speaking, so the sphere moves with its voice and not on a timer. */
-  const watchRemote = (stream: MediaStream) => {
+  /**
+   * How loud the conversation is, so the sphere moves with it and not on a
+   * timer — its voice, and yours.
+   *
+   * Only its voice used to move it, so while you talked the sphere sat still
+   * and nothing said your voice was being heard. Both streams are metered in
+   * one loop and the louder one wins; with echo cancellation on, its voice
+   * coming back through your microphone stays below its own stream.
+   */
+  const metering = useRef<{ ac: AudioContext; sources: { analyser: AnalyserNode; floor: number }[] } | undefined>(undefined)
+  const watch = (stream: MediaStream, floor: number) => {
     try {
-      const ac = new AudioContext()
-      const analyser = ac.createAnalyser()
+      if (!metering.current) {
+        const ac = new AudioContext()
+        const sources: { analyser: AnalyserNode; floor: number }[] = []
+        metering.current = { ac, sources }
+        let raf = 0
+        const tick = () => {
+          let loudest = 0
+          for (const { analyser, floor: noise } of sources) {
+            const buffer = new Uint8Array(analyser.fftSize)
+            analyser.getByteTimeDomainData(buffer)
+            let sum = 0
+            for (const value of buffer) sum += ((value - 128) / 128) ** 2
+            loudest = Math.max(loudest, Math.max(0, Math.sqrt(sum / buffer.length) - noise) * 6)
+          }
+          optsRef.current.onLevel(Math.min(1, loudest))
+          raf = requestAnimationFrame(tick)
+        }
+        tick()
+        meter.current = () => {
+          cancelAnimationFrame(raf)
+          metering.current = undefined
+          void ac.close()
+        }
+      }
+      const analyser = metering.current.ac.createAnalyser()
       analyser.fftSize = 512
-      ac.createMediaStreamSource(stream).connect(analyser)
-      const buffer = new Uint8Array(analyser.fftSize)
-      let raf = 0
-      const tick = () => {
-        analyser.getByteTimeDomainData(buffer)
-        let sum = 0
-        for (const value of buffer) sum += ((value - 128) / 128) ** 2
-        optsRef.current.onLevel(Math.min(1, Math.sqrt(sum / buffer.length) * 6))
-        raf = requestAnimationFrame(tick)
-      }
-      tick()
-      meter.current = () => {
-        cancelAnimationFrame(raf)
-        void ac.close()
-      }
+      metering.current.ac.createMediaStreamSource(stream).connect(analyser)
+      metering.current.sources.push({ analyser, floor })
     } catch {
       // The level is decoration; the conversation works without it.
     }
@@ -75,6 +94,8 @@ export function useLive(opts: {
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       })
       mic.current = stream
+      // A small floor for the room: breathing and a fan should not move it.
+      watch(stream, 0.012)
       const connection = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       })
@@ -87,7 +108,7 @@ export function useLive(opts: {
         element.srcObject = event.streams[0]
         void element.play().catch(() => undefined)
         audio.current = element
-        watchRemote(event.streams[0])
+        watch(event.streams[0], 0)
       }
       connection.onconnectionstatechange = () => {
         const state = connection.connectionState
