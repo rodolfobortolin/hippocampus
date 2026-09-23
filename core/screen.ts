@@ -32,6 +32,7 @@ export type Shot = {
 }
 
 export class NoScreenPermission extends Error {}
+export class NoAccessibility extends Error {}
 
 /**
  * The last pictures, kept only as geometry — which display, where, at what
@@ -119,6 +120,32 @@ async function withScreencapture(dir: string, all: boolean): Promise<Shot[]> {
     shots.push({ screen: display, data: (await readFile(file)).toString('base64') })
   }
   return shots
+}
+
+/**
+ * A click at a pixel of the latest picture.
+ *
+ * The pointer flies there first and the click waits for it to land: a click
+ * that happens where nobody was looking is a click nobody can check.
+ */
+export async function clickOnScreen(
+  screen: number, x: number, y: number, label: string, { double = false, right = false } = {},
+): Promise<boolean> {
+  const place = placeOnScreen(screen, x, y)
+  const native = await helper()
+  if (!place || !native) return false
+  pointing.emit('point', { ...place, label })
+  await new Promise((resolve) => setTimeout(resolve, 900))
+  try {
+    await run(native, ['click', '--x', String(place.x), '--y', String(place.y),
+      ...(double ? ['--double'] : []), ...(right ? ['--right'] : [])], { timeout: 10_000 })
+  } catch (error: any) {
+    if (error?.code === 4) throw new NoAccessibility(String(error.stderr ?? error.message))
+    throw error
+  }
+  // What was on screen before the click no longer is.
+  lastLook = undefined
+  return true
 }
 
 /** Where the pointer should go; the server tells the screens, and the app draws it. */

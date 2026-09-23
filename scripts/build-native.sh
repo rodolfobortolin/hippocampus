@@ -67,7 +67,7 @@ echo "agent registrar ready"
 # when someone asks to be looked at; Screen Recording is then asked for on
 # behalf of the app that owns the core, which is Hippocampus.
 swiftc -O -o native/bin/hippocampus-screen native/screen.swift \
-  -framework ScreenCaptureKit -framework AppKit -framework CoreGraphics -framework ImageIO -framework UniformTypeIdentifiers
+  -framework ScreenCaptureKit -framework AppKit -framework ApplicationServices -framework CoreGraphics -framework ImageIO -framework UniformTypeIdentifiers
 echo "screen helper ready"
 
 echo "$APP ready and signed"

@@ -13,7 +13,7 @@ import { workItems, itemDetail, orgName } from './items.ts'
 import { timesheet, timesheetTable } from './timesheet.ts'
 import { TIMESHEET_WORDS } from './languages.ts'
 import { readSettings } from './settings.ts'
-import { lookAtScreen, NoScreenPermission, placeOnScreen, pointing } from './screen.ts'
+import { clickOnScreen, lookAtScreen, NoAccessibility, NoScreenPermission, placeOnScreen, pointing } from './screen.ts'
 
 const hours = hoursAndMinutes
 const say = (value: unknown) => ({
@@ -301,6 +301,31 @@ const tools = [
       if (!place) return say('Nothing to point into: look at the screen first, and use a point inside that picture.')
       pointing.emit('point', { ...place, label: label.slice(0, 40) })
       return say(`Pointed at "${label}".`)
+    },
+  },
+  {
+    name: 'click',
+    description: 'Clicks at a place on the screen for the person: the pointer flies there, then the mouse clicks. Only after the screen tool, with the screen number and pixel coordinates in that picture. Use it only when the person asked you to do something on their screen — never on your own initiative. Never click to send, buy, pay, delete, sign, accept terms or confirm anything that cannot be undone unless they asked for exactly that action; never click into a password field. Say what you are about to click in one short sentence first. After a click the screen has changed: look again before the next one.',
+    inputSchema: {
+      screen: z.number().int().describe('the screen number from the screen tool'),
+      x: z.number().describe('pixels from the left of that picture'),
+      y: z.number().describe('pixels from the top of that picture'),
+      label: z.string().describe('one to four words naming what is being clicked'),
+      double: z.boolean().optional(),
+      right: z.boolean().optional().describe('a right click, for a context menu'),
+    },
+    handler: async ({ screen, x, y, label, double, right }:
+      { screen: number; x: number; y: number; label: string; double?: boolean; right?: boolean }) => {
+      try {
+        const clicked = await clickOnScreen(screen, x, y, label.slice(0, 40), { double, right })
+        if (!clicked) return say('Nothing to click into: look at the screen first, and use a point inside that picture.')
+        return say(`Clicked "${label}". The screen has changed; look again before doing anything else.`)
+      } catch (error) {
+        if (error instanceof NoAccessibility) {
+          return say('The click was not made: Hippocampus needs the Accessibility permission, in System Settings → Privacy & Security → Accessibility. macOS has just asked for it. Tell the person that, in one sentence, and to ask again once it is on.')
+        }
+        throw error
+      }
     },
   },
 ]

@@ -1,4 +1,5 @@
-// hippocampus-screen — what is on the screen right now, without Hippocampus in it.
+// hippocampus-screen — what is on the screen right now, without Hippocampus in it,
+// and, when asked, a click at a place on it.
 //
 // `screencapture` photographs everything, the app's own windows included, so
 // the sphere and the pointer would show up in the picture they are pointing
@@ -11,8 +12,14 @@
 // permission shows up under "Hippocampus".
 //
 // Prints JSON on stdout. Exit 2: no permission. Exit 3: macOS older than 14.
+//
+// `hippocampus-screen click --x X --y Y [--double] [--right]` clicks at a
+// place in global coordinates. Posting mouse events needs Accessibility, and
+// like Screen Recording it is asked for on behalf of the app. Exit 4: no
+// Accessibility.
 
 import AppKit
+import ApplicationServices
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -27,6 +34,34 @@ func value(_ name: String, _ fallback: String) -> String {
 func fail(_ code: Int32, _ message: String) -> Never {
     FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
     exit(code)
+}
+
+if args.count > 1 && args[1] == "click" {
+    // Asking with the prompt option is what puts Hippocampus in the list in
+    // Settings; without it the grant has nowhere to be given.
+    let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+    guard AXIsProcessTrustedWithOptions(options) else { fail(4, "no accessibility permission") }
+    guard let x = Double(value("--x", "")), let y = Double(value("--y", "")) else { fail(1, "--x and --y are required") }
+    let place = CGPoint(x: x, y: y)
+    let right = args.contains("--right")
+    let (down, up, button): (CGEventType, CGEventType, CGMouseButton) =
+        right ? (.rightMouseDown, .rightMouseUp, .right) : (.leftMouseDown, .leftMouseUp, .left)
+    let source = CGEventSource(stateID: .hidSystemState)
+    // Moving first: many controls only arm on hover, and a click that arrives
+    // without the pointer ever having been there is ignored by them.
+    CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: place, mouseButton: button)?.post(tap: .cghidEventTap)
+    usleep(60_000)
+    let clicks = args.contains("--double") ? 2 : 1
+    for n in 1...clicks {
+        for type in [down, up] {
+            let event = CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: place, mouseButton: button)
+            event?.setIntegerValueField(.mouseEventClickState, value: Int64(n))
+            event?.post(tap: .cghidEventTap)
+            usleep(30_000)
+        }
+    }
+    print("{\"clicked\":true}")
+    exit(0)
 }
 
 let outDir = URL(fileURLWithPath: value("--out", NSTemporaryDirectory()))

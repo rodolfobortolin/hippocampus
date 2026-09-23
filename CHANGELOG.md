@@ -22,6 +22,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   a spark of the core flies there and names it. The screenshot it looks at no
   longer includes Hippocampus's own windows, and only the screen under the
   cursor is sent unless you ask for all of them.
+- Ask it to click something on your screen and it does: the pointer flies to
+  the place first, then the mouse clicks. It asks for the Accessibility
+  permission the first time, and it will not click to send, buy, delete or
+  confirm unless that is exactly what you asked for.
 - Saying the wake word brings the floating core up again; since 20 September
   it had stopped answering it.
 
