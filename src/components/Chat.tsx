@@ -10,7 +10,6 @@ import { useSpeech } from '../hooks/useSpeech.ts'
 import { Core, type CoreState } from './Core.tsx'
 import { IconSend, IconMicrophone, IconSound, IconMuted, IconStop } from './Icons.tsx'
 import { useLanguage } from '../lib/language.tsx'
-import { ConfirmCard, type Pending } from './ConfirmCard.tsx'
 
 type Message = { of: 'me' | 'it'; text: string }
 
@@ -52,8 +51,6 @@ export function Chat({ status }: { status: Status | null }) {
   // turn is taken as a question, and after a quiet spell when it is not —
   // a greeting the voice answers by itself never becomes a question.
   const [caption, setCaption] = useState('')
-  // A tool a spoken request wants to run, waiting for a yes on screen.
-  const [pending, setPending] = useState<Pending[]>([])
   const captionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // How long the session has been open: it bills by the minute, so it shows.
   const [openSince, setOpenSince] = useState(0)
@@ -162,8 +159,6 @@ export function Chat({ status }: { status: Status | null }) {
         captionTimer.current = setTimeout(() => setCaption(''), 5000)
       }
       if (data.type === 'heard') setCaption('')
-      if (data.type === 'confirm') setPending((all) => [...all, { id: String(data.id), tool: String(data.tool), detail: String(data.detail) }])
-      if (data.type === 'confirm-settled') setPending((all) => all.filter((p) => p.id !== data.id))
       if (data.type === 'heard' && data.text) {
         setMessages((current) => [...current, { of: 'me', text: String(data.text) }])
         // A new turn clears what went wrong in the last one.
@@ -179,7 +174,7 @@ export function Chat({ status }: { status: Status | null }) {
 
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight, behavior: 'smooth' })
-  }, [messages, thinking, pending.length, caption])
+  }, [messages, thinking, caption])
 
   useEffect(() => { toCore.current = sendToCore }, [sendToCore])
 
@@ -193,7 +188,7 @@ export function Chat({ status }: { status: Status | null }) {
   const send = (question: string) => {
     const clear = question.trim()
     if (!clear || thinking) return
-    if (!sendToCore({ type: 'question', text: clear, spoken: askedByVoice.current })) {
+    if (!sendToCore({ type: 'question', text: clear })) {
       // Never swallow the question quietly: the text stays in the field.
       setState('error')
       setMessages((current) => [...current, { of: 'it', text: t.chat.coreIsDown }])
@@ -260,11 +255,6 @@ export function Chat({ status }: { status: Status | null }) {
         )}
 
         {caption && <div className="message mine caption">{caption}</div>}
-
-        {pending.map((p) => (
-          <ConfirmCard key={p.id} pending={p}
-            answer={(allow) => { sendToCore({ type: 'confirm-answer', id: p.id, allow }) }} />
-        ))}
 
         {thinking && (
           <div className="tool appear">

@@ -263,10 +263,8 @@ coisa em todo lugar. Pergunte digitando ou em voz alta.
   você consegue ver — e não envia, compra, apaga nem confirma nada a menos que
   seja exatamente isso que você pediu.
 - **Ferramentas ampliadas**, desligadas por padrão, entregam a ele o resto do
-  Claude Code neste Mac: arquivos, comandos, a web, os seus servidores MCP. O que
-  você pede por voz então mostra cada comando ou mudança de arquivo na tela,
-  exatamente como vai rodar, e espera **Permitir** — uma voz pode ouvir errado, e
-  nada deve rodar sem você ver.
+  Claude Code neste Mac: arquivos, comandos, a web, os seus servidores MCP —
+  digitando ou falando, sem perguntar antes.
 
 ## O núcleo, de plantão
 

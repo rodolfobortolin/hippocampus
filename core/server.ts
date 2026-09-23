@@ -380,29 +380,6 @@ export function serve(collector?: Collector): http.Server {
     }
   }
   wake = broadcast
-
-  /**
-   * A yes or no from whoever is looking, for a tool a spoken request wants to
-   * run. Every screen shows the question and the first answer counts; no
-   * answer in a minute is a no.
-   */
-  const waiting = new Map<string, (allow: boolean) => void>()
-  let asked = 0
-  const settle = (id: string, allow: boolean) => {
-    const resolve = waiting.get(id)
-    if (!resolve) return
-    waiting.delete(id)
-    broadcast({ type: 'confirm-settled', id })
-    resolve(allow)
-  }
-  const confirm = (tool: string, detail: string, speaks?: LiveVoice) =>
-    new Promise<boolean>((resolve) => {
-      const id = `confirm-${++asked}`
-      waiting.set(id, resolve)
-      broadcast({ type: 'confirm', id, tool, detail })
-      speaks?.progress('waiting for the person to allow it on screen')
-      setTimeout(() => settle(id, false), 60_000)
-    })
   pointing.on('point', (place) => broadcast({ type: 'point', ...place }))
 
   /**
@@ -469,7 +446,7 @@ export function serve(collector?: Collector): http.Server {
      * which says it in its own words — and the pieces still go to the screen so
      * there is a transcript to read.
      */
-    const answer = async (text: string, speaks: LiveVoice | undefined, spoken = false) => {
+    const answer = async (text: string, speaks: LiveVoice | undefined) => {
       // Turning the live voice off in Settings does not reach into an open
       // session, and a session left open goes on speaking while the screen,
       // now back in push mode, reads the same answer out through the speech
@@ -480,7 +457,7 @@ export function serve(collector?: Collector): http.Server {
       send({ type: 'heard', text })
       send({ type: 'thinking' })
       try {
-        for await (const event of chat(text, session, spoken ? { confirm: (tool, detail) => confirm(tool, detail, speaks) } : {})) {
+        for await (const event of chat(text, session)) {
           if (event.type === 'model') send({ type: 'model', model: event.model, level: event.level })
           else if (event.type === 'delta') send({ type: 'delta', text: event.text })
           else if (event.type === 'end') {
@@ -538,7 +515,7 @@ export function serve(collector?: Collector): http.Server {
       const session_ = new LiveVoice({
         onRequest: (text) => {
           if (!text) return
-          void answer(text, session_, true)
+          void answer(text, session_)
         },
         onSpoken: (text) => send({ type: 'spoken', text }),
         onHeard: () => send({ type: 'listening' }),
@@ -575,12 +552,10 @@ export function serve(collector?: Collector): http.Server {
       try { payload = JSON.parse(String(raw)) } catch { return }
       if (payload.type === 'live-offer' && payload.sdp) return void startLive(String(payload.sdp))
       if (payload.type === 'live-stop') return stopLive()
-      if (payload.type === 'confirm-answer') return void settle(String(payload.id), payload.allow === true)
       if (payload.type !== 'question' || !payload.text) return
       // A typed question is spoken by the live session when one is open, so
       // the two ways of asking share one voice rather than talking over it.
-      // `spoken` is the push-to-talk recorder's question: said, not typed.
-      await answer(String(payload.text), live, payload.spoken === true)
+      await answer(String(payload.text), live)
     })
 
     socket.on('close', () => {

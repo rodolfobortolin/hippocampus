@@ -3,7 +3,6 @@ import { api, type Status } from './lib/api.ts'
 import { Core, type CoreState } from './components/Core.tsx'
 import { useListening } from './hooks/useListening.ts'
 import { useOverheard } from './hooks/useOverheard.ts'
-import { ConfirmCard, type Pending } from './components/ConfirmCard.tsx'
 import { useAudioLevel } from './hooks/useAudioLevel.ts'
 import { useSocket } from './hooks/useSocket.ts'
 import { useLive } from './hooks/useLive.ts'
@@ -38,7 +37,6 @@ export function FloatingCore() {
   const [status, setStatus] = useState<Status | null>(null)
   const { level: answerLevel, listenToAudio, pulseAlone, finish } = useAudioLevel()
   const overheard = useOverheard()
-  const [pending, setPending] = useState<Pending[]>([])
 
   const answerRef = useRef('')
   const speakAnswer = useRef<(text: string) => void>(() => {})
@@ -98,8 +96,6 @@ export function FloatingCore() {
     }
     if (data.type === 'wake') wake()
     if (data.type === 'room') overheard.heard(data.level)
-    if (data.type === 'confirm') setPending((all) => [...all, { id: String(data.id), tool: String(data.tool), detail: String(data.detail) }])
-    if (data.type === 'confirm-settled') setPending((all) => all.filter((p) => p.id !== data.id))
     if (data.type === 'live-answer') void live.accept(String(data.sdp))
     if (data.type === 'live' && !data.on) live.dropped()
     if (data.type === 'listening') setState('listening')
@@ -115,7 +111,7 @@ export function FloatingCore() {
   const listening = useListening((utterance) => {
     setQuestion(utterance)
     answerRef.current = ''
-    send({ type: 'question', text: utterance, spoken: true })
+    send({ type: 'question', text: utterance })
   }, t.common)
 
   /**
@@ -312,11 +308,6 @@ export function FloatingCore() {
           : t.chat.speak}>
         <Core state={state} level={level} size="floating" />
       </button>
-
-      {pending[0] && (
-        <ConfirmCard pending={pending[0]}
-          answer={(allow) => { toCore.current({ type: 'confirm-answer', id: pending[0].id, allow }) }} />
-      )}
 
       {said ? (
         <div className={`floating-caption ${answer && writes ? 'long' : ''}`}>

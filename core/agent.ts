@@ -464,26 +464,8 @@ export function streamedText(event: any, after: boolean): string {
   return delta?.type === 'text_delta' && delta.text ? delta.text : ''
 }
 
-/**
- * What a spoken request may do without asking: read, search, and this app's
- * own tools, which carry their own limits. Everything else — a command, a
- * write, another machine's server — waits for a yes on screen.
- */
-const WITHOUT_ASKING = new Set([
-  'Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'TodoWrite', 'ToolSearch',
-  'ListMcpResources', 'ReadMcpResource',
-])
-
-/** Asks the person on screen whether a tool may run; resolves to their answer. */
-export type Confirm = (tool: string, detail: string) => Promise<boolean>
-
-function describeUse(tool: string, input: Record<string, unknown>): string {
-  const text = input.command ?? input.file_path ?? input.url ?? input.path
-  return String(text ?? JSON.stringify(input)).slice(0, 400)
-}
-
 /** Talks to Claude Code, with the local database as its tools. */
-export async function* chat(prompt: string, sessionId?: string, { confirm }: { confirm?: Confirm } = {}): AsyncGenerator<AgentEvent> {
+export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<AgentEvent> {
   // A model that fits the request: jev judges the complexity before it starts.
   // With HIPPOCAMPUS_MODEL set, the choice is yours and the routing steps aside.
   const route = config.claudeModel ? null : await pickModel(prompt)
@@ -510,33 +492,7 @@ export async function* chat(prompt: string, sessionId?: string, { confirm }: { c
       cwd: wide ? config.home : config.dataDir,
       ...(config.claudeModel ? { model: config.claudeModel } : route ? { model: route.model } : {}),
       ...(sessionId ? { resume: sessionId } : {}),
-      /**
-       * A request that was spoken asks before it acts.
-       *
-       * A sentence said to the voice once turned into edits to this app's own
-       * source and a native build, with nothing on screen to stop it — and a
-       * voice mishears. Typed requests keep running without prompts, as they
-       * always have; spoken ones route every tool through `canUseTool`, which
-       * lets reads and this app's own tools through and puts the rest in
-       * front of the person.
-       */
-      ...(confirm
-        ? {
-          permissionMode: 'default' as const,
-          canUseTool: async (tool: string, input: Record<string, unknown>, options: { mcpServer?: { source: string } }) => {
-            if (WITHOUT_ASKING.has(tool) || options.mcpServer?.source === 'sdk') {
-              return { behavior: 'allow' as const, updatedInput: input }
-            }
-            if (await confirm(readable(tool) || tool, describeUse(tool, input))) {
-              return { behavior: 'allow' as const, updatedInput: input }
-            }
-            return {
-              behavior: 'deny' as const,
-              message: 'The person said no on screen, or did not answer. Do not try another way to do the same thing; say it was not done.',
-            }
-          },
-        }
-        : { permissionMode: 'bypassPermissions' as const }),
+      permissionMode: 'bypassPermissions',
       // Without this the answer only shows up when the whole block finishes.
       // Measured on a trivial question: the first letter exists at 3s and the
       // block closes at 6.4s — half the wait was just waiting.

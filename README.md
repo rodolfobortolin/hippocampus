@@ -260,9 +260,8 @@ by typing or out loud.
   you can see it — and it will not send, buy, delete or confirm anything unless
   that is exactly what you asked for.
 - **Wider tools**, off by default, hand it the rest of Claude Code on this Mac:
-  files, commands, the web, your MCP servers. Something you ask by voice then
-  shows each command or file change on screen, exactly as it would run, and
-  waits for **Allow** — a voice can mishear, and nothing should run unseen.
+  files, commands, the web, your MCP servers — typed or spoken, without asking
+  first.
 
 ## The core, on call
 
