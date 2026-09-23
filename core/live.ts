@@ -190,6 +190,8 @@ type Hooks = {
   onSpoken: (text: string) => void
   /** Someone is talking: keeps the session from timing out mid-sentence. */
   onHeard: () => void
+  /** What they are saying so far, for the caption on screen while they say it. */
+  onCaption: (text: string) => void
   onClosed: (reason: string) => void
   onError: (message: string) => void
 }
@@ -202,6 +204,8 @@ export class LiveVoice {
   private spokenTimer?: ReturnType<typeof setTimeout>
   private lastProgress = 0
   private lastHeard = 0
+  private caption = ''
+  private lastCaption = 0
   private idle?: ReturnType<typeof setTimeout>
   sessionId?: string
   startedAt = 0
@@ -237,6 +241,14 @@ export class LiveVoice {
       this.touch()
       this.heard += event.delta
       const now = Date.now()
+      // The transcript has no end-of-sentence event, and a turn the voice
+      // answers by itself never reaches a delegation to clear it. A pause is
+      // the only boundary there is: a second and a half of quiet starts a new
+      // caption.
+      if (now - this.lastCaption > 1500) this.caption = ''
+      this.lastCaption = now
+      this.caption += event.delta
+      this.hooks.onCaption(this.caption.trim())
       if (now - this.lastHeard > 1500) {
         this.lastHeard = now
         this.hooks.onHeard()

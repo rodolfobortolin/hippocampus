@@ -12,6 +12,11 @@ import { useLanguage } from '../lib/language.tsx'
 
 type Message = { of: 'me' | 'it'; text: string }
 
+const clock = (ms: number) => {
+  const seconds = Math.floor(ms / 1000)
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+}
+
 export function Chat({ status }: { status: Status | null }) {
   const { t, language, settings } = useLanguage()
   const [messages, setMessages] = useState<Message[]>([])
@@ -41,6 +46,20 @@ export function Chat({ status }: { status: Status | null }) {
     onLevel: setExternalLevel,
   })
   const liveOn = live.phase !== 'off'
+  // What they are saying right now, before the turn ends. Cleared when the
+  // turn is taken as a question, and after a quiet spell when it is not —
+  // a greeting the voice answers by itself never becomes a question.
+  const [caption, setCaption] = useState('')
+  const captionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // How long the session has been open: it bills by the minute, so it shows.
+  const [openSince, setOpenSince] = useState(0)
+  const [, tick] = useState(0)
+  useEffect(() => {
+    if (live.phase !== 'on') { setOpenSince(0); setCaption(''); return }
+    setOpenSince(Date.now())
+    const every = setInterval(() => tick((n) => n + 1), 1000)
+    return () => clearInterval(every)
+  }, [live.phase])
   // The socket handler is installed once, so this has to be a ref rather than
   // the value it closed over on the first render.
   const liveRef = useRef(false)
@@ -125,6 +144,12 @@ export function Chat({ status }: { status: Status | null }) {
       if (data.type === 'live-answer') void live.accept(String(data.sdp))
       if (data.type === 'live' && !data.on) live.dropped()
       if (data.type === 'listening') setState('listening')
+      if (data.type === 'hearing') {
+        setCaption(String(data.text ?? ''))
+        clearTimeout(captionTimer.current)
+        captionTimer.current = setTimeout(() => setCaption(''), 5000)
+      }
+      if (data.type === 'heard') setCaption('')
       if (data.type === 'heard' && data.text) {
         setMessages((current) => [...current, { of: 'me', text: String(data.text) }])
         // A new turn clears what went wrong in the last one.
@@ -220,6 +245,8 @@ export function Chat({ status }: { status: Status | null }) {
           </div>
         )}
 
+        {caption && <div className="message mine caption">{caption}</div>}
+
         {thinking && (
           <div className="tool appear">
             {tool ? `${t.chat.lookingUp} ${tool}…` : t.chat.thinking}
@@ -227,6 +254,19 @@ export function Chat({ status }: { status: Status | null }) {
           </div>
         )}
       </div>
+
+      {live.phase !== 'off' && (
+        <div className={`live-status ${live.phase}`} role="status">
+          <i />
+          {live.phase === 'connecting' ? t.chat.liveConnecting : (
+            <>
+              <b>{t.chat.liveOn}</b>
+              <span>{caption ? t.chat.liveHearing : t.chat.liveReady}</span>
+              {openSince > 0 && <span className="clock">{clock(Date.now() - openSince)}</span>}
+            </>
+          )}
+        </div>
+      )}
 
       <div className="composer">
         {!opening && <Core state={state} level={level} size="small" />}
@@ -238,6 +278,8 @@ export function Chat({ status }: { status: Status | null }) {
           }}
           placeholder={
             !connected ? t.chat.reconnecting
+              : live.phase === 'on' ? t.chat.liveReady
+              : live.phase === 'connecting' ? t.chat.liveConnecting
               : isListening ? t.chat.listening
               : listening.state === 'transcribing' ? t.chat.transcribing
               : t.chat.placeholder

@@ -493,6 +493,7 @@ export function serve(collector?: Collector): http.Server {
         },
         onSpoken: (text) => send({ type: 'spoken', text }),
         onHeard: () => send({ type: 'listening' }),
+        onCaption: (text) => send({ type: 'hearing', text }),
         onClosed: () => {
           // Only if it is still the one in hand: a session already replaced by
           // another screen must not clear the replacement on its way out.

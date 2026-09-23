@@ -15,6 +15,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 - Ask the chat or the voice to look at your screen and it does: it takes a
   screenshot at that moment, looks at it and answers. Nothing is kept. It
   needs the Screen Recording permission the first time.
+- The live voice shows that it is on: a line over the text box says when it
+  is connecting, when it is live and how long the session has been open, and
+  what you say appears on screen as you say it.
 
 ## v0.3.1 — 2026-09-21
 

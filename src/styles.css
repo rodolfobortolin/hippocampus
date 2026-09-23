@@ -235,7 +235,24 @@ input, textarea { font: inherit; color: inherit; }
 
 /* ---------- chat ---------- */
 
-.chat { display: grid; grid-template-rows: 1fr auto; height: calc(100vh - 52px); gap: 14px; }
+.chat { display: grid; grid-template-rows: 1fr auto; grid-auto-rows: auto; height: calc(100vh - 52px); gap: 14px; }
+
+/* The live session, said out loud: without it an open microphone looked
+   exactly like a closed one. */
+.live-status {
+  display: flex; align-items: center; gap: 8px; margin-bottom: -6px; padding-left: 4px;
+  font-size: 12px; color: var(--text-dim);
+}
+.live-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); flex: none; animation: pulsa 1.2s ease-in-out infinite; }
+.live-status.on i { background: var(--code); box-shadow: 0 0 8px var(--code); animation-duration: 2.6s; }
+.live-status b { font-weight: 600; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10.5px; }
+.live-status .clock { margin-left: auto; font-variant-numeric: tabular-nums; }
+/* What they are saying, while they say it: their bubble, not yet settled. */
+.message.mine.caption { color: var(--text-mid); border-style: dashed; background: transparent; }
+.message.mine.caption::after { content: ''; display: inline-block; width: 2px; height: 1em; margin-left: 3px; vertical-align: -2px; background: var(--text-mid); animation: pulsa 1s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .live-status i, .message.mine.caption::after { animation: none; }
+}
 .thread { overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 8px; }
 
 .message { max-width: 78ch; }
