@@ -13,6 +13,7 @@ import { workItems, itemDetail, orgName } from './items.ts'
 import { timesheet, timesheetTable } from './timesheet.ts'
 import { TIMESHEET_WORDS } from './languages.ts'
 import { readSettings } from './settings.ts'
+import { lookAtScreen, NoScreenPermission } from './screen.ts'
 
 const hours = hoursAndMinutes
 const say = (value: unknown) => ({
@@ -251,6 +252,27 @@ const tools = [
                  and detail <> '' group by detail order by n desc limit 20`, from, to)
         .map((r) => `${r.detail} × ${r.n} (mostly in ${r.app})`).join('\n') || 'No shortcuts stored.'),
   },
+  {
+    name: 'screen',
+    description: 'Takes a screenshot of every display right now and shows it to you. Use it only when the person asks you to look at their screen or at what they are seeing, never on your own. Nothing is stored.',
+    inputSchema: {},
+    handler: async () => {
+      try {
+        const shots = await lookAtScreen()
+        return {
+          content: [
+            ...shots.map((shot) => ({ type: 'image' as const, data: shot.data, mimeType: 'image/jpeg' })),
+            { type: 'text' as const, text: `${shots.length} display(s), main first, taken ${when(Date.now() / 1000)}.` },
+          ],
+        }
+      } catch (error) {
+        if (error instanceof NoScreenPermission) {
+          return say('The screen could not be read: Hippocampus needs the Screen Recording permission, in System Settings → Privacy & Security → Screen & System Audio Recording. Tell the person that, in one sentence.')
+        }
+        throw error
+      }
+    },
+  },
 ]
 
 const server = createSdkMcpServer({
@@ -259,7 +281,7 @@ const server = createSdkMcpServer({
   tools: tools as any,
   // Without this the SDK defers the tools and the model spends a whole round
   // trip just to find out they exist — measured at 4.1s before it reached the
-  // first real lookup. They are ten small tools; they fit in the prompt.
+  // first real lookup. They are a dozen small tools; they fit in the prompt.
   alwaysLoad: true,
 })
 

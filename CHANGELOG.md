@@ -12,6 +12,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   for, ending in "…", instead of stopping mid-word.
 - The note under "keep what you type" in Settings says that a few lines of it
   go to Claude Code with the day's summary. It only mentioned the redaction.
+- Ask the chat or the voice to look at your screen and it does: it takes a
+  screenshot at that moment, looks at it and answers. Nothing is kept. It
+  needs the Screen Recording permission the first time.
 
 ## v0.3.1 — 2026-09-21
 
