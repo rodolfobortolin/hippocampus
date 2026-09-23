@@ -8,7 +8,7 @@ import { all } from './db.ts'
 import { dayReport, rangeReport, heatmap, onThisDay } from './metrics.ts'
 import { dossier } from './rollup.ts'
 import { searchEpisodes, lastTime, type Episode } from './episodes.ts'
-import { chooseControl, pickModel } from './jev.ts'
+import { chooseControl, pickModel, type Routing } from './jev.ts'
 import { workItems, itemDetail, orgName } from './items.ts'
 import { timesheet, timesheetTable } from './timesheet.ts'
 import { TIMESHEET_WORDS } from './languages.ts'
@@ -465,10 +465,11 @@ export function streamedText(event: any, after: boolean): string {
 }
 
 /** Talks to Claude Code, with the local database as its tools. */
-export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<AgentEvent> {
+export async function* chat(prompt: string, sessionId?: string, { routed }: { routed?: Routing | null } = {}): AsyncGenerator<AgentEvent> {
   // A model that fits the request: jev judges the complexity before it starts.
   // With HIPPOCAMPUS_MODEL set, the choice is yours and the routing steps aside.
-  const route = config.claudeModel ? null : await pickModel(prompt)
+  // Already asked when the server decided between the fast hands and this.
+  const route = config.claudeModel ? null : routed !== undefined ? routed : await pickModel(prompt)
   if (route) yield { type: 'model', model: route.model, level: route.level }
 
   /**

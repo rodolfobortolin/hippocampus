@@ -28,7 +28,7 @@ type Context = {
  * API it carries only the state — the value never makes the trip back.
  */
 export type Change = Omit<Partial<Settings>, 'keys' | 'languages'> & {
-  keys?: Partial<Record<'jev' | 'openai', string>>
+  keys?: Partial<Record<'jev' | 'openai' | 'groq', string>>
 }
 
 const LanguageContext = createContext<Context | null>(null)

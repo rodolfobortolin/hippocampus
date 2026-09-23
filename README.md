@@ -25,7 +25,8 @@ your own keys and login: jev gets window titles, to label them; Claude Code gets
 the day — its figures, the sites, what you asked your agents and, when Codex's
 Computer History is on, a few lines of what you typed — and, when you ask it to
 look, a picture of your screen; OpenAI gets your voice, only while you talk to
-it. The keys are yours and live in the macOS Keychain, entered inside the app
+it; and Groq, if you turn on the fast hands, gets the names of the controls in
+the window it is acting on. The keys are yours and live in the macOS Keychain, entered inside the app
 itself. With no keys at all it still measures, draws and stores: only the
 classification, the narrative and the chat go dark.
 
@@ -102,7 +103,7 @@ what you read changes.
 
 ## Keys
 
-Two keys, both optional, both kept in the **macOS Keychain** and entered in the
+Three keys, all optional, all kept in the **macOS Keychain** and entered in the
 app's own Settings screen. They never touch a config file and never appear in a
 commit. When you type one in, it travels to the Keychain through standard input
 rather than a command argument — process arguments are readable by any `ps` on
@@ -112,6 +113,7 @@ the machine.
 | --- | --- | --- |
 | **jev (TypeSafe)** | category, project and focus per window | time per app still works; nothing is grouped by subject |
 | **OpenAI** | transcribing what you say, speaking answers, and the live voice | the system voice reads answers and there is no live voice; the chat is unaffected |
+| **Groq** | the fast hands: on-screen actions in seconds | on-screen actions go through Claude Code, which takes several seconds a step |
 
 The chat is always Claude Code, through the `claude` login already on the
 machine — no API key, no new account, no cost beyond the subscription you
@@ -259,6 +261,11 @@ by typing or out loud.
   and names it**. Ask it to **click** and it does, after the pointer lands where
   you can see it — and it will not send, buy, delete or confirm anything unless
   that is exactly what you asked for.
+- **Fast hands**, off by default and with a Groq key: jev judges each request,
+  and an action on the screen — open this, press that, read the result — is
+  done by a fast model on Groq in about a second a step, reading the window's
+  controls through Accessibility rather than from a picture. Anything else, and
+  anything the hands cannot finish, goes to Claude Code.
 - **Wider tools**, off by default, hand it the rest of Claude Code on this Mac:
   files, commands, the web, your MCP servers — typed or spoken, without asking
   first.

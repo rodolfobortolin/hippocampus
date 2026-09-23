@@ -144,6 +144,7 @@ export type Strings = {
     vault: string; vaultNote: string; chooseFolder: string; noVault: string; journalSubfolder: string
     keys: string; keysNote: string; inTheKeychain: string
     jevKey: string; jevNote: string; openaiKey: string; openaiNote: string
+    groqKey: string; groqNote: string; fastHands: string; fastHandsNote: string; fastHandsOn: string
     optional: string; isSet: string; notSet: string; remove: string
     day: string; dayNote: string; hourSuffix: string
     keepTyping: string; keepTypingNote: string
@@ -408,6 +409,8 @@ const pt: Strings = {
     inTheKeychain: 'guardada no Chaveiro',
     jevKey: 'chave do jev (TypeSafe)', jevNote: 'classifica cada janela em categoria e projeto',
     openaiKey: 'chave da OpenAI', openaiNote: 'só para falar e transcrever; a conversa é sempre Claude Code',
+    groqKey: 'chave do Groq', groqNote: 'só para as mãos rápidas: ações na tela em segundos',
+    fastHands: 'mãos rápidas (Groq)', fastHandsNote: 'desligado, tudo passa pelo Claude Code', fastHandsOn: 'ligado: o jev decide cada pedido; abrir, apertar e escolher na tela vão para o Groq, que recebe os nomes dos controles da janela; o resto continua no Claude Code',
     optional: 'opcional', isSet: 'configurada', notSet: 'não configurada', remove: 'remover',
     day: 'o dia começa às', dayNote: 'madrugada conta para o dia anterior', hourSuffix: 'h',
     keepTyping: 'guardar o que você digita', keepTypingNote: 'já passa por redação de segredos, e algumas linhas vão ao Claude Code com o resumo do dia; desligue se preferir só os números',
@@ -673,6 +676,8 @@ const en: Strings = {
     inTheKeychain: 'in the Keychain',
     jevKey: 'jev (TypeSafe) key', jevNote: 'classifies each window into a category and a project',
     openaiKey: 'OpenAI key', openaiNote: 'only for speaking and transcribing; the chat is always Claude Code',
+    groqKey: 'Groq key', groqNote: 'only for the fast hands: on-screen actions in seconds',
+    fastHands: 'fast hands (Groq)', fastHandsNote: 'off, everything goes through Claude Code', fastHandsOn: 'on: jev judges each request; opening, pressing and picking on screen go to Groq, which gets the names of the window\'s controls; everything else stays with Claude Code',
     optional: 'optional', isSet: 'set', notSet: 'not set', remove: 'remove',
     day: 'the day starts at', dayNote: 'the small hours count as the day before', hourSuffix: ':00',
     keepTyping: 'keep what you type', keepTypingNote: 'secrets are already redacted, and a few lines go to Claude Code with the day’s summary; turn it off if you prefer only the numbers',
@@ -938,6 +943,8 @@ const es: Strings = {
     inTheKeychain: 'en el Llavero',
     jevKey: 'clave de jev (TypeSafe)', jevNote: 'clasifica cada ventana en categoría y proyecto',
     openaiKey: 'clave de OpenAI', openaiNote: 'solo para hablar y transcribir; la conversación es siempre Claude Code',
+    groqKey: 'clave de Groq', groqNote: 'solo para las manos rápidas: acciones en pantalla en segundos',
+    fastHands: 'manos rápidas (Groq)', fastHandsNote: 'desactivado, todo pasa por Claude Code', fastHandsOn: 'activado: jev juzga cada petición; abrir, pulsar y elegir en pantalla van a Groq, que recibe los nombres de los controles de la ventana; lo demás sigue en Claude Code',
     optional: 'opcional', isSet: 'configurada', notSet: 'sin configurar', remove: 'quitar',
     day: 'el día empieza a las', dayNote: 'la madrugada cuenta para el día anterior', hourSuffix: 'h',
     keepTyping: 'guardar lo que escribes', keepTypingNote: 'los secretos ya se redactan, y algunas líneas van a Claude Code con el resumen del día; desactívalo si prefieres solo los números',
@@ -1203,6 +1210,8 @@ const fr: Strings = {
     inTheKeychain: 'dans le Trousseau',
     jevKey: 'clé jev (TypeSafe)', jevNote: 'classe chaque fenêtre en catégorie et en projet',
     openaiKey: 'clé OpenAI', openaiNote: 'seulement pour parler et transcrire ; la conversation est toujours Claude Code',
+    groqKey: 'clé Groq', groqNote: 'seulement pour les mains rapides : des actions à l’écran en quelques secondes',
+    fastHands: 'mains rapides (Groq)', fastHandsNote: 'désactivé, tout passe par Claude Code', fastHandsOn: 'activé : jev juge chaque demande ; ouvrir, appuyer et choisir à l’écran vont à Groq, qui reçoit les noms des contrôles de la fenêtre ; le reste reste chez Claude Code',
     optional: 'facultatif', isSet: 'configurée', notSet: 'non configurée', remove: 'retirer',
     day: 'la journée commence à', dayNote: 'le petit matin compte pour la veille', hourSuffix: 'h',
     keepTyping: 'garder ce que tu tapes', keepTypingNote: 'les secrets sont déjà masqués, et quelques lignes partent vers Claude Code avec le résumé du jour ; désactive si tu préfères seulement les chiffres',
@@ -1468,6 +1477,8 @@ const de: Strings = {
     inTheKeychain: 'im Schlüsselbund',
     jevKey: 'jev-Schlüssel (TypeSafe)', jevNote: 'ordnet jedes Fenster einer Kategorie und einem Projekt zu',
     openaiKey: 'OpenAI-Schlüssel', openaiNote: 'nur zum Sprechen und Transkribieren; das Gespräch ist immer Claude Code',
+    groqKey: 'Groq-Schlüssel', groqNote: 'nur für die schnellen Hände: Aktionen auf dem Bildschirm in Sekunden',
+    fastHands: 'schnelle Hände (Groq)', fastHandsNote: 'aus, alles läuft über Claude Code', fastHandsOn: 'an: jev beurteilt jede Anfrage; Öffnen, Drücken und Auswählen auf dem Bildschirm gehen an Groq, das die Namen der Steuerelemente des Fensters erhält; der Rest bleibt bei Claude Code',
     optional: 'optional', isSet: 'gesetzt', notSet: 'nicht gesetzt', remove: 'entfernen',
     day: 'der Tag beginnt um', dayNote: 'die frühen Stunden zählen zum Vortag', hourSuffix: 'Uhr',
     keepTyping: 'behalten, was du tippst', keepTypingNote: 'Geheimnisse werden schon geschwärzt, und ein paar Zeilen gehen mit der Tageszusammenfassung an Claude Code; schalte es aus, wenn dir die Zahlen reichen',

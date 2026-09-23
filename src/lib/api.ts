@@ -116,6 +116,7 @@ export type Settings = {
   caption: boolean
   /** Whether the conversation may reach beyond this app's own database. */
   wideTools: boolean
+  fastHands: boolean
   calendar: boolean
   timesheet: boolean
   /** Whether the close of the day writes the durable notes by itself. */
@@ -133,7 +134,7 @@ export type Settings = {
   liveAvailable: boolean
   languages: Record<string, { name: string; flag: string; intl: string }>
   /** Only the state of the keys comes back through the API — never the value. */
-  keys: { jev: 'keychain' | 'environment' | 'empty'; openai: 'keychain' | 'environment' | 'empty' }
+  keys: { jev: 'keychain' | 'environment' | 'empty'; openai: 'keychain' | 'environment' | 'empty'; groq: 'keychain' | 'environment' | 'empty' }
 }
 
 /** One weekday (0 is Sunday), one hour, or both. */

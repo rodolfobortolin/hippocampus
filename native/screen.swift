@@ -162,6 +162,9 @@ if args.count > 1 && args[1] == "controls" {
     // tree only when an assistive app asks for it; this is how one asks.
     AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
     guard let window = mainWindow(app) else { fail(5, "no window for \(running.localizedName ?? "the app")") }
+    // With --text, what the window says comes along too — a result on a
+    // display, a status line — so a task can end by reading its answer.
+    let withText = args.contains("--text")
     let started = Date()
     var found: [[String: Any]] = []
     var stack: [(AXUIElement, String, Int)] = [(window, "", 0)]
@@ -171,8 +174,9 @@ if args.count > 1 && args[1] == "controls" {
         visited += 1
         let role = text(element, kAXRoleAttribute) ?? ""
         let pressable = PRESSABLE.contains(role) || actions(element).contains(kAXPressAction as String)
-        if pressable, !path.isEmpty, let box = frame(element), box.width > 1, box.height > 1,
-           let name = label(element, role: role) {
+        let readable = withText && !pressable && role == "AXStaticText"
+        if pressable || readable, !path.isEmpty, let box = frame(element), box.width > 1, box.height > 1,
+           let name = readable ? (text(element, kAXValueAttribute) ?? text(element, kAXTitleAttribute)) : label(element, role: role) {
             found.append(["path": path, "role": role, "label": name,
                           "x": box.midX, "y": box.midY, "width": box.width, "height": box.height])
         }

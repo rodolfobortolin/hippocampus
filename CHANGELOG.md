@@ -6,6 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Fast hands, off by default: with a Groq key in Settings, jev sends each
+  on-screen action — open an app, press something, read the result — to a
+  fast model on Groq, which does it in about a second a step instead of the
+  several Claude Code takes. Everything else still goes to Claude Code.
 - Simple questions in the chat are answered by the quick model again. Since
   20 September every question went to the largest one, whatever it asked.
 - Asked to press something on screen — a button, a tab, a row — it now finds

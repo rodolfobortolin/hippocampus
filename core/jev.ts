@@ -208,7 +208,19 @@ const LADDER = [
 ] as const
 
 
-export type Routing = { model: string; level: number; confidence: number }
+/**
+ * Where a request goes. `onScreen` is jev's probability that it is an action to
+ * do on the screen right now — open this, press that — which the fast hands
+ * take when they are turned on; everything else goes to Claude Code, on the
+ * model `level` picked.
+ */
+export type Routing = { model: string; level: number; confidence: number; onScreen: number }
+
+/**
+ * Asked in English whatever the interface language: it is read by jev, never
+ * shown, and a request in any language is judged the same.
+ */
+const ON_SCREEN = 'Is this request an action to carry out on the screen right now — opening an app, clicking or pressing something, picking an item in a window, playing something — rather than a question about the person\'s day, time, work or data, or something to write, summarise or analyse?'
 
 export async function pickModel(request: string): Promise<Routing | null> {
   if (!jevReady()) return null
@@ -225,6 +237,7 @@ export async function pickModel(request: string): Promise<Routing | null> {
           // `complexidade` and read as `complexity` after the translation, so
           // every request came back with no score and no confidence, took the
           // "when in doubt, go up" branch, and went to the largest model.
+          screen: { type: 'noul', instructions: ON_SCREEN },
           complexity: {
             type: 'score',
             instructions: JEV_QUESTIONS[validLanguage(config.lang)].complexity,
@@ -244,7 +257,10 @@ export async function pickModel(request: string): Promise<Routing | null> {
     // When in doubt, go one step up: erring stronger costs time; erring
     // weaker costs a bad answer, which is worse.
     const adjusted = confidence < 0.5 ? Math.min(2, level + 1) : level
-    return { model: LADDER[Math.max(0, Math.min(2, adjusted))], level: adjusted, confidence }
+    return {
+      model: LADDER[Math.max(0, Math.min(2, adjusted))], level: adjusted, confidence,
+      onScreen: Number(data.answers?.screen?.noul ?? 0),
+    }
   } catch {
     return null
   }

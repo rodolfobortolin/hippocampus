@@ -156,11 +156,12 @@ export type Controls = { app: string; pid: number; window: string; controls: Con
 export class NoControls extends Error {}
 
 /** What can be pressed in the window on top — or in the app named — read from Accessibility. */
-export async function listControls(app?: string): Promise<Controls> {
+export async function listControls(app?: string, { text = false } = {}): Promise<Controls> {
   const native = await helper()
   if (!native) throw new NoControls('the screen helper is not built')
   try {
-    const { stdout } = await run(native, ['controls', ...(app ? ['--app', app] : [])], { timeout: 8_000, maxBuffer: 4 * 1024 * 1024 })
+    const { stdout } = await run(native, ['controls', ...(app ? ['--app', app] : []), ...(text ? ['--text'] : [])],
+      { timeout: 8_000, maxBuffer: 4 * 1024 * 1024 })
     return JSON.parse(stdout) as Controls
   } catch (error: any) {
     if (error?.code === 4) throw new NoAccessibility(String(error.stderr ?? error.message))

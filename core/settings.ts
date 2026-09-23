@@ -67,6 +67,13 @@ export type Settings = {
    */
   wideTools: boolean
   /**
+   * Whether on-screen actions go to the fast hands on Groq. jev judges each
+   * request; an action — open this, press that — is done there in seconds,
+   * and anything else still goes to Claude Code. Off until asked for: it
+   * needs a Groq key, and the names of the controls on screen go to Groq.
+   */
+  fastHands: boolean
+  /**
    * Whether meeting names come from the macOS Calendar.
    *
    * Off until asked for, and nothing is requested until then: the permission
@@ -111,7 +118,7 @@ export type KeyState = 'keychain' | 'environment' | 'empty'
 
 const SERVICE = 'Hippocampus'
 const OLD_SERVICE = 'Hipocampo'
-const ACCOUNTS = { jev: 'typesafe-api-key', openai: 'openai-api-key' } as const
+const ACCOUNTS = { jev: 'typesafe-api-key', openai: 'openai-api-key', groq: 'groq-api-key' } as const
 export type KeyName = keyof typeof ACCOUNTS
 
 function fromKeychain(account: string, service: string): string {
@@ -170,7 +177,8 @@ export function writeKey(name: KeyName, value: string): Promise<void> {
 
 export function keyState(name: KeyName): KeyState {
   if (readKey(name)) return 'keychain'
-  const fromEnvironment = name === 'jev' ? process.env.TYPESAFE_API_KEY : process.env.OPENAI_API_KEY
+  const fromEnvironment = name === 'jev' ? process.env.TYPESAFE_API_KEY
+    : name === 'groq' ? process.env.GROQ_API_KEY : process.env.OPENAI_API_KEY
   return (fromEnvironment ?? '').trim() ? 'environment' : 'empty'
 }
 
@@ -188,6 +196,7 @@ const DEFAULTS: Settings = {
   region: 'global',
   caption: true,
   wideTools: false,
+  fastHands: false,
   calendar: false,
   // Off for someone installing it fresh: a stranger's app writing into their
   // own notes on its first night should have been asked first. The walkthrough
@@ -240,6 +249,7 @@ export function readSettings(): Settings {
       region: data.region === 'eu' ? 'eu' : 'global',
       caption: data.caption !== false,
       wideTools: data.wideTools === true,
+      fastHands: data.fastHands === true,
       calendar: data.calendar === true,
       captures: data.captures ?? DEFAULTS.captures,
       views: Object.fromEntries(Object.entries((data.views ?? {}) as Record<string, unknown>)
@@ -269,6 +279,7 @@ export function applySettings(settings: Settings = readSettings()): Settings {
   config.codeRoot = settings.codeRoot
   config.typesafeKey = readKey('jev') || (process.env.TYPESAFE_API_KEY ?? '').trim()
   config.openaiKey = readKey('openai') || (process.env.OPENAI_API_KEY ?? '').trim()
+  config.groqKey = readKey('groq') || (process.env.GROQ_API_KEY ?? '').trim()
   return settings
 }
 

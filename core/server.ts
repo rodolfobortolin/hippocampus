@@ -8,7 +8,7 @@ import { all, one } from './db.ts'
 import { dayReport, rangeReport, heatmap, overview, knownProjects, periodSummary } from './metrics.ts'
 import { chat } from './agent.ts'
 import { rollup } from './rollup.ts'
-import { jevReady } from './jev.ts'
+import { jevReady, pickModel } from './jev.ts'
 import { claudeAvailable } from './claude.ts'
 import { vaultReady } from './vault.ts'
 import { capture, listNotes, noteFolders, NOTE_KINDS } from './notes.ts'
@@ -21,6 +21,7 @@ import { countRepos } from './sources/git.ts'
 import { calendarAsk, calendarStatus, setCalendarStatus, keepMeetings, forgetMeetings } from './sources/calendar.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
 import { pointing } from './screen.ts'
+import { fastHands, handsAvailable } from './hands.ts'
 import { blockedBrowsers, retryDeniedBrowsers } from './sources/browser.ts'
 import { retryDeniedSkysight } from './sources/skysight.ts'
 import type { Collector } from './collector.ts'
@@ -102,7 +103,7 @@ export function serve(collector?: Collector): http.Server {
           languages: LANGUAGES,
           liveVoices: LIVE_VOICES,
           liveAvailable: liveAvailable(),
-          keys: { jev: keyState('jev'), openai: keyState('openai') },
+          keys: { jev: keyState('jev'), openai: keyState('openai'), groq: keyState('groq') },
         })
       }
 
@@ -112,7 +113,7 @@ export function serve(collector?: Collector): http.Server {
         const body = JSON.parse(Buffer.concat(chunks).toString() || '{}')
         // The keys never come back through the API: only their state. What
         // comes in here goes straight to the Keychain and leaves memory.
-        for (const name of ['jev', 'openai'] as KeyName[]) {
+        for (const name of ['jev', 'openai', 'groq'] as KeyName[]) {
           const value = body.keys?.[name]
           if (typeof value === 'string') await writeKey(name, value.trim())
         }
@@ -129,7 +130,7 @@ export function serve(collector?: Collector): http.Server {
           languages: LANGUAGES,
           liveVoices: LIVE_VOICES,
           liveAvailable: liveAvailable(),
-          keys: { jev: keyState('jev'), openai: keyState('openai') },
+          keys: { jev: keyState('jev'), openai: keyState('openai'), groq: keyState('groq') },
         })
       }
 
@@ -457,7 +458,23 @@ export function serve(collector?: Collector): http.Server {
       send({ type: 'heard', text })
       send({ type: 'thinking' })
       try {
-        for await (const event of chat(text, session)) {
+        // jev decides where the request goes: an action on the screen to the
+        // fast hands, when they are on; everything else — and whatever the
+        // hands give back — to Claude Code, on the model jev picked.
+        const routed = config.claudeModel ? null : await pickModel(text)
+        if (readSettings().fastHands && handsAvailable() && (routed?.onScreen ?? 0) >= 0.6) {
+          send({ type: 'model', model: 'groq · gpt-oss-120b', level: 0 })
+          const quick = await fastHands(text, (step) => {
+            send({ type: 'tool', name: step })
+            speaks?.progress(step)
+          })
+          if (quick.done) {
+            send({ type: 'end', text: quick.text })
+            speaks?.answer(quick.text)
+            return
+          }
+        }
+        for await (const event of chat(text, session, { routed })) {
           if (event.type === 'model') send({ type: 'model', model: event.model, level: event.level })
           else if (event.type === 'delta') send({ type: 'delta', text: event.text })
           else if (event.type === 'end') {
