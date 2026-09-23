@@ -6,6 +6,11 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Simple questions in the chat are answered by the quick model again. Since
+  20 September every question went to the largest one, whatever it asked.
+- Asked to press something on screen — a button, a tab, a row — it now finds
+  it by name through Accessibility instead of looking for it in a
+  screenshot: about a second a click, where it was several.
 - The live voice closes after ten seconds with nobody talking, instead of
   listening on until a minute and a half had passed. It stays open while an
   answer is being worked on; say the word, click the sphere or use the

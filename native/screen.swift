@@ -64,6 +64,162 @@ if args.count > 1 && args[1] == "click" {
     exit(0)
 }
 
+// ---------- controls, through Accessibility ----------
+//
+// Looking at a picture to find a button costs a model turn per step. The
+// Accessibility tree already has the button, with its name and its place, so
+// `controls` lists what can be pressed in the window on top and `press`
+// presses one of them — no picture, no coordinates guessed from pixels.
+
+/** The app whose window is on top, leaving Hippocampus out: the window list is front to back. */
+func appOnTop(named: String?) -> NSRunningApplication? {
+    let apps = NSWorkspace.shared.runningApplications
+    if let named, !named.isEmpty {
+        let wanted = named.lowercased()
+        return apps.first { ($0.localizedName ?? "").lowercased() == wanted }
+            ?? apps.first { ($0.localizedName ?? "").lowercased().contains(wanted) && $0.activationPolicy == .regular }
+    }
+    let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+    for window in windows {
+        guard (window[kCGWindowLayer as String] as? Int) == 0,
+              let pid = window[kCGWindowOwnerPID as String] as? pid_t,
+              let app = NSRunningApplication(processIdentifier: pid),
+              !(app.bundleIdentifier ?? "").hasPrefix("com.hippocampus") else { continue }
+        return app
+    }
+    return nil
+}
+
+func attribute(_ element: AXUIElement, _ name: String) -> AnyObject? {
+    var value: AnyObject?
+    return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil
+}
+
+func text(_ element: AXUIElement, _ name: String) -> String? {
+    guard let value = attribute(element, name) as? String else { return nil }
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? nil : String(trimmed.prefix(90))
+}
+
+func frame(_ element: AXUIElement) -> CGRect? {
+    guard let position = attribute(element, kAXPositionAttribute), let size = attribute(element, kAXSizeAttribute) else { return nil }
+    var point = CGPoint.zero, extent = CGSize.zero
+    AXValueGetValue(position as! AXValue, .cgPoint, &point)
+    AXValueGetValue(size as! AXValue, .cgSize, &extent)
+    return CGRect(origin: point, size: extent)
+}
+
+func actions(_ element: AXUIElement) -> [String] {
+    var names: CFArray?
+    return AXUIElementCopyActionNames(element, &names) == .success ? (names as? [String] ?? []) : []
+}
+
+func children(_ element: AXUIElement) -> [AXUIElement] {
+    attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? []
+}
+
+let PRESSABLE: Set<String> = [
+    "AXButton", "AXLink", "AXMenuItem", "AXMenuButton", "AXMenuBarItem", "AXCheckBox", "AXRadioButton",
+    "AXPopUpButton", "AXTab", "AXRow", "AXCell", "AXDisclosureTriangle", "AXTextField", "AXComboBox",
+    "AXSearchField", "AXSegment",
+]
+
+/** A row names itself by the text inside it; a button by its own title or description. */
+func label(_ element: AXUIElement, role: String) -> String? {
+    if let own = text(element, kAXTitleAttribute) ?? text(element, kAXDescriptionAttribute) { return own }
+    if let value = text(element, kAXValueAttribute), role != "AXTextField" { return value }
+    var parts: [String] = []
+    var queue = children(element)
+    var seen = 0
+    while !queue.isEmpty && parts.count < 4 && seen < 40 {
+        let next = queue.removeFirst(); seen += 1
+        if let words = text(next, kAXValueAttribute) ?? text(next, kAXTitleAttribute) ?? text(next, kAXDescriptionAttribute) {
+            parts.append(words)
+        } else {
+            queue.append(contentsOf: children(next))
+        }
+    }
+    if !parts.isEmpty { return parts.joined(separator: " · ") }
+    return text(element, kAXHelpAttribute) ?? text(element, kAXPlaceholderValueAttribute)
+}
+
+/** The window controls are read from: the focused one, or the first. */
+func mainWindow(_ app: AXUIElement) -> AXUIElement? {
+    if let focused = attribute(app, kAXFocusedWindowAttribute) { return (focused as! AXUIElement) }
+    return (attribute(app, kAXWindowsAttribute) as? [AXUIElement])?.first
+}
+
+func requireAccessibility() {
+    let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+    guard AXIsProcessTrustedWithOptions(options) else { fail(4, "no accessibility permission") }
+}
+
+if args.count > 1 && args[1] == "controls" {
+    requireAccessibility()
+    guard let running = appOnTop(named: value("--app", "")) else { fail(5, "no app on top") }
+    let app = AXUIElementCreateApplication(running.processIdentifier)
+    // Chromium-based apps (Electron, CEF: Slack, Spotify, VS Code) build their
+    // tree only when an assistive app asks for it; this is how one asks.
+    AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+    guard let window = mainWindow(app) else { fail(5, "no window for \(running.localizedName ?? "the app")") }
+    let started = Date()
+    var found: [[String: Any]] = []
+    var stack: [(AXUIElement, String, Int)] = [(window, "", 0)]
+    var visited = 0
+    while let (element, path, depth) = stack.popLast(), visited < 6000, found.count < 400,
+          Date().timeIntervalSince(started) < 2.5 {
+        visited += 1
+        let role = text(element, kAXRoleAttribute) ?? ""
+        let pressable = PRESSABLE.contains(role) || actions(element).contains(kAXPressAction as String)
+        if pressable, !path.isEmpty, let box = frame(element), box.width > 1, box.height > 1,
+           let name = label(element, role: role) {
+            found.append(["path": path, "role": role, "label": name,
+                          "x": box.midX, "y": box.midY, "width": box.width, "height": box.height])
+        }
+        if depth < 40 {
+            for (index, child) in children(element).enumerated().reversed() {
+                stack.append((child, path.isEmpty ? "\(index)" : "\(path).\(index)", depth + 1))
+            }
+        }
+    }
+    let payload: [String: Any] = [
+        "app": running.localizedName ?? "", "pid": running.processIdentifier,
+        "window": text(window, kAXTitleAttribute) ?? "", "controls": found,
+        "ms": Int(Date().timeIntervalSince(started) * 1000),
+    ]
+    FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject: payload))
+    exit(0)
+}
+
+if args.count > 1 && args[1] == "press" {
+    requireAccessibility()
+    guard let pid = Int32(value("--pid", "")) else { fail(1, "--pid is required") }
+    let app = AXUIElementCreateApplication(pid)
+    guard var element = mainWindow(app) else { fail(5, "the window is gone") }
+    for step in value("--path", "").split(separator: ".") {
+        let list = children(element)
+        guard let index = Int(step), index < list.count else { fail(6, "the control is gone") }
+        element = list[index]
+    }
+    // The window may have changed between the listing and now: press only
+    // what is still the same kind of thing.
+    let expected = value("--role", "")
+    if !expected.isEmpty, text(element, kAXRoleAttribute) != expected { fail(6, "the control changed") }
+    var via = "ax"
+    if AXUIElementPerformAction(element, kAXPressAction as CFString) != .success {
+        guard let box = frame(element) else { fail(6, "the control has no place on screen") }
+        let place = CGPoint(x: box.midX, y: box.midY)
+        let source = CGEventSource(stateID: .hidSystemState)
+        for type in [CGEventType.mouseMoved, .leftMouseDown, .leftMouseUp] {
+            CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: place, mouseButton: .left)?.post(tap: .cghidEventTap)
+            usleep(30_000)
+        }
+        via = "mouse"
+    }
+    print("{\"pressed\":true,\"via\":\"\(via)\"}")
+    exit(0)
+}
+
 let outDir = URL(fileURLWithPath: value("--out", NSTemporaryDirectory()))
 let longest = CGFloat(Double(value("--max", "1568")) ?? 1568)
 let excludePrefix = value("--exclude", "com.hippocampus")
