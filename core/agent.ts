@@ -274,7 +274,7 @@ const tools = [
               type: 'text' as const,
               text: `Taken ${when(Date.now() / 1000)}.`
                 + (pointable
-                  ? ' If the answer is a place on the screen — a button, a menu, a field — call point with the screen number and the pixel coordinates in that picture, origin top-left.'
+                  ? ' When your answer is about one specific thing in these pictures, call point on it with the screen number and the pixel coordinates in that picture, origin top-left.'
                   : ' These pictures cannot be pointed into.'),
             },
           ],
@@ -289,7 +289,7 @@ const tools = [
   },
   {
     name: 'point',
-    description: 'Shows the person a place on their screen: a pointer flies there with a short label. Only after the screen tool, with the screen number and pixel coordinates in that picture (origin top-left). Use it when the answer is "where is X" or "what do I click", once per answer.',
+    description: 'Shows the person a place on their screen: a pointer flies there with a short label. Only after the screen tool, with the screen number and pixel coordinates in that picture (origin top-left). Whenever your answer is about one specific thing you can see — a button, a field, a message, a line, an error — point at it, even if they did not ask where it is: they are looking at the screen, not at your words. Once per answer, at the thing that matters most.',
     inputSchema: {
       screen: z.number().int().describe('the screen number from the screen tool'),
       x: z.number().describe('pixels from the left of that picture'),
