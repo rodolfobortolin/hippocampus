@@ -26,6 +26,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   the place first, then the mouse clicks. It asks for the Accessibility
   permission the first time, and it will not click to send, buy, delete or
   confirm unless that is exactly what you asked for.
+- The wake word keeps working after a live conversation. Opening the live
+  voice changed the microphone under the listener, which then heard nothing
+  until it was restarted.
 - Saying the wake word brings the floating core up again; since 20 September
   it had stopped answering it.
 

@@ -74,6 +74,18 @@ func listen() {
     }
 }
 
+/** Opens the microphone, or reopens it with whatever format the device has now. */
+func startMicrophone() throws {
+    engine.stop()
+    let input = engine.inputNode
+    input.removeTap(onBus: 0)
+    input.installTap(onBus: 0, bufferSize: 2048, format: input.outputFormat(forBus: 0)) { buffer, _ in
+        request?.append(buffer)
+    }
+    engine.prepare()
+    try engine.start()
+}
+
 SFSpeechRecognizer.requestAuthorization { estado in
     guard estado == .authorized else {
         FileHandle.standardError.write("no authorisation for speech recognition\n".data(using: .utf8)!)
@@ -81,16 +93,30 @@ SFSpeechRecognizer.requestAuthorization { estado in
     }
 
     DispatchQueue.main.async {
-        let entrada = engine.inputNode
-        entrada.installTap(onBus: 0, bufferSize: 2048, format: entrada.outputFormat(forBus: 0)) { buffer, _ in
-            request?.append(buffer)
-        }
-        engine.prepare()
         do {
-            try engine.start()
+            try startMicrophone()
         } catch {
             FileHandle.standardError.write("could not open the microphone: \(error)\n".data(using: .utf8)!)
             exit(1)
+        }
+        // When another program opens the microphone with echo cancellation —
+        // the live voice does, through WebRTC — macOS reconfigures the device
+        // and this engine stops without an error. The process stayed up and
+        // heard nothing: the wake word worked once, and never again.
+        NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
+        ) { _ in
+            do {
+                try startMicrophone()
+                listen()
+                print("microphone changed — listening again")
+            } catch {
+                // Exiting lets launchd start a fresh process, which opens the
+                // device as it is now.
+                FileHandle.standardError.write("could not reopen the microphone: \(error)\n".data(using: .utf8)!)
+                exit(1)
+            }
+            fflush(stdout)
         }
         listen()
         print("listening for \"\(triggers.first ?? "")\" — on device, no cloud")
