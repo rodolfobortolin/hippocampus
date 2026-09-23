@@ -214,6 +214,17 @@ function coreAnswers() {
 /** Starts the core only if nobody is measuring yet — launchd's agent wins. */
 async function ensureCore() {
   if (await coreAnswers()) return
+  // With the collector registered, launchd is about to start it — at login,
+  // or right after an update. Starting a second one here won the port, and
+  // launchd's then failed on it every few seconds for as long as the app was
+  // open (61 restarts in one morning), with the measuring tied to the app.
+  const registered = (await agents('status'))?.['com.hippocampus.collector']?.on
+  if (registered) {
+    for (let attempt = 0; attempt < 25; attempt++) {
+      await new Promise((r) => setTimeout(r, 400))
+      if (await coreAnswers()) return
+    }
+  }
   // Node runs TypeScript natively: one process, without the tsx wrapper (which
   // survived shutdown and left an orphaned collector behind).
   core = spawn(process.execPath, [
