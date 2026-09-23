@@ -18,6 +18,12 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 - The live voice shows that it is on: a line over the text box says when it
   is connecting, when it is live and how long the session has been open, and
   what you say appears on screen as you say it.
+- When the answer is a place on the screen — "where is the export button" —
+  a spark of the core flies there and names it. The screenshot it looks at no
+  longer includes Hippocampus's own windows, and only the screen under the
+  cursor is sent unless you ask for all of them.
+- Saying the wake word brings the floating core up again; since the rename it
+  had stopped answering it.
 
 ## v0.3.1 — 2026-09-21
 

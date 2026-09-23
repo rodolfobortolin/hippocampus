@@ -63,6 +63,13 @@ mkdir -p native/bin
 swiftc -O -o native/bin/hippocampus-agents native/agents.swift -framework ServiceManagement
 echo "agent registrar ready"
 
+# The screen helper sits beside it in Contents/MacOS. The core runs it only
+# when someone asks to be looked at; Screen Recording is then asked for on
+# behalf of the app that owns the core, which is Hippocampus.
+swiftc -O -o native/bin/hippocampus-screen native/screen.swift \
+  -framework ScreenCaptureKit -framework AppKit -framework CoreGraphics -framework ImageIO -framework UniformTypeIdentifiers
+echo "screen helper ready"
+
 echo "$APP ready and signed"
 echo "$LISTENER ready and signed"
 codesign -dv "$APP" 2>&1 | grep -E "Identifier|Signature" || true

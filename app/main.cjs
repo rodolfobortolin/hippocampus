@@ -332,16 +332,71 @@ function callCore() {
   else wake()
 }
 
-/** Listens to the core to know when the wake word was spoken. */
+/**
+ * The pointer: one transparent window laid over the display it points into.
+ *
+ * It never takes a click or focus, and it sits above full-screen apps. It is
+ * hidden between uses rather than closed, so the next point does not wait
+ * for a page to load. The screen helper leaves it out of screenshots, being
+ * one of this app's windows.
+ */
+let pointerWindow = null
+let pointerTimer
+function pointAt({ x, y, label }) {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return
+  const display = screen.getDisplayNearestPoint({ x, y })
+  const bounds = display.bounds
+  if (!pointerWindow || pointerWindow.isDestroyed()) {
+    pointerWindow = new BrowserWindow({
+      ...bounds,
+      frame: false,
+      transparent: true,
+      hasShadow: false,
+      resizable: false,
+      movable: false,
+      focusable: false,
+      skipTaskbar: true,
+      show: false,
+      type: 'panel',
+      enableLargerThanScreen: true,
+      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+    })
+    pointerWindow.setIgnoreMouseEvents(true)
+    pointerWindow.setAlwaysOnTop(true, 'screen-saver')
+    pointerWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+    pointerWindow.loadFile(path.join(__dirname, 'pointer.html'))
+  }
+  pointerWindow.setBounds(bounds)
+
+  const to = { x: x - bounds.x, y: y - bounds.y }
+  const cursor = screen.getCursorScreenPoint()
+  // From the cursor when it is on this display; otherwise from just above the
+  // place, so the flight is still a short arrival and not a jump from nowhere.
+  const from = screen.getDisplayNearestPoint(cursor).id === display.id
+    ? { x: cursor.x - bounds.x, y: cursor.y - bounds.y }
+    : { x: to.x, y: Math.max(0, to.y - 160) }
+  const script = `fly(${JSON.stringify({ from, to, text: String(label ?? '').slice(0, 40) })})`
+  const fly = () => pointerWindow?.webContents.executeJavaScript(script).catch(() => {})
+  if (pointerWindow.webContents.isLoading()) pointerWindow.webContents.once('did-finish-load', fly)
+  else fly()
+  pointerWindow.showInactive()
+
+  clearTimeout(pointerTimer)
+  pointerTimer = setTimeout(() => {
+    pointerWindow?.webContents.executeJavaScript('fade()').catch(() => {})
+    pointerTimer = setTimeout(() => pointerWindow?.hide(), 260)
+  }, 4200)
+}
+
+/** Listens to the core: the wake word, and where to point. */
 function watchTheCore() {
   if (watcher) return
   watcher = new WebSocket(`ws://127.0.0.1:${PORT}/ws`, { origin: `http://127.0.0.1:${PORT}` })
-  watcher.on('message', (cru) => {
-    try {
-      if (JSON.parse(String(raw)).type === 'acordar') callCore()
-    } catch {
-      // A message that is not JSON is not ours.
-    }
+  watcher.on('message', (raw) => {
+    let event
+    try { event = JSON.parse(String(raw)) } catch { return } // not JSON, not ours
+    if (event.type === 'wake') callCore()
+    if (event.type === 'point') pointAt(event)
   })
   const reconnect = () => {
     watcher = null

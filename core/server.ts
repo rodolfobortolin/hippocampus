@@ -20,6 +20,7 @@ import { timesheet } from './timesheet.ts'
 import { countRepos } from './sources/git.ts'
 import { calendarAsk, calendarStatus, setCalendarStatus, keepMeetings, forgetMeetings } from './sources/calendar.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
+import { pointing } from './screen.ts'
 import { blockedBrowsers, retryDeniedBrowsers } from './sources/browser.ts'
 import { retryDeniedSkysight } from './sources/skysight.ts'
 import type { Collector } from './collector.ts'
@@ -361,6 +362,7 @@ export function serve(collector?: Collector): http.Server {
     }
   }
   wake = broadcast
+  pointing.on('point', (place) => broadcast({ type: 'point', ...place }))
 
   /**
    * One conversation, however you reached it.

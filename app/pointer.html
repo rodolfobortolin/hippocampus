@@ -1,0 +1,111 @@
+<!doctype html>
+<!-- The pointer: a spark of the core that flies to a place on the screen and
+     names it. The window covers one display, is transparent, never takes a
+     click and never takes focus; main.cjs moves it and calls fly(). -->
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; pointer-events: none; }
+  .spark {
+    position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #fff4dc 0%, #ffb35c 38%, #ff6a1f 70%);
+    box-shadow: 0 0 14px 4px rgba(255, 122, 47, 0.75), 0 0 36px 10px rgba(255, 122, 47, 0.3);
+    opacity: 0; will-change: transform, opacity;
+  }
+  .ring {
+    position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+    border: 1.5px solid rgba(255, 170, 90, 0.9); opacity: 0;
+  }
+  .label {
+    position: absolute; left: 0; top: 0; padding: 6px 11px; border-radius: 99px; white-space: nowrap;
+    font: 500 13px/1.2 -apple-system, "SF Pro Text", system-ui, sans-serif; letter-spacing: 0.01em;
+    color: #fff6e8; background: rgba(20, 14, 10, 0.86); border: 1px solid rgba(255, 138, 61, 0.45);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35); opacity: 0; transform-origin: left center;
+  }
+</style>
+</head>
+<body>
+<div class="ring"></div>
+<div class="spark"></div>
+<div class="label"></div>
+<script>
+  const spark = document.querySelector('.spark')
+  const ring = document.querySelector('.ring')
+  const label = document.querySelector('.label')
+  const OUT = 'cubic-bezier(0.23, 1, 0.32, 1)'
+  let frame = 0
+  let running = []
+
+  const at = (el, x, y) => { el.style.transform = `translate(${x}px, ${y}px)` }
+  // Strong ease-in-out: this is movement across the screen, not an entrance.
+  const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+
+  /**
+   * From where the eye already is — the cursor — to the place, along an arc.
+   * A straight line reads as a jump; the arc reads as something travelling.
+   */
+  window.fly = ({ from, to, text }) => {
+    cancelAnimationFrame(frame)
+    for (const a of running) a.cancel()
+    running = []
+    label.textContent = text
+    label.style.opacity = '0'
+    ring.style.opacity = '0'
+
+    // The label sits to the right of the place, unless that runs off the display.
+    const room = window.innerWidth - to.x
+    const labelX = room > 260 ? to.x + 18 : to.x - 18 - label.offsetWidth
+    at(label, labelX, to.y - 14)
+    at(ring, to.x, to.y)
+
+    const arrive = () => {
+      running.push(ring.animate(
+        [{ opacity: 0.9, transform: `translate(${to.x}px, ${to.y}px) scale(0.4)` },
+         { opacity: 0, transform: `translate(${to.x}px, ${to.y}px) scale(1.6)` }],
+        { duration: 700, easing: OUT }))
+      running.push(label.animate(
+        [{ opacity: 0, transform: `translate(${labelX}px, ${to.y - 14}px) scale(0.96)` },
+         { opacity: 1, transform: `translate(${labelX}px, ${to.y - 14}px) scale(1)` }],
+        { duration: 200, easing: OUT, fill: 'forwards' }))
+    }
+
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      at(spark, to.x, to.y)
+      spark.style.opacity = '1'
+      label.style.opacity = '1'
+      return
+    }
+
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const distance = Math.hypot(dx, dy)
+    // Longer trips take longer, within bounds: a flight should be followable, not a wait.
+    const duration = Math.min(900, Math.max(420, distance * 0.9))
+    const lift = Math.min(180, distance * 0.3)
+    const control = { x: from.x + dx / 2, y: from.y + dy / 2 - lift }
+    const start = performance.now()
+    spark.style.opacity = '1'
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration)
+      const e = easeInOut(t)
+      const u = 1 - e
+      at(spark, u * u * from.x + 2 * u * e * control.x + e * e * to.x,
+                u * u * from.y + 2 * u * e * control.y + e * e * to.y)
+      if (t < 1) frame = requestAnimationFrame(step)
+      else arrive()
+    }
+    frame = requestAnimationFrame(step)
+  }
+
+  /** Before main.cjs hides the window: out the way it arrived, quickly. */
+  window.fade = () => {
+    for (const el of [spark, label]) {
+      running.push(el.animate([{ opacity: getComputedStyle(el).opacity }, { opacity: 0 }],
+        { duration: 220, easing: 'ease-out', fill: 'forwards' }))
+    }
+  }
+</script>
+</body>
+</html>

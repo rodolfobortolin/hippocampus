@@ -53,6 +53,8 @@ extraFiles:
     to: Library/LaunchAgents
   - from: native/bin/hippocampus-agents
     to: MacOS/hippocampus-agents
+  - from: native/bin/hippocampus-screen
+    to: MacOS/hippocampus-screen
 
 mac:
   category: public.app-category.productivity

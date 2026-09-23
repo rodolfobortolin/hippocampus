@@ -1,0 +1,109 @@
+// hippocampus-screen — what is on the screen right now, without Hippocampus in it.
+//
+// `screencapture` photographs everything, the app's own windows included, so
+// the sphere and the pointer would show up in the picture they are pointing
+// at. ScreenCaptureKit can leave a bundle's windows out, and it also says where
+// each display sits, which is what turns a pixel in the picture back into a
+// place on the screen.
+//
+// Run by the core, never on its own. Screen Recording is granted to whoever
+// is responsible for the process that asks, and the core's is the app, so the
+// permission shows up under "Hippocampus".
+//
+// Prints JSON on stdout. Exit 2: no permission. Exit 3: macOS older than 14.
+
+import AppKit
+import CoreGraphics
+import Foundation
+import ImageIO
+import ScreenCaptureKit
+import UniformTypeIdentifiers
+
+let args = CommandLine.arguments
+func value(_ name: String, _ fallback: String) -> String {
+    guard let i = args.firstIndex(of: name), i + 1 < args.count else { return fallback }
+    return args[i + 1]
+}
+func fail(_ code: Int32, _ message: String) -> Never {
+    FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
+    exit(code)
+}
+
+let outDir = URL(fileURLWithPath: value("--out", NSTemporaryDirectory()))
+let longest = CGFloat(Double(value("--max", "1568")) ?? 1568)
+let excludePrefix = value("--exclude", "com.hippocampus")
+let onlyCursor = args.contains("--cursor-only")
+
+guard #available(macOS 14.0, *) else { fail(3, "ScreenCaptureKit screenshots need macOS 14") }
+
+// Asking without the permission would put a dialog in front of someone who
+// asked a question; asking once, here, is what makes it show up in Settings.
+if !CGPreflightScreenCaptureAccess() {
+    CGRequestScreenCaptureAccess()
+    fail(2, "no screen recording permission")
+}
+
+/// Global coordinates, origin at the top left of the main display — the same
+/// space Electron's `screen` module uses, so nothing has to be flipped later.
+let cursor = CGEvent(source: nil)?.location ?? .zero
+
+func writeJPEG(_ image: CGImage, to url: URL) -> Bool {
+    guard let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil)
+    else { return false }
+    CGImageDestinationAddImage(destination, image, [kCGImageDestinationLossyCompressionQuality: 0.7] as CFDictionary)
+    return CGImageDestinationFinalize(destination)
+}
+
+@available(macOS 14.0, *)
+func capture() async throws -> [[String: Any]] {
+    let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+    let ours = content.windows.filter { $0.owningApplication?.bundleIdentifier.hasPrefix(excludePrefix) ?? false }
+
+    // The display under the cursor first: that is where someone looking at
+    // their screen is looking.
+    var displays = content.displays.sorted { a, b in
+        a.frame.contains(cursor) && !b.frame.contains(cursor)
+    }
+    if onlyCursor, let first = displays.first { displays = [first] }
+
+    var result: [[String: Any]] = []
+    for (i, display) in displays.enumerated() {
+        let frame = display.frame
+        let fit = min(1, longest / max(frame.width, frame.height))
+        let config = SCStreamConfiguration()
+        config.width = Int((frame.width * fit).rounded())
+        config.height = Int((frame.height * fit).rounded())
+        config.showsCursor = true
+        let filter = SCContentFilter(display: display, excludingWindows: ours)
+        let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+        let file = outDir.appendingPathComponent("\(i + 1).jpg")
+        guard writeJPEG(image, to: file) else { continue }
+        result.append([
+            "screen": i + 1,
+            "displayId": display.displayID,
+            "main": CGDisplayIsMain(display.displayID) != 0,
+            "hasCursor": frame.contains(cursor),
+            "frame": ["x": frame.origin.x, "y": frame.origin.y, "width": frame.width, "height": frame.height],
+            "pixelWidth": image.width,
+            "pixelHeight": image.height,
+            "file": file.path,
+        ])
+    }
+    return result
+}
+
+let done = DispatchSemaphore(value: 0)
+Task {
+    do {
+        let shots = try await capture()
+        let payload: [String: Any] = ["cursor": ["x": cursor.x, "y": cursor.y], "screens": shots]
+        let data = try JSONSerialization.data(withJSONObject: payload)
+        FileHandle.standardOutput.write(data)
+        exit(0)
+    } catch {
+        // A permission revoked after the preflight surfaces here, as a
+        // ScreenCaptureKit error rather than a clean refusal.
+        fail(2, "capture failed: \(error.localizedDescription)")
+    }
+}
+done.wait()

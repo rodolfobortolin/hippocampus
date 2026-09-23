@@ -13,7 +13,7 @@ import { workItems, itemDetail, orgName } from './items.ts'
 import { timesheet, timesheetTable } from './timesheet.ts'
 import { TIMESHEET_WORDS } from './languages.ts'
 import { readSettings } from './settings.ts'
-import { lookAtScreen, NoScreenPermission } from './screen.ts'
+import { lookAtScreen, NoScreenPermission, placeOnScreen, pointing } from './screen.ts'
 
 const hours = hoursAndMinutes
 const say = (value: unknown) => ({
@@ -254,15 +254,29 @@ const tools = [
   },
   {
     name: 'screen',
-    description: 'Takes a screenshot of every display right now and shows it to you. Use it only when the person asks you to look at their screen or at what they are seeing, never on your own. Nothing is stored.',
-    inputSchema: {},
-    handler: async () => {
+    description: 'Takes a screenshot right now and shows it to you: the display under the cursor, or every display with all=true. Use it only when the person asks you to look at their screen or at what they are seeing, never on your own. Hippocampus itself is left out of the picture. Nothing is stored.',
+    inputSchema: { all: z.boolean().optional().describe('every display instead of only the one under the cursor') },
+    handler: async ({ all }: { all?: boolean }) => {
       try {
-        const shots = await lookAtScreen()
+        const shots = await lookAtScreen({ all: all ?? false })
+        const pointable = shots.some((shot) => shot.frame)
         return {
           content: [
-            ...shots.map((shot) => ({ type: 'image' as const, data: shot.data, mimeType: 'image/jpeg' })),
-            { type: 'text' as const, text: `${shots.length} display(s), main first, taken ${when(Date.now() / 1000)}.` },
+            ...shots.flatMap((shot) => [
+              {
+                type: 'text' as const,
+                text: `Screen ${shot.screen} of ${shots.length}${shot.hasCursor ? ' — the cursor is on this one' : ''}`
+                  + (shot.pixelWidth ? ` — ${shot.pixelWidth}×${shot.pixelHeight} px` : ''),
+              },
+              { type: 'image' as const, data: shot.data, mimeType: 'image/jpeg' },
+            ]),
+            {
+              type: 'text' as const,
+              text: `Taken ${when(Date.now() / 1000)}.`
+                + (pointable
+                  ? ' If the answer is a place on the screen — a button, a menu, a field — call point with the screen number and the pixel coordinates in that picture, origin top-left.'
+                  : ' These pictures cannot be pointed into.'),
+            },
           ],
         }
       } catch (error) {
@@ -271,6 +285,22 @@ const tools = [
         }
         throw error
       }
+    },
+  },
+  {
+    name: 'point',
+    description: 'Shows the person a place on their screen: a pointer flies there with a short label. Only after the screen tool, with the screen number and pixel coordinates in that picture (origin top-left). Use it when the answer is "where is X" or "what do I click", once per answer.',
+    inputSchema: {
+      screen: z.number().int().describe('the screen number from the screen tool'),
+      x: z.number().describe('pixels from the left of that picture'),
+      y: z.number().describe('pixels from the top of that picture'),
+      label: z.string().describe('one to four words naming what is there'),
+    },
+    handler: async ({ screen, x, y, label }: { screen: number; x: number; y: number; label: string }) => {
+      const place = placeOnScreen(screen, x, y)
+      if (!place) return say('Nothing to point into: look at the screen first, and use a point inside that picture.')
+      pointing.emit('point', { ...place, label: label.slice(0, 40) })
+      return say(`Pointed at "${label}".`)
     },
   },
 ]
