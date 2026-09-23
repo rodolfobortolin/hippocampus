@@ -150,57 +150,6 @@ export async function clickOnScreen(
   return true
 }
 
-export type Control = { path: string; role: string; label: string; x: number; y: number; width: number; height: number }
-export type Controls = { app: string; pid: number; window: string; controls: Control[]; ms: number }
-
-export class NoControls extends Error {}
-
-/** What can be pressed in the window on top — or in the app named — read from Accessibility. */
-export async function listControls(app?: string, { text = false } = {}): Promise<Controls> {
-  const native = await helper()
-  if (!native) throw new NoControls('the screen helper is not built')
-  try {
-    const { stdout } = await run(native, ['controls', ...(app ? ['--app', app] : []), ...(text ? ['--text'] : [])],
-      { timeout: 8_000, maxBuffer: 4 * 1024 * 1024 })
-    return JSON.parse(stdout) as Controls
-  } catch (error: any) {
-    if (error?.code === 4) throw new NoAccessibility(String(error.stderr ?? error.message))
-    throw new NoControls(String(error?.stderr || error?.message || error).trim())
-  }
-}
-
-/** Presses one control: the pointer goes there first, where the person can see it. */
-export async function pressControl(where: Controls, control: Control): Promise<string> {
-  const native = await helper()
-  if (!native) throw new NoControls('the screen helper is not built')
-  pointing.emit('point', { x: Math.round(control.x), y: Math.round(control.y), label: control.label.slice(0, 40) })
-  // Shorter than a click from a picture: the place is exact, and the pointer
-  // is there to show what happened, not to be checked before it happens.
-  await new Promise((resolve) => setTimeout(resolve, 450))
-  try {
-    const { stdout } = await run(native, ['press', '--pid', String(where.pid), '--role', control.role, '--label', control.label,
-      '--x', String(control.x), '--y', String(control.y)], { timeout: 8_000 })
-    lastLook = undefined
-    return JSON.parse(stdout).via
-  } catch (error: any) {
-    if (error?.code === 4) throw new NoAccessibility(String(error.stderr ?? error.message))
-    if (error?.code === 7) throw new NoControls('it cannot be pressed without the mouse; use click on its place instead')
-    throw new NoControls(String(error?.stderr || error?.message || error).trim())
-  }
-}
-
-/**
- * The controls whose name contains every word of the request, for the cases
- * that need no judgement at all — "click Save" when one control is called
- * "Save". Accents and case do not count.
- */
-export function plainMatches(target: string, controls: Control[]): Control[] {
-  const fold = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-  const words = fold(target).split(/[^\p{L}\p{N}]+/u).filter((word) => word.length > 1)
-  if (!words.length) return []
-  return controls.filter((control) => words.every((word) => fold(control.label).includes(word)))
-}
-
 /** Where the pointer should go; the server tells the screens, and the app draws it. */
 export const pointing = new EventEmitter<{ point: [{ x: number; y: number; label: string }] }>()
 

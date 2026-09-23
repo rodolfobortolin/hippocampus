@@ -144,7 +144,6 @@ export type Strings = {
     vault: string; vaultNote: string; chooseFolder: string; noVault: string; journalSubfolder: string
     keys: string; keysNote: string; inTheKeychain: string
     jevKey: string; jevNote: string; openaiKey: string; openaiNote: string
-    fastHands: string; fastHandsNote: string; fastHandsOn: string
     optional: string; isSet: string; notSet: string; remove: string
     day: string; dayNote: string; hourSuffix: string
     keepTyping: string; keepTypingNote: string
@@ -409,7 +408,6 @@ const pt: Strings = {
     inTheKeychain: 'guardada no Chaveiro',
     jevKey: 'chave do jev (TypeSafe)', jevNote: 'classifica cada janela em categoria e projeto',
     openaiKey: 'chave da OpenAI', openaiNote: 'só para falar e transcrever; a conversa é sempre Claude Code',
-    fastHands: 'mãos rápidas', fastHandsNote: 'desligado, as ações na tela passam pela conversa, que leva alguns segundos por passo', fastHandsOn: 'ligado: o jev julga cada pedido, e abrir, apertar e escolher na tela vão para o Haiku numa sessão enxuta, em cerca de um segundo por passo; o resto continua na conversa',
     optional: 'opcional', isSet: 'configurada', notSet: 'não configurada', remove: 'remover',
     day: 'o dia começa às', dayNote: 'madrugada conta para o dia anterior', hourSuffix: 'h',
     keepTyping: 'guardar o que você digita', keepTypingNote: 'já passa por redação de segredos, e algumas linhas vão ao Claude Code com o resumo do dia; desligue se preferir só os números',
@@ -675,7 +673,6 @@ const en: Strings = {
     inTheKeychain: 'in the Keychain',
     jevKey: 'jev (TypeSafe) key', jevNote: 'classifies each window into a category and a project',
     openaiKey: 'OpenAI key', openaiNote: 'only for speaking and transcribing; the chat is always Claude Code',
-    fastHands: 'fast hands', fastHandsNote: 'off, on-screen actions go through the chat, which takes several seconds a step', fastHandsOn: 'on: jev judges each request, and opening, pressing and picking on screen go to Haiku in a lean session, about a second a step; everything else stays with the chat',
     optional: 'optional', isSet: 'set', notSet: 'not set', remove: 'remove',
     day: 'the day starts at', dayNote: 'the small hours count as the day before', hourSuffix: ':00',
     keepTyping: 'keep what you type', keepTypingNote: 'secrets are already redacted, and a few lines go to Claude Code with the day’s summary; turn it off if you prefer only the numbers',
@@ -941,7 +938,6 @@ const es: Strings = {
     inTheKeychain: 'en el Llavero',
     jevKey: 'clave de jev (TypeSafe)', jevNote: 'clasifica cada ventana en categoría y proyecto',
     openaiKey: 'clave de OpenAI', openaiNote: 'solo para hablar y transcribir; la conversación es siempre Claude Code',
-    fastHands: 'manos rápidas', fastHandsNote: 'desactivado, las acciones en pantalla pasan por la conversación, que tarda varios segundos por paso', fastHandsOn: 'activado: jev juzga cada petición, y abrir, pulsar y elegir en pantalla van a Haiku en una sesión ligera, cerca de un segundo por paso; lo demás sigue en la conversación',
     optional: 'opcional', isSet: 'configurada', notSet: 'sin configurar', remove: 'quitar',
     day: 'el día empieza a las', dayNote: 'la madrugada cuenta para el día anterior', hourSuffix: 'h',
     keepTyping: 'guardar lo que escribes', keepTypingNote: 'los secretos ya se redactan, y algunas líneas van a Claude Code con el resumen del día; desactívalo si prefieres solo los números',
@@ -1207,7 +1203,6 @@ const fr: Strings = {
     inTheKeychain: 'dans le Trousseau',
     jevKey: 'clé jev (TypeSafe)', jevNote: 'classe chaque fenêtre en catégorie et en projet',
     openaiKey: 'clé OpenAI', openaiNote: 'seulement pour parler et transcrire ; la conversation est toujours Claude Code',
-    fastHands: 'mains rapides', fastHandsNote: 'désactivé, les actions à l’écran passent par la conversation, qui prend plusieurs secondes par étape', fastHandsOn: 'activé : jev juge chaque demande, et ouvrir, appuyer et choisir à l’écran vont à Haiku dans une session légère, environ une seconde par étape ; le reste reste dans la conversation',
     optional: 'facultatif', isSet: 'configurée', notSet: 'non configurée', remove: 'retirer',
     day: 'la journée commence à', dayNote: 'le petit matin compte pour la veille', hourSuffix: 'h',
     keepTyping: 'garder ce que tu tapes', keepTypingNote: 'les secrets sont déjà masqués, et quelques lignes partent vers Claude Code avec le résumé du jour ; désactive si tu préfères seulement les chiffres',
@@ -1473,7 +1468,6 @@ const de: Strings = {
     inTheKeychain: 'im Schlüsselbund',
     jevKey: 'jev-Schlüssel (TypeSafe)', jevNote: 'ordnet jedes Fenster einer Kategorie und einem Projekt zu',
     openaiKey: 'OpenAI-Schlüssel', openaiNote: 'nur zum Sprechen und Transkribieren; das Gespräch ist immer Claude Code',
-    fastHands: 'schnelle Hände', fastHandsNote: 'aus, Aktionen auf dem Bildschirm laufen über das Gespräch, das mehrere Sekunden pro Schritt braucht', fastHandsOn: 'an: jev beurteilt jede Anfrage, und Öffnen, Drücken und Auswählen auf dem Bildschirm gehen an Haiku in einer schlanken Sitzung, etwa eine Sekunde pro Schritt; der Rest bleibt im Gespräch',
     optional: 'optional', isSet: 'gesetzt', notSet: 'nicht gesetzt', remove: 'entfernen',
     day: 'der Tag beginnt um', dayNote: 'die frühen Stunden zählen zum Vortag', hourSuffix: 'Uhr',
     keepTyping: 'behalten, was du tippst', keepTypingNote: 'Geheimnisse werden schon geschwärzt, und ein paar Zeilen gehen mit der Tageszusammenfassung an Claude Code; schalte es aus, wenn dir die Zahlen reichen',

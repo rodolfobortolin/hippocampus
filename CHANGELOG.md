@@ -6,19 +6,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
-- Fast hands, off by default: jev sends each on-screen action — open an app,
-  press something, read the result — to Haiku in a lean session that reads
-  the window's controls instead of a screenshot: 125 − 38 on Calculator in
-  about 13 seconds, where the chat took most of a minute. Everything else
-  still goes to the chat.
-- Pressing something on screen no longer takes your mouse: controls are
-  pressed through Accessibility, and when a click is needed the pointer goes
-  back to where you left it.
 - Simple questions in the chat are answered by the quick model again. Since
   20 September every question went to the largest one, whatever it asked.
-- Asked to press something on screen — a button, a tab, a row — it now finds
-  it by name through Accessibility instead of looking for it in a
-  screenshot: about a second a click, where it was several.
 - The live voice closes after ten seconds with nobody talking, instead of
   listening on until a minute and a half had passed. It stays open while an
   answer is being worked on; say the word, click the sphere or use the

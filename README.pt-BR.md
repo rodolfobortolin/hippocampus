@@ -262,12 +262,6 @@ coisa em todo lugar. Pergunte digitando ou em voz alta.
   o nome**. Peça para **clicar** e ele clica, depois que o ponteiro pousa onde
   você consegue ver — e não envia, compra, apaga nem confirma nada a menos que
   seja exatamente isso que você pediu.
-- **Mãos rápidas**, desligadas por padrão: o jev julga cada pedido, e uma ação
-  na tela — abrir isto, apertar aquilo, ler o resultado — é feita pelo Haiku numa
-  sessão sem nada carregado além das próprias ferramentas, lendo os controles da
-  janela pela Acessibilidade em vez de uma imagem: cerca de um segundo por passo.
-  Apertar um controle assim não mexe no seu mouse; a faísca mostra onde foi. O
-  resto, e o que as mãos não conseguirem terminar, vai para a conversa.
 - **Ferramentas ampliadas**, desligadas por padrão, entregam a ele o resto do
   Claude Code neste Mac: arquivos, comandos, a web, os seus servidores MCP —
   digitando ou falando, sem perguntar antes.

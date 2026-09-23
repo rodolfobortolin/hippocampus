@@ -285,15 +285,6 @@ export function Settings() {
           </Field>
 
           <Field
-            label={t.settings.fastHands}
-            note={settings.fastHands ? t.settings.fastHandsOn : t.settings.fastHandsNote}>
-            <button className={`switch ${settings.fastHands ? 'active' : ''}`}
-              onClick={() => store({ fastHands: !settings.fastHands })}>
-              <i />
-            </button>
-          </Field>
-
-          <Field
             label={t.settings.calendar}
             note={!settings.calendar ? t.settings.calendarNote
               : settings.calendarStatus === 'denied' ? t.settings.calendarDenied

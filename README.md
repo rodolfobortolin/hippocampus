@@ -259,12 +259,6 @@ by typing or out loud.
   and names it**. Ask it to **click** and it does, after the pointer lands where
   you can see it — and it will not send, buy, delete or confirm anything unless
   that is exactly what you asked for.
-- **Fast hands**, off by default: jev judges each request, and an action on the
-  screen — open this, press that, read the result — is done by Haiku in a
-  session with nothing loaded but its own tools, reading the window's controls
-  through Accessibility rather than from a picture: about a second a step.
-  Pressing a control that way does not move your mouse; the spark shows where.
-  Anything else, and anything the hands cannot finish, goes to the chat.
 - **Wider tools**, off by default, hand it the rest of Claude Code on this Mac:
   files, commands, the web, your MCP servers — typed or spoken, without asking
   first.

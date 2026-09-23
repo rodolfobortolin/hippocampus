@@ -67,12 +67,6 @@ export type Settings = {
    */
   wideTools: boolean
   /**
-   * Whether on-screen actions go to the fast hands: jev judges each request,
-   * and an action — open this, press that — is done by Haiku in a session
-   * with nothing loaded but its own tools; anything else goes to the chat.
-   */
-  fastHands: boolean
-  /**
    * Whether meeting names come from the macOS Calendar.
    *
    * Off until asked for, and nothing is requested until then: the permission
@@ -194,7 +188,6 @@ const DEFAULTS: Settings = {
   region: 'global',
   caption: true,
   wideTools: false,
-  fastHands: false,
   calendar: false,
   // Off for someone installing it fresh: a stranger's app writing into their
   // own notes on its first night should have been asked first. The walkthrough
@@ -247,7 +240,6 @@ export function readSettings(): Settings {
       region: data.region === 'eu' ? 'eu' : 'global',
       caption: data.caption !== false,
       wideTools: data.wideTools === true,
-      fastHands: data.fastHands === true,
       calendar: data.calendar === true,
       captures: data.captures ?? DEFAULTS.captures,
       views: Object.fromEntries(Object.entries((data.views ?? {}) as Record<string, unknown>)

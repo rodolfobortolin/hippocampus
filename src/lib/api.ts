@@ -116,7 +116,6 @@ export type Settings = {
   caption: boolean
   /** Whether the conversation may reach beyond this app's own database. */
   wideTools: boolean
-  fastHands: boolean
   calendar: boolean
   timesheet: boolean
   /** Whether the close of the day writes the durable notes by itself. */
