@@ -210,6 +210,14 @@ const LADDER = [
 
 export type Routing = { model: string; level: number; confidence: number }
 
+/**
+ * Asked alongside the complexity, in English whatever the interface language:
+ * it is read by jev, never shown. An action on the screen goes to the quick
+ * model whatever its complexity — the looking and clicking is the slow part,
+ * and a larger model only thinks longer between each look and click.
+ */
+const ON_SCREEN = 'Is this request an action to carry out on the screen right now — opening an app, clicking or pressing something, picking an item in a window, playing something — rather than a question about the person\'s day, time, work or data, or something to write, summarise or analyse?'
+
 export async function pickModel(request: string): Promise<Routing | null> {
   if (!jevReady()) return null
 
@@ -221,6 +229,7 @@ export async function pickModel(request: string): Promise<Routing | null> {
         model: config.typesafeModel,
         state: { request: request.slice(0, 1200) },
         questions: {
+          screen: { type: 'noul', instructions: ON_SCREEN },
           // The answer is read back under this same name. It was sent as
           // `complexidade` and read as `complexity` after the translation, so
           // every request came back with no score and no confidence, took the
@@ -244,6 +253,9 @@ export async function pickModel(request: string): Promise<Routing | null> {
     // When in doubt, go one step up: erring stronger costs time; erring
     // weaker costs a bad answer, which is worse.
     const adjusted = confidence < 0.5 ? Math.min(2, level + 1) : level
+    // Measured on ten requests: 0.89–0.98 for "click play", "calculate on
+    // Calculator", "close this window"; 0.03–0.34 for questions about the day.
+    if (Number(data.answers?.screen?.noul ?? 0) >= 0.6) return { model: LADDER[0], level: 0, confidence }
     return { model: LADDER[Math.max(0, Math.min(2, adjusted))], level: adjusted, confidence }
   } catch {
     return null
