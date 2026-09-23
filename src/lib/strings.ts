@@ -131,6 +131,7 @@ export type Strings = {
     thinking: string; lookingUp: string; send: string; speak: string; stopListening: string
     liveStart: string; liveStop: string; liveConnecting: string; liveOn: string
     liveReady: string; liveHearing: string
+    confirmTitle: string; confirmAllow: string; confirmDeny: string
     liveNoAnswer: string
     connected: string
     stopTalking: string; alwaysAloud: string; aloudWhenYouSpeak: string; coreIsDown: string
@@ -384,6 +385,7 @@ const pt: Strings = {
     reconnecting: 'reconectando ao núcleo…', thinking: 'pensando…', lookingUp: 'consultando',
     send: 'enviar', speak: 'falar', stopListening: 'parar de ouvir', stopTalking: 'parar de falar',
     liveStart: 'conversar ao vivo', liveStop: 'encerrar a conversa', liveConnecting: 'conectando…', liveOn: 'ao vivo', liveReady: 'pode falar', liveHearing: 'ouvindo você',
+    confirmTitle: 'Posso fazer isto? Você pediu por voz.', confirmAllow: 'Permitir', confirmDeny: 'Não',
     liveNoAnswer: 'A voz ao vivo não respondeu. Confira a chave da OpenAI em Ajustes.',
     connected: 'ligado ao núcleo',
     alwaysAloud: 'responder sempre falando', aloudWhenYouSpeak: 'responder falando só quando você falar',
@@ -649,6 +651,7 @@ const en: Strings = {
     reconnecting: 'reconnecting to the core…', thinking: 'thinking…', lookingUp: 'looking up',
     send: 'send', speak: 'speak', stopListening: 'stop listening', stopTalking: 'stop talking',
     liveStart: 'talk live', liveStop: 'end the conversation', liveConnecting: 'connecting…', liveOn: 'live', liveReady: 'go ahead and talk', liveHearing: 'hearing you',
+    confirmTitle: 'May I do this? You asked by voice.', confirmAllow: 'Allow', confirmDeny: 'No',
     liveNoAnswer: 'The live voice did not answer. Check the OpenAI key in Settings.',
     connected: 'connected to the core',
     alwaysAloud: 'always answer out loud', aloudWhenYouSpeak: 'answer out loud only when you speak',
@@ -914,6 +917,7 @@ const es: Strings = {
     reconnecting: 'reconectando al núcleo…', thinking: 'pensando…', lookingUp: 'consultando',
     send: 'enviar', speak: 'hablar', stopListening: 'dejar de escuchar', stopTalking: 'dejar de hablar',
     liveStart: 'hablar en vivo', liveStop: 'terminar la conversación', liveConnecting: 'conectando…', liveOn: 'en vivo', liveReady: 'puedes hablar', liveHearing: 'te escucho',
+    confirmTitle: '¿Puedo hacer esto? Lo pediste por voz.', confirmAllow: 'Permitir', confirmDeny: 'No',
     liveNoAnswer: 'La voz en vivo no respondió. Revisa la clave de OpenAI en Ajustes.',
     connected: 'conectado al núcleo',
     alwaysAloud: 'responder siempre en voz alta', aloudWhenYouSpeak: 'responder en voz alta solo cuando hables',
@@ -1179,6 +1183,7 @@ const fr: Strings = {
     reconnecting: 'reconnexion au noyau…', thinking: 'réflexion…', lookingUp: 'consultation',
     send: 'envoyer', speak: 'parler', stopListening: 'arrêter d’écouter', stopTalking: 'arrêter de parler',
     liveStart: 'parler en direct', liveStop: 'terminer la conversation', liveConnecting: 'connexion…', liveOn: 'en direct', liveReady: 'tu peux parler', liveHearing: 'je t’écoute',
+    confirmTitle: 'Je peux faire ça ? Tu l’as demandé à voix haute.', confirmAllow: 'Autoriser', confirmDeny: 'Non',
     liveNoAnswer: 'La voix en direct n’a pas répondu. Vérifie la clé OpenAI dans Réglages.',
     connected: 'connecté au noyau',
     alwaysAloud: 'répondre toujours à voix haute', aloudWhenYouSpeak: 'répondre à voix haute seulement quand tu parles',
@@ -1444,6 +1449,7 @@ const de: Strings = {
     reconnecting: 'verbinde neu mit dem Kern…', thinking: 'denkt nach…', lookingUp: 'schlägt nach',
     send: 'senden', speak: 'sprechen', stopListening: 'nicht mehr zuhören', stopTalking: 'nicht mehr sprechen',
     liveStart: 'live sprechen', liveStop: 'Gespräch beenden', liveConnecting: 'verbinde…', liveOn: 'live', liveReady: 'du kannst sprechen', liveHearing: 'ich höre dich',
+    confirmTitle: 'Darf ich das tun? Du hast es gesprochen.', confirmAllow: 'Erlauben', confirmDeny: 'Nein',
     liveNoAnswer: 'Die Live-Stimme hat nicht geantwortet. Prüfe den OpenAI-Schlüssel in den Einstellungen.',
     connected: 'mit dem Kern verbunden',
     alwaysAloud: 'immer laut antworten', aloudWhenYouSpeak: 'nur laut antworten, wenn du sprichst',

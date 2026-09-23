@@ -6,6 +6,11 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Something asked by voice now asks before it acts: a command in the terminal,
+  writing or editing a file, or another app's server shows on screen, exactly
+  as it would run, with Allow and No. Reading, looking at the screen,
+  pointing and clicking go ahead as before, and typed requests are unchanged.
+  With no answer in a minute it is a no.
 - At rest, the sphere stirs with the sound of the room as the wake-word
   listener hears it — only a loudness number, never audio — so you can see
   the microphone waiting for the word is alive. It is held back on purpose,
