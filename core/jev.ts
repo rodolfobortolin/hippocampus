@@ -221,7 +221,11 @@ export async function pickModel(request: string): Promise<Routing | null> {
         model: config.typesafeModel,
         state: { request: request.slice(0, 1200) },
         questions: {
-          complexidade: {
+          // The answer is read back under this same name. It was sent as
+          // `complexidade` and read as `complexity` after the translation, so
+          // every request came back with no score and no confidence, took the
+          // "when in doubt, go up" branch, and went to the largest model.
+          complexity: {
             type: 'score',
             instructions: JEV_QUESTIONS[validLanguage(config.lang)].complexity,
             criteria: LEVELS_BY_LANGUAGE[validLanguage(config.lang)],
@@ -241,6 +245,47 @@ export async function pickModel(request: string): Promise<Routing | null> {
     // weaker costs a bad answer, which is worse.
     const adjusted = confidence < 0.5 ? Math.min(2, level + 1) : level
     return { model: LADDER[Math.max(0, Math.min(2, adjusted))], level: adjusted, confidence }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Which of the controls on screen is the one the person means.
+ *
+ * A typed choice, answered in about a tenth of a second, where finding the
+ * same button by looking at a screenshot costs a model turn of several
+ * seconds. The options carry what Accessibility calls each control; `none`
+ * is always one of them, so a miss says so instead of picking the nearest.
+ */
+export async function chooseControl(
+  target: string, options: { id: string; label: string }[],
+): Promise<{ id: string; confidence: number } | null> {
+  if (!jevReady() || !options.length) return null
+  const criteria: Record<string, string> = { none: 'none of these is what the person means' }
+  for (const option of options) criteria[option.id] = option.label
+  try {
+    const response = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${config.typesafeKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: config.typesafeModel,
+        state: { request: target.slice(0, 300) },
+        questions: {
+          control: {
+            type: 'choice',
+            instructions: 'Which on-screen control is the one this request means to press?',
+            criteria,
+          },
+        },
+      }),
+      signal: AbortSignal.timeout(4000),
+    })
+    if (!response.ok) return null
+    const data = (await response.json()) as any
+    const id = data.answers?.control?.choice
+    if (!id || id === 'none') return null
+    return { id, confidence: data.answers?.control?.confidence ?? 0 }
   } catch {
     return null
   }
