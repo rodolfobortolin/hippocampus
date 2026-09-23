@@ -46,6 +46,11 @@ if args.count > 1 && args[1] == "click" {
     let right = args.contains("--right")
     let (down, up, button): (CGEventType, CGEventType, CGMouseButton) =
         right ? (.rightMouseDown, .rightMouseUp, .right) : (.leftMouseDown, .leftMouseUp, .left)
+    // The click borrows the person's pointer for a moment and gives it back
+    // where it was, so a click in the middle of their own movement does not
+    // leave the cursor somewhere they did not put it. Read before anything
+    // moves it.
+    let theirs = CGEvent(source: nil)?.location
     let source = CGEventSource(stateID: .hidSystemState)
     // Moving first: many controls only arm on hover, and a click that arrives
     // without the pointer ever having been there is ignored by them.
@@ -59,6 +64,12 @@ if args.count > 1 && args[1] == "click" {
             event?.post(tap: .cghidEventTap)
             usleep(30_000)
         }
+    }
+    if let theirs {
+        // Through the same queue as the click, so it lands after it: a warp
+        // went first and the queued click then left the cursor on the button.
+        usleep(40_000)
+        CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: theirs, mouseButton: button)?.post(tap: .cghidEventTap)
     }
     print("{\"clicked\":true}")
     exit(0)
@@ -199,29 +210,38 @@ if args.count > 1 && args[1] == "press" {
     requireAccessibility()
     guard let pid = Int32(value("--pid", "")) else { fail(1, "--pid is required") }
     let app = AXUIElementCreateApplication(pid)
-    guard var element = mainWindow(app) else { fail(5, "the window is gone") }
-    for step in value("--path", "").split(separator: ".") {
-        let list = children(element)
-        guard let index = Int(step), index < list.count else { fail(6, "the control is gone") }
-        element = list[index]
-    }
-    // The window may have changed between the listing and now: press only
-    // what is still the same kind of thing.
-    let expected = value("--role", "")
-    if !expected.isEmpty, text(element, kAXRoleAttribute) != expected { fail(6, "the control changed") }
-    var via = "ax"
-    if AXUIElementPerformAction(element, kAXPressAction as CFString) != .success {
-        guard let box = frame(element) else { fail(6, "the control has no place on screen") }
-        let place = CGPoint(x: box.midX, y: box.midY)
-        let source = CGEventSource(stateID: .hidSystemState)
-        for type in [CGEventType.mouseMoved, .leftMouseDown, .leftMouseUp] {
-            CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: place, mouseButton: .left)?.post(tap: .cghidEventTap)
-            usleep(30_000)
+    guard let window = mainWindow(app) else { fail(5, "the window is gone") }
+    // Found again by what it is, never by where it sat in the tree. A path of
+    // child indices looked stable and was not: Calculator reorders its tree
+    // between reads, and "Clear" by path pressed "%" instead.
+    let wantedRole = value("--role", "")
+    let wantedLabel = value("--label", "")
+    let near = CGPoint(x: Double(value("--x", "")) ?? 0, y: Double(value("--y", "")) ?? 0)
+    var best: (element: AXUIElement, distance: CGFloat)?
+    var stack: [(AXUIElement, Int)] = [(window, 0)]
+    var visited = 0
+    while let (element, depth) = stack.popLast(), visited < 6000 {
+        visited += 1
+        let role = text(element, kAXRoleAttribute) ?? ""
+        if role == wantedRole, label(element, role: role) == wantedLabel, let box = frame(element) {
+            let distance = hypot(box.midX - near.x, box.midY - near.y)
+            if best == nil || distance < best!.distance { best = (element, distance) }
         }
-        via = "mouse"
+        if depth < 40 { for child in children(element) { stack.append((child, depth + 1)) } }
     }
-    print("{\"pressed\":true,\"via\":\"\(via)\"}")
-    exit(0)
+    guard let element = best?.element else { fail(6, "the control is gone") }
+    // Never the mouse: the person may be using it. Falling back to a click
+    // took the pointer out of their hand mid-sentence. Some controls answer
+    // to another action than press — a row to pick, a field to confirm.
+    let offered = actions(element)
+    for action in [kAXPressAction as String, kAXPickAction as String, kAXConfirmAction as String, "AXOpen"]
+        where offered.contains(action) || action == kAXPressAction as String {
+        if AXUIElementPerformAction(element, action as CFString) == .success {
+            print("{\"pressed\":true,\"via\":\"\(action)\"}")
+            exit(0)
+        }
+    }
+    fail(7, "the control takes no action without the mouse")
 }
 
 let outDir = URL(fileURLWithPath: value("--out", NSTemporaryDirectory()))

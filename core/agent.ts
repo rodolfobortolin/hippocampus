@@ -340,7 +340,7 @@ const tools = [
         }
         const via = await pressControl(found, chosen)
         return say(`Pressed "${chosen.label}" (${chosen.role.replace(/^AX/, '')}) in ${found.app}, ${how}, `
-          + `${via === 'ax' ? 'through Accessibility' : 'with the mouse'} — ${Date.now() - started} ms. `
+          + `through Accessibility (${via}) — ${Date.now() - started} ms. `
           + 'The screen may have changed; check before the next step if it matters.')
       } catch (error) {
         if (error instanceof NoAccessibility) {

@@ -170,7 +170,7 @@ export async function listControls(app?: string, { text = false } = {}): Promise
 }
 
 /** Presses one control: the pointer goes there first, where the person can see it. */
-export async function pressControl(where: Controls, control: Control): Promise<'ax' | 'mouse'> {
+export async function pressControl(where: Controls, control: Control): Promise<string> {
   const native = await helper()
   if (!native) throw new NoControls('the screen helper is not built')
   pointing.emit('point', { x: Math.round(control.x), y: Math.round(control.y), label: control.label.slice(0, 40) })
@@ -178,11 +178,13 @@ export async function pressControl(where: Controls, control: Control): Promise<'
   // is there to show what happened, not to be checked before it happens.
   await new Promise((resolve) => setTimeout(resolve, 450))
   try {
-    const { stdout } = await run(native, ['press', '--pid', String(where.pid), '--path', control.path, '--role', control.role], { timeout: 8_000 })
+    const { stdout } = await run(native, ['press', '--pid', String(where.pid), '--role', control.role, '--label', control.label,
+      '--x', String(control.x), '--y', String(control.y)], { timeout: 8_000 })
     lastLook = undefined
     return JSON.parse(stdout).via
   } catch (error: any) {
     if (error?.code === 4) throw new NoAccessibility(String(error.stderr ?? error.message))
+    if (error?.code === 7) throw new NoControls('it cannot be pressed without the mouse; use click on its place instead')
     throw new NoControls(String(error?.stderr || error?.message || error).trim())
   }
 }
