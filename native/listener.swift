@@ -22,6 +22,9 @@ let language = value("--language", "pt-BR")
 let triggers = value("--word", "hippocampus,hipocampo,hipocampa,ipocampo,hipo campo,hippocampo")
     .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
 
+/** Where the room's loudness goes: the same core, one door over from the wake word. */
+let hearing = target.deletingLastPathComponent().appendingPathComponent("room")
+
 let engine = AVAudioEngine()
 var task: SFSpeechRecognitionTask?
 var request: SFSpeechAudioBufferRecognitionRequest?
@@ -31,6 +34,53 @@ guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: language)),
       recognizer.supportsOnDeviceRecognition else {
     FileHandle.standardError.write("on-device recognition unavailable for \(language)\n".data(using: .utf8)!)
     exit(1)
+}
+
+/**
+ * How loud the room is, so the sphere stirs while you speak.
+ *
+ * The microphone here is open all day and nothing is recorded from it, which
+ * leaves no way to tell a listener that is working from one that died in the
+ * night. So a number goes out — one float, never a sample of audio — and the
+ * sphere on screen moves with it: proof you can see, for the price of a POST
+ * to localhost.
+ *
+ * The tap runs on the audio thread, so it only leaves the loudest reading
+ * behind; the sending happens on a timer, and only when the reading moved
+ * enough to be visible.
+ */
+let meter = NSLock()
+var loudest: Float = 0
+var lastSent: Float = -1
+
+func measure(_ buffer: AVAudioPCMBuffer) {
+    guard let samples = buffer.floatChannelData?[0] else { return }
+    let count = Int(buffer.frameLength)
+    guard count > 0 else { return }
+    var sum: Float = 0
+    for i in 0..<count { sum += samples[i] * samples[i] }
+    let rms = (sum / Float(count)).squareRoot()
+    meter.lock()
+    loudest = max(loudest, rms)
+    meter.unlock()
+}
+
+func report() {
+    meter.lock()
+    let peak = loudest
+    loudest = 0
+    meter.unlock()
+    // A floor for the room itself: a fan, a fridge and breathing are not a voice.
+    let level = min(1, max(0, peak - 0.02) * 6)
+    // Silence is worth one message, the one that says it went quiet.
+    guard abs(level - lastSent) > 0.04 || (level == 0 && lastSent != 0) else { return }
+    lastSent = level
+    var httpRequest = URLRequest(url: hearing)
+    httpRequest.httpMethod = "POST"
+    httpRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    httpRequest.httpBody = "{\"level\":\(level)}".data(using: .utf8)
+    httpRequest.timeoutInterval = 2
+    URLSession.shared.dataTask(with: httpRequest).resume()
 }
 
 func notify() {
@@ -81,6 +131,7 @@ func startMicrophone() throws {
     input.removeTap(onBus: 0)
     input.installTap(onBus: 0, bufferSize: 2048, format: input.outputFormat(forBus: 0)) { buffer, _ in
         request?.append(buffer)
+        measure(buffer)
     }
     engine.prepare()
     try engine.start()
@@ -132,6 +183,10 @@ SFSpeechRecognizer.requestAuthorization { estado in
         func mark() { try? Date().description.write(to: alive, atomically: true, encoding: .utf8) }
         mark()
         Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in mark() }
+
+        // Twelve a second is enough for the eye and cheap on localhost; below
+        // that the sphere moves in steps instead of with the voice.
+        Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { _ in report() }
 
         // The recognition session degrades over time; restart it hourly.
         Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { _ in listen() }

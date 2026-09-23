@@ -6,7 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
-Nothing yet.
+- At rest, the sphere stirs with the sound of the room as the wake-word
+  listener hears it — only a loudness number, never audio — so you can see
+  the microphone waiting for the word is alive. It is held back on purpose,
+  weaker than during a conversation.
 
 ## v0.4.0 — 2026-09-23
 

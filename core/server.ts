@@ -266,6 +266,24 @@ export function serve(collector?: Collector): http.Server {
         return response.end()
       }
 
+      if (route === '/api/room' && request.method === 'POST') {
+        // The listener's microphone is open all day and records nothing, so
+        // there is nothing on screen that says it is working. What it sends
+        // here is one number — how loud the room is, never any audio — and
+        // every open sphere moves with it while you speak.
+        const chunks: Buffer[] = []
+        for await (const chunk of request) chunks.push(chunk as Buffer)
+        try {
+          const { level } = JSON.parse(Buffer.concat(chunks).toString())
+          wake?.({ type: 'room', level: Math.min(1, Math.max(0, Number(level) || 0)) })
+        } catch {
+          response.writeHead(400)
+          return response.end()
+        }
+        response.writeHead(204)
+        return response.end()
+      }
+
       if (route === '/api/sample' && request.method === 'POST') {
         // launchd's helper pushes one sample at a time. A bare 204 answers it:
         // there is nothing to return and the helper expects no body.

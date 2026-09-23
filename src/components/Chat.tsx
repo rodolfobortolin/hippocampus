@@ -3,6 +3,7 @@ import { api, type Status } from '../lib/api.ts'
 import { Markdown } from '../lib/markdown.tsx'
 import { useAudioLevel } from '../hooks/useAudioLevel.ts'
 import { useListening } from '../hooks/useListening.ts'
+import { useOverheard } from '../hooks/useOverheard.ts'
 import { useSocket } from '../hooks/useSocket.ts'
 import { useLive } from '../hooks/useLive.ts'
 import { useSpeech } from '../hooks/useSpeech.ts'
@@ -74,7 +75,14 @@ export function Chat({ status }: { status: Status | null }) {
   // Listening records and transcribes; its level is the one from your microphone.
   const listening = useListening((utterance) => { askedByVoice.current = true; send(utterance) }, t.common)
   const isListening = listening.state === 'listening'
-  const level = isListening ? listening.level : answerLevel
+  // Whoever is speaking now: you into the recorder or the live session, or the
+  // answer coming back.
+  const spoken = isListening ? listening.level : answerLevel
+  // At rest the sphere moves with the room, as the wake-word listener hears it
+  // — the only sign that the microphone waiting for the word is alive. Only at
+  // rest: during a turn the level belongs to that turn.
+  const overheard = useOverheard()
+  const level = state === 'idle' ? Math.max(spoken, overheard.level) : spoken
 
   // The core tags every answer with the screen that asked. Every screen shows
   // the whole conversation; only the one that asked reads it out loud.
@@ -144,6 +152,7 @@ export function Chat({ status }: { status: Status | null }) {
       if (data.type === 'live-answer') void live.accept(String(data.sdp))
       if (data.type === 'live' && !data.on) live.dropped()
       if (data.type === 'listening') setState('listening')
+      if (data.type === 'room') overheard.heard(data.level)
       if (data.type === 'hearing') {
         setCaption(String(data.text ?? ''))
         clearTimeout(captionTimer.current)

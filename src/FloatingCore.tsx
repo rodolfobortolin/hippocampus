@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, type Status } from './lib/api.ts'
 import { Core, type CoreState } from './components/Core.tsx'
 import { useListening } from './hooks/useListening.ts'
+import { useOverheard } from './hooks/useOverheard.ts'
 import { useAudioLevel } from './hooks/useAudioLevel.ts'
 import { useSocket } from './hooks/useSocket.ts'
 import { useLive } from './hooks/useLive.ts'
@@ -35,6 +36,7 @@ export function FloatingCore() {
   const [question, setQuestion] = useState('')
   const [status, setStatus] = useState<Status | null>(null)
   const { level: answerLevel, listenToAudio, pulseAlone, finish } = useAudioLevel()
+  const overheard = useOverheard()
 
   const answerRef = useRef('')
   const speakAnswer = useRef<(text: string) => void>(() => {})
@@ -93,6 +95,7 @@ export function FloatingCore() {
       else setState('idle')
     }
     if (data.type === 'wake') wake()
+    if (data.type === 'room') overheard.heard(data.level)
     if (data.type === 'live-answer') void live.accept(String(data.sdp))
     if (data.type === 'live' && !data.on) live.dropped()
     if (data.type === 'listening') setState('listening')
@@ -244,6 +247,13 @@ export function FloatingCore() {
     window.addEventListener('pointerup', release)
   }
   const isListening = listening.state === 'listening'
+  // Whoever is speaking now moves the sphere: you into the recorder, you into
+  // the live session, or the answer coming back.
+  const spoken = liveWanted ? liveLevel : isListening ? listening.level : answerLevel
+  // At rest it moves with the room, from the wake-word listener. Only at rest:
+  // during a turn the level belongs to that turn, and the listener's own
+  // reading of the same voice would fight it.
+  const level = state === 'idle' ? Math.max(spoken, overheard.level) : spoken
   // At rest there is no caption at all. The panel behind it is a dark
   // rectangle, and a dark rectangle under the sphere is the one thing this
   // window is not supposed to put on someone's screen — the sphere floats over
@@ -296,11 +306,7 @@ export function FloatingCore() {
           : state === 'speaking' ? t.chat.stopTalking
           : isListening ? t.chat.stopListening
           : t.chat.speak}>
-        <Core
-          state={state}
-          level={liveWanted ? liveLevel : isListening ? listening.level : answerLevel}
-          size="floating"
-        />
+        <Core state={state} level={level} size="floating" />
       </button>
 
       {said ? (
