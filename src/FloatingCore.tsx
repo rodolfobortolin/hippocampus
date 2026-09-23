@@ -81,6 +81,7 @@ export function FloatingCore() {
       setAnswer(answerRef.current)
     }
     if (data.type === 'hello') myScreen.current = String(data.screen)
+    if (data.type === 'stopped') { setState('idle'); setAnswer(t.chat.stopped) }
     if (data.type === 'end') {
       const text = data.text || answerRef.current
       setAnswer(text)
@@ -297,11 +298,14 @@ export function FloatingCore() {
         onClick={() => {
           // The click that closes a drag is not a request to talk.
           if (dragged.current) { dragged.current = false; return }
+          // Working on something — looking, clicking — a click stops it.
+          if (state === 'thinking' || state === 'tool') return void send({ type: 'stop' })
           if (liveWanted) return wake()
           if (state === 'speaking') voice.stop()
           else listening.toggle()
         }}
-        title={liveWanted
+        title={state === 'thinking' || state === 'tool' ? t.chat.stopWorking
+          : liveWanted
           ? (liveOn ? t.chat.liveStop : live.phase === 'connecting' ? t.chat.liveConnecting : t.chat.liveStart)
           : state === 'speaking' ? t.chat.stopTalking
           : isListening ? t.chat.stopListening

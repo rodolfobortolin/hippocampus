@@ -133,7 +133,7 @@ export type Strings = {
     liveReady: string; liveHearing: string
     liveNoAnswer: string
     connected: string
-    stopTalking: string; alwaysAloud: string; aloudWhenYouSpeak: string; coreIsDown: string
+    stopTalking: string; stopWorking: string; stopped: string; alwaysAloud: string; aloudWhenYouSpeak: string; coreIsDown: string
     listen: string; clickToSpeak: string
     suggestions: string[]
   }
@@ -382,7 +382,7 @@ const pt: Strings = {
     placeholder: 'pergunte qualquer coisa sobre o seu tempo',
     listening: 'ouvindo… pare de falar que eu envio', transcribing: 'transcrevendo…',
     reconnecting: 'reconectando ao núcleo…', thinking: 'pensando…', lookingUp: 'consultando',
-    send: 'enviar', speak: 'falar', stopListening: 'parar de ouvir', stopTalking: 'parar de falar',
+    send: 'enviar', speak: 'falar', stopListening: 'parar de ouvir', stopTalking: 'parar de falar', stopWorking: 'parar o que ele está fazendo', stopped: 'Parei.',
     liveStart: 'conversar ao vivo', liveStop: 'encerrar a conversa', liveConnecting: 'conectando…', liveOn: 'ao vivo', liveReady: 'pode falar', liveHearing: 'ouvindo você',
     liveNoAnswer: 'A voz ao vivo não respondeu. Confira a chave da OpenAI em Ajustes.',
     connected: 'ligado ao núcleo',
@@ -647,7 +647,7 @@ const en: Strings = {
     placeholder: 'ask anything about your time',
     listening: 'listening… stop talking and I send it', transcribing: 'transcribing…',
     reconnecting: 'reconnecting to the core…', thinking: 'thinking…', lookingUp: 'looking up',
-    send: 'send', speak: 'speak', stopListening: 'stop listening', stopTalking: 'stop talking',
+    send: 'send', speak: 'speak', stopListening: 'stop listening', stopTalking: 'stop talking', stopWorking: 'stop what it is doing', stopped: 'Stopped.',
     liveStart: 'talk live', liveStop: 'end the conversation', liveConnecting: 'connecting…', liveOn: 'live', liveReady: 'go ahead and talk', liveHearing: 'hearing you',
     liveNoAnswer: 'The live voice did not answer. Check the OpenAI key in Settings.',
     connected: 'connected to the core',
@@ -912,7 +912,7 @@ const es: Strings = {
     placeholder: 'pregunta cualquier cosa sobre tu tiempo',
     listening: 'escuchando… deja de hablar y lo envío', transcribing: 'transcribiendo…',
     reconnecting: 'reconectando al núcleo…', thinking: 'pensando…', lookingUp: 'consultando',
-    send: 'enviar', speak: 'hablar', stopListening: 'dejar de escuchar', stopTalking: 'dejar de hablar',
+    send: 'enviar', speak: 'hablar', stopListening: 'dejar de escuchar', stopTalking: 'dejar de hablar', stopWorking: 'parar lo que está haciendo', stopped: 'Paré.',
     liveStart: 'hablar en vivo', liveStop: 'terminar la conversación', liveConnecting: 'conectando…', liveOn: 'en vivo', liveReady: 'puedes hablar', liveHearing: 'te escucho',
     liveNoAnswer: 'La voz en vivo no respondió. Revisa la clave de OpenAI en Ajustes.',
     connected: 'conectado al núcleo',
@@ -1177,7 +1177,7 @@ const fr: Strings = {
     placeholder: 'demande ce que tu veux sur ton temps',
     listening: 'j’écoute… arrête de parler et j’envoie', transcribing: 'transcription…',
     reconnecting: 'reconnexion au noyau…', thinking: 'réflexion…', lookingUp: 'consultation',
-    send: 'envoyer', speak: 'parler', stopListening: 'arrêter d’écouter', stopTalking: 'arrêter de parler',
+    send: 'envoyer', speak: 'parler', stopListening: 'arrêter d’écouter', stopTalking: 'arrêter de parler', stopWorking: 'arrêter ce qu’il fait', stopped: 'J’ai arrêté.',
     liveStart: 'parler en direct', liveStop: 'terminer la conversation', liveConnecting: 'connexion…', liveOn: 'en direct', liveReady: 'tu peux parler', liveHearing: 'je t’écoute',
     liveNoAnswer: 'La voix en direct n’a pas répondu. Vérifie la clé OpenAI dans Réglages.',
     connected: 'connecté au noyau',
@@ -1442,7 +1442,7 @@ const de: Strings = {
     placeholder: 'frag irgendetwas über deine Zeit',
     listening: 'ich höre zu… hör auf zu sprechen und ich schicke es', transcribing: 'transkribiert…',
     reconnecting: 'verbinde neu mit dem Kern…', thinking: 'denkt nach…', lookingUp: 'schlägt nach',
-    send: 'senden', speak: 'sprechen', stopListening: 'nicht mehr zuhören', stopTalking: 'nicht mehr sprechen',
+    send: 'senden', speak: 'sprechen', stopListening: 'nicht mehr zuhören', stopTalking: 'nicht mehr sprechen', stopWorking: 'anhalten, was es gerade tut', stopped: 'Angehalten.',
     liveStart: 'live sprechen', liveStop: 'Gespräch beenden', liveConnecting: 'verbinde…', liveOn: 'live', liveReady: 'du kannst sprechen', liveHearing: 'ich höre dich',
     liveNoAnswer: 'Die Live-Stimme hat nicht geantwortet. Prüfe den OpenAI-Schlüssel in den Einstellungen.',
     connected: 'mit dem Kern verbunden',

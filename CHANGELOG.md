@@ -6,6 +6,11 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Asked to do something on your screen — open, click, pick — it answers on
+  the quick model, which looks and clicks without stopping to think at
+  length between each step.
+- You can stop it while it works: the send button becomes a stop button, and
+  a click on the floating sphere stops it too.
 - Simple questions in the chat are answered by the quick model again. Since
   20 September every question went to the largest one, whatever it asked.
 - The live voice closes after ten seconds with nobody talking, instead of

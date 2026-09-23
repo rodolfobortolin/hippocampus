@@ -385,6 +385,8 @@ export type AgentEvent =
   | { type: 'tool'; name: string }
   | { type: 'end'; text: string }
   | { type: 'error'; error: string }
+  /** The person asked it to stop; nothing more will come. */
+  | { type: 'stopped' }
 
 /**
  * A tool's name, as it is worth putting on screen.
@@ -417,7 +419,7 @@ export function streamedText(event: any, after: boolean): string {
 }
 
 /** Talks to Claude Code, with the local database as its tools. */
-export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<AgentEvent> {
+export async function* chat(prompt: string, sessionId?: string, { abort }: { abort?: AbortController } = {}): AsyncGenerator<AgentEvent> {
   // A model that fits the request: jev judges the complexity before it starts.
   // With HIPPOCAMPUS_MODEL set, the choice is yours and the routing steps aside.
   const route = config.claudeModel ? null : await pickModel(prompt)
@@ -445,6 +447,9 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
       ...(config.claudeModel ? { model: config.claudeModel } : route ? { model: route.model } : {}),
       ...(sessionId ? { resume: sessionId } : {}),
       permissionMode: 'bypassPermissions',
+      // Stopping kills the session mid-turn: whatever it was about to look
+      // at or click next never happens.
+      ...(abort ? { abortController: abort } : {}),
       // Without this the answer only shows up when the whole block finishes.
       // Measured on a trivial question: the first letter exists at 3s and the
       // block closes at 6.4s — half the wait was just waiting.
@@ -501,6 +506,10 @@ export async function* chat(prompt: string, sessionId?: string): AsyncGenerator<
       }
     }
   } catch (error) {
+    if (abort?.signal.aborted) {
+      yield { type: 'stopped' }
+      return
+    }
     yield { type: 'error', error: (error as Error).message }
     return
   }

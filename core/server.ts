@@ -380,6 +380,9 @@ export function serve(collector?: Collector): http.Server {
     }
   }
   wake = broadcast
+
+  /** The answer being worked on, whichever screen asked, so any screen can stop it. */
+  let running: AbortController | undefined
   pointing.on('point', (place) => broadcast({ type: 'point', ...place }))
 
   /**
@@ -457,7 +460,16 @@ export function serve(collector?: Collector): http.Server {
       send({ type: 'heard', text })
       send({ type: 'thinking' })
       try {
-        for await (const event of chat(text, session)) {
+        const abort = new AbortController()
+        running?.abort()
+        running = abort
+        for await (const event of chat(text, session, { abort })) {
+          // Stopped: the screens were told the moment the button was pressed,
+          // and anything still draining out of the session is dropped.
+          if (abort.signal.aborted || event.type === 'stopped') {
+            speaks?.answer('Stopped, as the person asked. Say so in a few words.')
+            break
+          }
           if (event.type === 'model') send({ type: 'model', model: event.model, level: event.level })
           else if (event.type === 'delta') send({ type: 'delta', text: event.text })
           else if (event.type === 'end') {
@@ -552,6 +564,13 @@ export function serve(collector?: Collector): http.Server {
       try { payload = JSON.parse(String(raw)) } catch { return }
       if (payload.type === 'live-offer' && payload.sdp) return void startLive(String(payload.sdp))
       if (payload.type === 'live-stop') return stopLive()
+      if (payload.type === 'stop') {
+        if (!running || running.signal.aborted) return
+        running.abort()
+        // Told at once rather than when the session finishes dying, about two
+        // seconds later. 'stopped' ends the turn on every screen by itself.
+        return void broadcast({ type: 'stopped' })
+      }
       if (payload.type !== 'question' || !payload.text) return
       // A typed question is spoken by the live session when one is open, so
       // the two ways of asking share one voice rather than talking over it.

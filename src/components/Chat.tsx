@@ -126,6 +126,12 @@ export function Chat({ status }: { status: Status | null }) {
         })
       }
       if (data.type === 'hello') myScreen.current = String(data.screen)
+      if (data.type === 'stopped') {
+        setThinking(false)
+        setTool('')
+        setState('idle')
+        setMessages((current) => [...current, { of: 'it', text: t.chat.stopped }])
+      }
       if (data.type === 'end') {
         setThinking(false)
         setTool('')
@@ -332,10 +338,18 @@ export function Chat({ status }: { status: Status | null }) {
             <IconMicrophone />
           </button>
         )}
-        <button className="icon" onClick={() => send(text)}
-          disabled={!text.trim() || thinking || !connected} title={connected ? t.chat.send : t.chat.coreIsDown}>
-          <IconSend />
-        </button>
+        {thinking ? (
+          // While it works, sending gives way to stopping: a task that clicks
+          // around the screen has to be interruptible from where you are.
+          <button className="icon active" onClick={() => sendToCore({ type: 'stop' })} title={t.chat.stopWorking}>
+            <IconStop />
+          </button>
+        ) : (
+          <button className="icon" onClick={() => send(text)}
+            disabled={!text.trim() || !connected} title={connected ? t.chat.send : t.chat.coreIsDown}>
+            <IconSend />
+          </button>
+        )}
       </div>
     </div>
   )
