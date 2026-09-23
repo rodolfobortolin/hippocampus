@@ -27,7 +27,7 @@
     "uninstall:agent": "sh scripts/agent.sh uninstall",
     "logs": "tail -f ~/Library/Logs/Hippocampus/collector.log",
     "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test \"tests/*.test.ts\"",
-    "dist": "npm run build && electron-builder --mac --arm64 --publish never",
+    "dist": "npm run build && electron-builder --mac --arm64 --publish never && sh scripts/forget-build.sh",
     "notarize": "sh scripts/notarize.sh",
     "build:icons": "sh scripts/build-icons.sh",
     "site": "vite --config site/vite.config.ts",
