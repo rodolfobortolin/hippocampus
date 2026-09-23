@@ -94,15 +94,20 @@ func capture() async throws -> [[String: Any]] {
     let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
     let ours = content.windows.filter { $0.owningApplication?.bundleIdentifier.hasPrefix(excludePrefix) ?? false }
 
-    // The display under the cursor first: that is where someone looking at
-    // their screen is looking.
-    var displays = content.displays.sorted { a, b in
-        a.frame.contains(cursor) && !b.frame.contains(cursor)
-    }
-    if onlyCursor, let first = displays.first { displays = [first] }
+    // A number per display that does not change between pictures: the main
+    // one first, then left to right. Numbering from the cursor made "screen 1"
+    // swap monitors after every click, since a click moves the cursor.
+    let numbered = content.displays.sorted { a, b in
+        let mainA = CGDisplayIsMain(a.displayID) != 0, mainB = CGDisplayIsMain(b.displayID) != 0
+        if mainA != mainB { return mainA }
+        return a.frame.minX != b.frame.minX ? a.frame.minX < b.frame.minX : a.frame.minY < b.frame.minY
+    }.enumerated().map { (number: $0.offset + 1, display: $0.element) }
+    let wanted = onlyCursor
+        ? numbered.filter { $0.display.frame.contains(cursor) }.prefix(1).map { $0 }
+        : numbered
 
     var result: [[String: Any]] = []
-    for (i, display) in displays.enumerated() {
+    for (number, display) in (wanted.isEmpty ? Array(numbered.prefix(1)) : wanted) {
         let frame = display.frame
         let fit = min(1, longest / max(frame.width, frame.height))
         let config = SCStreamConfiguration()
@@ -111,10 +116,11 @@ func capture() async throws -> [[String: Any]] {
         config.showsCursor = true
         let filter = SCContentFilter(display: display, excludingWindows: ours)
         let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
-        let file = outDir.appendingPathComponent("\(i + 1).jpg")
+        let file = outDir.appendingPathComponent("\(number).jpg")
         guard writeJPEG(image, to: file) else { continue }
         result.append([
-            "screen": i + 1,
+            "screen": number,
+            "of": numbered.count,
             "displayId": display.displayID,
             "main": CGDisplayIsMain(display.displayID) != 0,
             "hasCursor": frame.contains(cursor),

@@ -265,7 +265,7 @@ const tools = [
             ...shots.flatMap((shot) => [
               {
                 type: 'text' as const,
-                text: `Screen ${shot.screen} of ${shots.length}${shot.hasCursor ? ' — the cursor is on this one' : ''}`
+                text: `Screen ${shot.screen} of ${shot.of ?? shots.length}${shot.hasCursor ? ' — the cursor is on this one' : ''}`
                   + (shot.pixelWidth ? ` — ${shot.pixelWidth}×${shot.pixelHeight} px` : ''),
               },
               { type: 'image' as const, data: shot.data, mimeType: 'image/jpeg' },
@@ -305,7 +305,7 @@ const tools = [
   },
   {
     name: 'click',
-    description: 'Clicks at a place on the screen for the person: the pointer flies there, then the mouse clicks. Only after the screen tool, with the screen number and pixel coordinates in that picture. Use it only when the person asked you to do something on their screen — never on your own initiative. Never click to send, buy, pay, delete, sign, accept terms or confirm anything that cannot be undone unless they asked for exactly that action; never click into a password field. Say what you are about to click in one short sentence first. After a click the screen has changed: look again before the next one.',
+    description: 'Clicks at a place on the screen for the person: the pointer flies there, then the mouse clicks. Only after the screen tool, with the screen number and pixel coordinates in that picture. Use it only when the person asked you to do something on their screen — never on your own initiative. Never click to send, buy, pay, delete, sign, accept terms or confirm anything that cannot be undone unless they asked for exactly that action; never click into a password field. Say what you are about to click in one short sentence first. This is the way to click: osascript and System Events clicks are refused by macOS. After a click the screen has changed: look again before the next one.',
     inputSchema: {
       screen: z.number().int().describe('the screen number from the screen tool'),
       x: z.number().describe('pixels from the left of that picture'),

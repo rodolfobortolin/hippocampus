@@ -23,6 +23,8 @@ export type Frame = { x: number; y: number; width: number; height: number }
 
 export type Shot = {
   screen: number
+  /** How many displays there are, whether or not all were taken. */
+  of?: number
   data: string
   /** Absent when the picture came from `screencapture`, which does not say where the display is. */
   frame?: Frame
@@ -76,7 +78,7 @@ export async function lookAtScreen({ all = false } = {}): Promise<Shot[]> {
         const { stdout } = await run(native, ['--out', dir, '--max', String(LONGEST), ...(all ? [] : ['--cursor-only'])],
           { timeout: 15_000 })
         const parsed = JSON.parse(stdout) as {
-          screens: { screen: number; frame: Frame; pixelWidth: number; pixelHeight: number; hasCursor: boolean; file: string }[]
+          screens: { screen: number; of: number; frame: Frame; pixelWidth: number; pixelHeight: number; hasCursor: boolean; file: string }[]
         }
         const shots: Shot[] = []
         for (const s of parsed.screens) {
