@@ -22,8 +22,8 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   a spark of the core flies there and names it. The screenshot it looks at no
   longer includes Hippocampus's own windows, and only the screen under the
   cursor is sent unless you ask for all of them.
-- Saying the wake word brings the floating core up again; since the rename it
-  had stopped answering it.
+- Saying the wake word brings the floating core up again; since 20 September
+  it had stopped answering it.
 
 ## v0.3.1 — 2026-09-21
 
