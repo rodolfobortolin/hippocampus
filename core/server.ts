@@ -495,10 +495,16 @@ export function serve(collector?: Collector): http.Server {
             // reading the tool's name out loud.
             if (event.name) speaks?.progress(`looking up ${event.name}`)
           }
-          else send({ type: 'error', error: event.error })
+          else {
+            send({ type: 'error', error: event.error })
+            // Without an answer the voice waits, and the session stays open
+            // on its long backstop instead of closing after ten quiet seconds.
+            speaks?.answer('That did not work: Claude Code could not finish the answer.')
+          }
         }
       } catch (error) {
         send({ type: 'error', error: (error as Error).message })
+        speaks?.answer('That did not work: Claude Code could not finish the answer.')
       }
     }
 

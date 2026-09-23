@@ -182,10 +182,19 @@ export function liveInstructions(): string {
 const SPOKEN_LIMIT = 1200
 
 /**
- * A backstop for the paid session. The screen closes it after a quiet minute,
- * but a frozen or throttled tab would never fire that — this does.
+ * How long the session stays open with nobody talking. The session bills by
+ * the minute and keeps a microphone open, and a sphere left listening after
+ * the conversation is over looked like it never stopped. Ten seconds of
+ * quiet closes it; the wake word, a click or the shortcut open it again.
  */
-const IDLE_TIMEOUT = 90_000
+const QUIET_TIMEOUT = 10_000
+
+/**
+ * While Claude Code works on an answer the room is quiet by design — a lookup,
+ * or a command waiting for Allow on screen, takes longer than ten seconds.
+ * Then only this backstop applies, for an answer that never comes.
+ */
+const WORKING_TIMEOUT = 180_000
 
 type Hooks = {
   /** A finished turn, handed back to us to answer. */
@@ -270,8 +279,8 @@ export class LiveVoice {
       }, 700)
     })
     ws.on('session.delegation.created', (event: any) => {
-      this.touch()
       this.delegation = event.delegation.id
+      this.touch()
       const text = this.heard.trim()
       this.heard = ''
       this.hooks.onRequest(text)
@@ -284,13 +293,13 @@ export class LiveVoice {
     return { sessionId: created.session.id, sdp: (created.transport as any).sdp as string }
   }
 
-  /** Restarts the idle countdown. Anything that counts as conversation calls it. */
+  /** Restarts the countdown. Anything that counts as conversation calls it. */
   private touch() {
     clearTimeout(this.idle)
     this.idle = setTimeout(() => {
       this.hooks.onClosed('silence')
       this.close()
-    }, IDLE_TIMEOUT)
+    }, this.delegation ? WORKING_TIMEOUT : QUIET_TIMEOUT)
   }
 
   /** Silent context, so the voice knows work is happening without reading it out. */
@@ -308,15 +317,18 @@ export class LiveVoice {
   /** The answer the voice should pass on. */
   answer(text: string) {
     if (!this.ws) return
-    this.touch()
     const content = text.trim().slice(0, SPOKEN_LIMIT)
-    if (!content) return
-    this.ws.send({
-      type: 'session.commentary.append',
-      delegation_id: this.delegation,
-      content,
-    } as any)
+    if (content) {
+      this.ws.send({
+        type: 'session.commentary.append',
+        delegation_id: this.delegation,
+        content,
+      } as any)
+    }
+    // Answered, or with nothing to say: either way the work is over, and the
+    // ten seconds of quiet count again from here.
     this.delegation = null
+    this.touch()
   }
 
   get seconds() {

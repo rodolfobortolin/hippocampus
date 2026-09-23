@@ -6,6 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- The live voice closes after ten seconds with nobody talking, instead of
+  listening on until a minute and a half had passed. It stays open while an
+  answer is being worked on; say the word, click the sphere or use the
+  shortcut to open it again.
 - Something asked by voice now asks before it acts: a command in the terminal,
   writing or editing a file, or another app's server shows on screen, exactly
   as it would run, with Allow and No. Reading, looking at the screen,
