@@ -6,6 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+Nothing yet.
+
+## v0.4.0 — 2026-09-23
+
 - In the chat, an answer that looks something up first no longer runs its
   opening note into the answer: each starts a paragraph of its own.
 - The Journal list shows as much of each day's summary as the row has room
