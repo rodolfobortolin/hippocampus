@@ -462,7 +462,12 @@ export function serve(collector?: Collector): http.Server {
         // fast hands, when they are on; everything else — and whatever the
         // hands give back — to Claude Code, on the model jev picked.
         const routed = config.claudeModel ? null : await pickModel(text)
-        if (readSettings().fastHands && handsAvailable() && (routed?.onScreen ?? 0) >= 0.6) {
+        // When jev does not answer in time the hands try anyway: they hand a
+        // question back in about half a second, while sending an action to
+        // Claude Code costs most of a minute. jev's median was 2.3 s one
+        // afternoon, against a 2.5 s ceiling, so this is not a rare path.
+        const onScreen = routed ? routed.onScreen >= 0.6 : true
+        if (readSettings().fastHands && handsAvailable() && onScreen) {
           send({ type: 'model', model: 'groq · gpt-oss-120b', level: 0 })
           const quick = await fastHands(text, (step) => {
             send({ type: 'tool', name: step })
