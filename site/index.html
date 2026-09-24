@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Hippocampus — your Mac's memory of your day</title>
+  <title>Hippocampus — your Mac's memory, and a pair of hands</title>
   <!-- Written for the person searching, in the words they would search with:
-       what it is (automatic time tracking), for which machine, and the two
-       things that set it apart — it stays on the Mac and it is open source. -->
-  <meta name="description" content="Automatic time tracking for Mac that never leaves your Mac: where your time went, what your AI agents did, and a daily journal in Obsidian. Open source, no account.">
+       what it is (automatic time tracking, and an assistant that acts on the
+       screen), for which machine, and what sets it apart — the day stays on
+       the Mac, and it is open source. -->
+  <meta name="description" content="Automatic time tracking for Mac, and a voice assistant that knows your day: it looks at your screen, points and clicks when you ask. Your day stays on your Mac. Open source, no account.">
   <link rel="canonical" href="%SITE%">
   <meta name="author" content="Rodolfo Bortolin">
   <meta name="theme-color" content="#07080a">
@@ -19,8 +20,8 @@
        JPEG, because that is the size and format every network still reads. -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Hippocampus">
-  <meta property="og:title" content="Hippocampus — your Mac's memory of your day">
-  <meta property="og:description" content="Your Mac already knows where your time went. Hippocampus keeps it — all local, every day — and gives it back as charts, a journal and a conversation.">
+  <meta property="og:title" content="Hippocampus — your Mac's memory, and a pair of hands">
+  <meta property="og:description" content="It remembers where your time went — every window, ticket and agent, kept on your Mac — and acts when you ask: it looks at your screen, points, clicks and talks back.">
   <meta property="og:url" content="%SITE%">
   <meta property="og:locale" content="en_US">
   <meta property="og:image" content="%SITE%og.jpg">
@@ -28,8 +29,8 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="The Today screen of Hippocampus: time at the machine, work delegated to agents, focused work and the day as a ribbon of colours.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Hippocampus — your Mac's memory of your day">
-  <meta name="twitter:description" content="Automatic, local time tracking for Mac. Open source, no account.">
+  <meta name="twitter:title" content="Hippocampus — your Mac's memory, and a pair of hands">
+  <meta name="twitter:description" content="Local time tracking for Mac, and a voice assistant that knows your day. Open source, no account.">
   <meta name="twitter:image" content="%SITE%og.jpg">
 
   <!-- What the page is about, for search engines that read it as data: a free,
@@ -39,7 +40,7 @@
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "Hippocampus",
-    "description": "Automatic time tracking for Mac that keeps everything on the Mac: where the time went, what AI agents did, and a daily journal in Obsidian.",
+    "description": "Automatic time tracking for Mac that keeps the day on the Mac — where the time went, what AI agents did, a daily journal in Obsidian — and a voice assistant that looks at the screen, points and clicks when asked.",
     "url": "%SITE%",
     "image": "%SITE%og.jpg",
     "applicationCategory": "ProductivityApplication",
@@ -68,6 +69,7 @@
         <span>Hippocampus</span>
       </a>
       <div class="links">
+        <a href="#ask">Ask it</a>
         <a href="#how">Architecture</a>
         <a href="#needs">What it needs</a>
         <a href="#screens">Screens</a>
@@ -79,10 +81,11 @@
   <header class="hero">
     <div class="pitch">
       <p class="eyebrow enter" style="--i: 0"><i></i>Open source · macOS · stored only on your Mac</p>
-      <h1 class="enter" style="--i: 1">Your Mac already knows where your <b>time went</b>.</h1>
+      <h1 class="enter" style="--i: 1">Your Mac's memory — <b>and a pair of hands</b>.</h1>
       <p class="lead enter" style="--i: 2">
-        Hippocampus keeps it — all local, every day — and gives it back as charts,
-        as a journal, and as a conversation you can have out loud.
+        Hippocampus remembers where your time went — every window, ticket and agent,
+        kept on your Mac — and acts when you ask: it looks at your screen, points,
+        clicks and talks back, out loud.
       </p>
       <div class="actions enter" style="--i: 3">
         <!-- download -->
@@ -95,6 +98,12 @@
         <a class="button primary" href="https://github.com/rodolfobortolin/hippocampus">Get it on GitHub</a>
         <!-- /source -->
         <a class="button" href="https://github.com/rodolfobortolin/hippocampus/releases/tag/v%VERSION%">v%VERSION% release notes</a>
+        <!-- The app showing itself: the sphere talks through the page and
+             points, the way it does on your screen. See tour.ts. -->
+        <button class="button show-me" type="button" data-tour>
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>
+          Show me
+        </button>
       </div>
       <!-- download -->
       <p class="fine enter" style="--i: 4">macOS 13 or later, Apple silicon. Signed and notarized; it updates itself.</p>
@@ -117,6 +126,38 @@
     </a>
   </section>
 
+  <!-- The hands. The memory is what sets them apart: other assistants see
+       the screen as it is right now; this one also knows the week behind it.
+       What leaves the Mac for them is said here, where it is shown, not only
+       in the architecture below. -->
+  <section id="ask" class="keeps ask">
+    <h2 class="reveal">Ask, and it <b>does it</b></h2>
+    <p class="kicker reveal">Say the word, or click the sphere. It already knows your day — which ticket, which
+      project, what you asked your agents — so "that ticket from this morning" means something.</p>
+    <div class="grid">
+      <article class="reveal" style="--dot: var(--water); --i: 0">
+        <h3>A voice you can interrupt</h3>
+        <p>Live, turn by turn, in your language. What you say shows as you say it, the sphere moves with
+          your voice, and it closes itself after ten quiet seconds.</p>
+      </article>
+      <article class="reveal" style="--dot: var(--ai); --i: 1">
+        <h3>It looks when you ask</h3>
+        <p>At the screen you are on, at that moment, with its own windows left out. The picture goes to
+          Claude Code for that answer and is not kept.</p>
+      </article>
+      <article class="reveal" style="--dot: var(--ember); --i: 2">
+        <h3>It points, and it clicks</h3>
+        <p>A spark of the core flies to the place and names it. Asked to, it clicks — and puts your
+          pointer back where you left it. It will not send, buy or delete unless that is what you asked.</p>
+      </article>
+      <article class="reveal" style="--dot: var(--code); --i: 3">
+        <h3>Short, and it stops</h3>
+        <p>Two sentences when it speaks, a few lines when you read. A click on the sphere, or the stop
+          button, and whatever it was doing stops there.</p>
+      </article>
+    </div>
+  </section>
+
   <!-- How it is built. The boxes are HTML, so the words stay crisp and
        readable; the wires between them are drawn by motion.ts from where the
        boxes actually landed, which is what lets the same drawing work as three
@@ -128,8 +169,8 @@
     <h2 class="reveal">The <b>architecture</b></h2>
     <p class="kicker reveal">The sources are what macOS, your browsers, git and your agents already write down.
       The core reads them into one database on your Mac. What leaves it goes under your own login and key:
-      window titles to jev, to be labelled; the day to Claude Code, to be written up; and your voice to OpenAI,
-      only when you talk to it.</p>
+      window titles to jev, to be labelled; the day to Claude Code, to be written up, and a picture of your
+      screen when you ask it to look; and your voice to OpenAI, only when you talk to it.</p>
     <div class="arch" data-flow>
       <svg class="wires" aria-hidden="true"></svg>
       <div class="flow">
@@ -166,7 +207,7 @@
           <li style="--c: var(--ai)">
             <img src="logos/claude.webp" alt="" width="28" height="28">
             <b>Claude Code</b>
-            <span>the day and your requests go · the journal, the notes and the answers come back</span>
+            <span>the day, your requests and, when you ask, the screen go · the journal, the notes and the answers come back</span>
           </li>
           <li style="--c: var(--water)" class="optional">
             <img src="logos/openai.svg" alt="" width="28" height="28">
