@@ -121,6 +121,8 @@ export const LEVELS_BY_LANGUAGE: Record<Language, string[]> = {
  */
 export const JEV_QUESTIONS: Record<Language, {
   category: string; project: string; focus: string; complexity: string; noProject: string
+  /** Which client a window with no owner was for, and the two answers that are no client. */
+  client: string; personal: string; noClient: string
 }> = {
   'pt-BR': {
     category: 'Que tipo de atividade é esta',
@@ -128,6 +130,9 @@ export const JEV_QUESTIONS: Record<Language, {
     focus: 'Esta é uma atividade de trabalho concentrado, e não uma distração ou pausa',
     complexity: 'Quanto esforço de raciocínio este pedido exige para ser respondido bem',
     noProject: 'Nenhum projeto identificável',
+    client: 'Para qual cliente foi este trabalho, pelo que a janela e o contexto da pessoa dizem',
+    personal: 'Trabalho da própria pessoa: projeto pessoal, estudo, coisas dela',
+    noClient: 'Não é trabalho para ninguém, ou não dá para saber',
   },
   'en-US': {
     category: 'What kind of activity is this',
@@ -135,6 +140,9 @@ export const JEV_QUESTIONS: Record<Language, {
     focus: 'This is focused work, not a distraction or a break',
     complexity: 'How much reasoning effort this request needs to be answered well',
     noProject: 'No identifiable project',
+    client: "Which client was this work for, from what the window and the person's own context say",
+    personal: "The person's own work: a personal project, study, their own affairs",
+    noClient: 'Not work for anyone, or impossible to tell',
   },
   'es-ES': {
     category: 'Qué tipo de actividad es esta',
@@ -142,6 +150,9 @@ export const JEV_QUESTIONS: Record<Language, {
     focus: 'Esta es una actividad de trabajo concentrado, no una distracción ni una pausa',
     complexity: 'Cuánto esfuerzo de razonamiento exige esta petición para responderse bien',
     noProject: 'Ningún proyecto identificable',
+    client: 'Para qué cliente fue este trabajo, según lo que dicen la ventana y el contexto de la persona',
+    personal: 'Trabajo de la propia persona: proyecto personal, estudio, asuntos suyos',
+    noClient: 'No es trabajo para nadie, o no se puede saber',
   },
   'fr-FR': {
     category: 'De quel type d’activité s’agit-il',
@@ -149,6 +160,9 @@ export const JEV_QUESTIONS: Record<Language, {
     focus: 'Il s’agit d’un travail concentré, pas d’une distraction ni d’une pause',
     complexity: 'Quel effort de raisonnement cette demande exige pour être bien traitée',
     noProject: 'Aucun projet identifiable',
+    client: 'Pour quel client ce travail a-t-il été fait, d’après la fenêtre et le contexte donné par la personne',
+    personal: 'Le travail de la personne elle-même : projet personnel, études, ses propres affaires',
+    noClient: 'Ce n’est un travail pour personne, ou impossible à dire',
   },
   'de-DE': {
     category: 'Um welche Art von Tätigkeit handelt es sich',
@@ -156,6 +170,9 @@ export const JEV_QUESTIONS: Record<Language, {
     focus: 'Das ist konzentrierte Arbeit, keine Ablenkung und keine Pause',
     complexity: 'Wie viel Denkaufwand diese Anfrage braucht, um gut beantwortet zu werden',
     noProject: 'Kein erkennbares Projekt',
+    client: 'Für welchen Kunden war diese Arbeit, nach dem, was das Fenster und der Kontext der Person sagen',
+    personal: 'Die eigene Arbeit der Person: privates Projekt, Lernen, eigene Angelegenheiten',
+    noClient: 'Für niemanden Arbeit, oder nicht zu erkennen',
   },
 }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import pkg from '../../package.json'
 import { useLanguage } from '../lib/language.tsx'
+import { Owners } from './Owners.tsx'
 import { CodeFolders } from './CodeFolders.tsx'
 import { LANGUAGES, type Language } from '../lib/strings.ts'
 import { IconKey, IconFolder } from './Icons.tsx'
@@ -306,6 +307,11 @@ export function Settings() {
               <i />
             </button>
           </Field>
+        </div>
+
+        <div className="panel">
+          <h3>{t.owners.settingsTitle}<em>{t.owners.settingsNote}</em></h3>
+          <Owners />
         </div>
 
         <div className="panel">

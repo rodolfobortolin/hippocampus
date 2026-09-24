@@ -157,7 +157,12 @@ function git(repo: string, args: string[]): string {
  * because that timeout also needs the event loop to fire; async is what hands
  * control back to it.
  */
-export async function harvestGit(days = 3): Promise<{ commits: number; branches: number }> {
+/**
+ * With `history` off, only whose each repository is — the remotes, the
+ * worktrees, the person's own commits — without the log and the reflog: what
+ * the walkthrough needs to list owners, in a fraction of the time.
+ */
+export async function harvestGit(days = 3, history = true): Promise<{ commits: number; branches: number }> {
   // Every code folder, each read on its own: one macOS will not let us into
   // does not keep the others from being read.
   const checkouts: { name: string; repo: string }[] = []
@@ -210,6 +215,7 @@ export async function harvestGit(days = 3): Promise<{ commits: number; branches:
       git(repo, ['log', '-1', '--all', '--format=%H', '--fixed-strings', `--author=${author}`]).trim() !== '')
     keepRepo.run(name, main, remote?.host ?? null, remote?.owner ?? null, remote?.path ?? null,
       worked ? 1 : 0, Math.floor(Date.now() / 1000))
+    if (!history) continue
 
     // The whole reflog each time: it is a few hundred lines, and a repository
     // with no commit in days can still have been switched to a new branch.

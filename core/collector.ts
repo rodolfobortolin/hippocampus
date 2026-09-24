@@ -12,6 +12,7 @@ import { harvestPresence } from './sources/presence.ts'
 import { rollup } from './rollup.ts'
 import { all } from './db.ts'
 import { backfillAll } from './backfill.ts'
+import { askAboutLeftovers } from './owners.ts'
 import { buildAllEpisodes } from './episodes.ts'
 import { withTimeout, sourceStates } from './guard.ts'
 import { classifyDay, labelLocally } from './jev.ts'
@@ -35,6 +36,9 @@ const tasks: Task[] = [
   // cached per window, so this asks nothing extra: each window is asked once
   // either way, only sooner.
   { name: 'labels', everyMinutes: 10, run: () => classifyDay(dayOf(Date.now() / 1000), knownProjects()) },
+  // The windows of the week left with no client, put to jev with what the
+  // person wrote about their work; each once, a few at a time.
+  { name: 'clients', everyMinutes: 30, run: () => askAboutLeftovers() },
 ]
 
 /**

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { LANGUAGES, STRINGS, type Language, type Strings } from './strings.ts'
 import { CATEGORY_NAMES } from '../../core/languages.ts'
-import { api, type Settings } from './api.ts'
+import { api, type OwnerAnswer, type Settings } from './api.ts'
 import { setDayStartHour, setLocale } from './format.ts'
 
 /**
@@ -27,8 +27,10 @@ type Context = {
  * here it carries the secret to be written, while in the `Settings` coming back from
  * API it carries only the state — the value never makes the trip back.
  */
-export type Change = Omit<Partial<Settings>, 'keys' | 'languages'> & {
+export type Change = Omit<Partial<Settings>, 'keys' | 'languages' | 'owners'> & {
   keys?: Partial<Record<'jev' | 'openai', string>>
+  /** Answers merge one at a time; null takes one back, and the rules decide again. */
+  owners?: Record<string, OwnerAnswer | null>
 }
 
 const LanguageContext = createContext<Context | null>(null)

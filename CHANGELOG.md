@@ -12,6 +12,15 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 - Code can live in more than one folder: the walkthrough and Settings list
   each one with the repositories it holds, and offer the usual places —
   ~/Projects, ~/Developer, ~/code — that have repositories and are not read yet.
+- The walkthrough has a new step, "Whose is what": what the app found in your
+  repositories and history, what it makes of each, and the doubtful ones marked
+  for you to confirm as a client, personal, or not work. The same list is in
+  Settings, under "Clients and personal", and your answers outrank every rule
+  of the timesheet.
+- A few words of your own on how to tell work from personal go to jev, which
+  then suggests the client of the windows nothing else could place.
+- A browser profile named after a client, like "Ana (Acme)", counts toward
+  that client.
 
 ## v0.6.0 — 2026-09-24
 

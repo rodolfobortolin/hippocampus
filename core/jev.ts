@@ -262,3 +262,57 @@ export async function pickModel(request: string): Promise<Routing | null> {
     return null
   }
 }
+
+const keepClient = db.prepare(`update labels set client = ?, client_at = ? where key = ?`)
+
+/**
+ * Which client a window no rule could place was for, asked with what the
+ * person wrote about their own work and the clients already known. Only the
+ * windows left with no client are asked, and each once — again only after the
+ * person changes what they wrote.
+ *
+ * The answer is kept only when jev is sure of it: an honest "no client"
+ * costs less than a confident wrong one on someone's invoice. `personal` and
+ * an empty string are kept as such.
+ */
+export async function askClient(
+  window: { key: string; app: string | null; title: string | null; host: string | null },
+  clients: string[], note: string,
+): Promise<string | null> {
+  if (!jevReady() || !clients.length) return null
+  const question = JEV_QUESTIONS[validLanguage(config.lang)]
+  const criteria: Record<string, string> = { pessoal: question.personal, nenhum: question.noClient }
+  for (const client of clients.slice(0, 20)) criteria[client] = client
+  let response: Response
+  try {
+    response = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${config.typesafeKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: config.typesafeModel,
+        state: {
+          aplicativo: window.app,
+          janela: window.title,
+          site: window.host,
+          clientes: clients.slice(0, 20),
+          ...(note.trim() ? { o_que_a_pessoa_disse: note.trim().slice(0, 1500) } : {}),
+        },
+        questions: { cliente: { type: 'choice', instructions: question.client, criteria } },
+      }),
+      signal: AbortSignal.timeout(20_000),
+    })
+  } catch (error) {
+    console.error('[jev] rede:', (error as Error).message)
+    return null
+  }
+  if (!response.ok) {
+    console.error('[jev]', response.status, (await response.text()).slice(0, 200))
+    return null
+  }
+  const data = (await response.json()) as any
+  const choice: string | undefined = data.answers?.cliente?.choice
+  const confidence: number = data.answers?.cliente?.confidence ?? 0
+  const client = !choice || confidence < 0.6 || choice === 'nenhum' ? '' : choice === 'pessoal' ? 'personal' : choice
+  keepClient.run(client, Math.floor(Date.now() / 1000), window.key)
+  return client
+}

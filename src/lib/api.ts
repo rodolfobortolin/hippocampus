@@ -124,6 +124,10 @@ export type Settings = {
   views: Record<string, 'bars' | 'pie'>
   /** The folders the repositories live in. */
   codeRoots: string[]
+  /** The person's word on whose each thing is, keyed as the owners list names them. */
+  owners: Record<string, OwnerAnswer>
+  /** What the person wrote about telling work from personal, handed to jev. */
+  context: string
   /** Whether the first-run walkthrough was finished or skipped. */
   onboarded: boolean
   /** '' until the helper has asked; then 'granted' or 'denied'. */
@@ -172,6 +176,10 @@ export type WritingKind = 'ai' | 'chat' | 'mail' | 'search' | 'code' | 'web' | '
 // The pieces of work are shaped in the core; the screen only reads them.
 export type { Meeting } from '../../core/sources/calendar.ts'
 export type { Timesheet, TimesheetClient, TimesheetLine } from '../../core/timesheet.ts'
+export type { Found, Kind as FoundKind, Reason as FoundReason } from '../../core/owners.ts'
+export type { OwnerAnswer } from '../../core/settings.ts'
+import type { Found } from '../../core/owners.ts'
+import type { OwnerAnswer } from '../../core/settings.ts'
 import type { Timesheet } from '../../core/timesheet.ts'
 import type { Meeting } from '../../core/sources/calendar.ts'
 export type { Item, Org, Touch, WorkItems } from '../../core/items.ts'
@@ -204,6 +212,7 @@ export const api = {
   items: (from: string, to: string) => get<WorkItems>(`/api/items?from=${from}&to=${to}`),
   timesheet: (from: string, to: string) => get<Timesheet>(`/api/timesheet?from=${from}&to=${to}`),
   suggestRoots: () => get<{ root: string; repos: number; names: string[] }[]>('/api/repos/suggest'),
+  owners: (scan = false) => get<Found[]>(`/api/owners${scan ? '?scan=1' : ''}`),
   repos: (root?: string) =>
     get<{ root: string; repos: number; names: string[]; readable: boolean }>(`/api/repos${root ? `?root=${encodeURIComponent(root)}` : ''}`),
   askAccessibility: () => get<{ asked: boolean }>('/api/permission/accessibility', { method: 'POST' }),

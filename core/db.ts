@@ -281,6 +281,17 @@ for (const [column, type] of [
   }
 }
 
+// The client jev named for a window no rule could place, and when it was
+// asked: a new context from the person makes the old answers worth asking again.
+for (const [column, type] of [['client', 'text'], ['client_at', 'integer']] as const) {
+  if ((db.prepare('pragma table_info(labels)').all() as any[]).some((c) => c.name === column)) continue
+  try {
+    db.exec(`alter table labels add column ${column} ${type}`)
+  } catch (error) {
+    if (!/duplicate column name/.test((error as Error).message)) throw error
+  }
+}
+
 // The seams between blocks, given back. A block used to start at the sample
 // that first saw it, and the few seconds since the sample before belonged to
 // no block: at over a thousand changes of window a day, 1.2 to 1.9 hours a day

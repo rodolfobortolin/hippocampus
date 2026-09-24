@@ -165,3 +165,53 @@ test('an AI app\'s window is in the project of the question asked in it; an agen
   assert.equal(acme.lines.find((line) => line.what === 'harbor')?.seconds, 900 + 600)
   assert.equal(sheet.unassignedAgent, 60)
 })
+
+test('what the person said outranks every rule, and taking it back lets the rules decide again', () => {
+  seed()
+  repo.run('harbor', 'harbor', 'acme', 'acme/harbor', 1)
+  block.run(T + 2000, T + 2300, 300, MON, 'Profit', 'Profit', null, null)
+  const personal = timesheet(MON, TUE, NOW, { 'repo:harbor': { as: 'personal' }, 'place:Profit': { as: 'personal' } })
+  assert.equal(personal.personal?.lines.find((line) => line.what === 'harbor')?.seconds, 900)
+  assert.equal(personal.personal?.lines.find((line) => line.what === 'Profit')?.seconds, 300)
+  const none = timesheet(MON, TUE, NOW, { 'site:acme': { as: 'none' } })
+  assert.equal(none.clients.find((client) => client.org === 'acme')?.lines.some((line) => line.what === 'confluence · OPS'), false)
+  const renamed = timesheet(MON, TUE, NOW, { 'owner:acme': { as: 'client', client: 'Acme Corp' } })
+  assert.ok(renamed.clients.some((client) => client.org === 'Acme Corp'))
+  assert.equal(timesheet(MON, TUE, NOW, {}).personal, null)
+})
+
+test('a browser profile named after a client, in parentheses, is that client', () => {
+  seed()
+  block.run(T + 2000, T + 2600, 600, MON, 'Google Chrome', 'Remote desktop - Google Chrome - Ana (Acme)', null, null)
+  const acme = timesheet(MON, TUE, NOW, {}).clients.find((client) => client.org === 'acme')!
+  assert.equal(acme.lines.find((line) => line.what === 'Google Chrome')?.seconds, 600)
+})
+
+test('the time no rule placed is listed by place, for the person and for jev to be asked about', () => {
+  seed()
+  const sheet = timesheet(MON, TUE, NOW, {})
+  assert.deepEqual(sheet.leftovers.map((leftover) => [leftover.place, leftover.seconds]), [['Slack', 200]])
+  assert.equal(sheet.leftovers[0].windows[0].title, 'general')
+  assert.equal(timesheet(MON, TUE, NOW, { 'place:Slack': { as: 'none' } }).leftovers.length, 0, 'an answered place is not asked again')
+})
+
+test('the walkthrough lists what it found: sure things settled, doubtful ones asked', async () => {
+  seed()
+  const { foundOwners } = await import('../core/owners.ts')
+  setMeta('you', JSON.stringify(['analima']))
+  repo.run('sidequest', 'sidequest', 'analima', 'analima/sidequest', 1)
+  repo.run('acme-tools', 'acme-tools', 'analima', 'analima/acme-tools', 1)
+  repo.run('borrowed', 'borrowed', 'someone', 'someone/borrowed', 0)
+  repo.run('api', 'api', 'newco', 'newco/api', 1)
+  const found = new Map(foundOwners(NOW).map((item) => [item.key, item]))
+  assert.deepEqual([found.get('site:acme')?.suggestion, found.get('site:acme')?.sure], [{ as: 'client', client: 'acme' }, true],
+    'its tickets are in a commit')
+  assert.deepEqual([found.get('owner:analima')?.suggestion, found.get('owner:analima')?.sure], [{ as: 'personal' }, true])
+  assert.deepEqual([found.get('owner:someone')?.suggestion, found.get('owner:someone')?.reason], [{ as: 'none' }, 'cloned'])
+  assert.deepEqual([found.get('owner:newco')?.sure, found.get('owner:newco')?.reason], [false, 'commits'], 'commits, but whose?')
+  assert.deepEqual([found.get('repo:acme-tools')?.sure, found.get('repo:acme-tools')?.detail.client], [false, 'acme'],
+    'the person\'s own, named after a client')
+  assert.equal(found.has('repo:sidequest'), false)
+  const list = foundOwners(NOW)
+  assert.equal(list[0].sure, false, 'the doubtful ones come first')
+})

@@ -3,6 +3,7 @@ import { api, type Status } from '../lib/api.ts'
 import { useLanguage } from '../lib/language.tsx'
 import { LANGUAGES, type Language } from '../lib/strings.ts'
 import { Badge } from './Icons.tsx'
+import { Owners } from './Owners.tsx'
 import { CodeFolders } from './CodeFolders.tsx'
 
 /**
@@ -21,7 +22,9 @@ import { CodeFolders } from './CodeFolders.tsx'
  */
 
 // The language comes first: it decides the words of every step after it.
-const STEPS = ['you', 'welcome', 'permissions', 'code', 'vault', 'services', 'extras', 'done'] as const
+// Whose each thing is comes right after the code folder: the repositories it
+// finds there are most of what it has to ask about.
+const STEPS = ['you', 'welcome', 'permissions', 'code', 'owners', 'vault', 'services', 'extras', 'done'] as const
 type Step = typeof STEPS[number]
 
 type Bridge = {
@@ -151,6 +154,14 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
             <h1>{o.codeTitle}</h1>
             <p className="onb-lead">{o.codeText}</p>
             <CodeFolders onCount={setRepos} />
+          </>
+        )
+      case 'owners':
+        return (
+          <>
+            <h1>{t.owners.title}</h1>
+            <p className="onb-lead">{t.owners.lead}</p>
+            <Owners scan />
           </>
         )
       case 'vault':

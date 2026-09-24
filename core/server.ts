@@ -17,7 +17,8 @@ import { readSettings, saveSettings, writeKey, keyState, openaiBase, type KeyNam
 import { LANGUAGES } from './languages.ts'
 import { workItems, itemDetail } from './items.ts'
 import { timesheet } from './timesheet.ts'
-import { countRepos, suggestCodeRoots } from './sources/git.ts'
+import { countRepos, harvestGit, suggestCodeRoots } from './sources/git.ts'
+import { foundOwners } from './owners.ts'
 import { calendarAsk, calendarStatus, setCalendarStatus, keepMeetings, forgetMeetings } from './sources/calendar.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
 import { pointing } from './screen.ts'
@@ -184,6 +185,13 @@ export function serve(collector?: Collector): http.Server {
         return json(response, { asked })
       }
 
+      // Whose each thing is, as the app found it, for the person to confirm.
+      // The walkthrough asks for a look at the repositories first: on a first
+      // run the harvest has not been through them yet.
+      if (route === '/api/owners') {
+        if (query.get('scan') === '1') await harvestGit(1, false).catch(() => null)
+        return json(response, foundOwners())
+      }
       if (route === '/api/timesheet') {
         const to = query.get('to') ?? today()
         return json(response, timesheet(query.get('from') ?? dayOf(Date.now() / 1000 - 6 * 86_400), to))

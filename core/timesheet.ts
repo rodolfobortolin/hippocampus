@@ -1,5 +1,6 @@
 import { dayOf } from './config.ts'
 import { all, getMeta } from './db.ts'
+import { readSettings, type OwnerAnswer } from './settings.ts'
 import { labelKey } from './jev.ts'
 import { branchLookup, ticketKnowledge, orgName, workItems, NOISE } from './items.ts'
 import { readPage, ticketKeys, branchKeys, type Page } from './pages.ts'
@@ -70,7 +71,19 @@ export type Timesheet = {
   unassigned: number
   /** Agent minutes with no client to put them on. */
   unassignedAgent: number
+  /**
+   * Where the time with no client went, largest first: the place (the site,
+   * or the app), and the windows in it. What the person is asked about, and
+   * what jev is asked about.
+   */
+  leftovers: Leftover[]
 }
+
+export type Leftover = { place: string; seconds: number; category: string | null; windows: { key: string; app: string; title: string | null; seconds: number }[] }
+
+/** The key a place is answered under: the site when there is one, the app otherwise. */
+export const placeOf = (block: { app: string | null; host: string | null }) =>
+  (block.host ?? '').replace(/^www\./, '') || block.app || '?'
 
 type Owner = { org: string; personal: boolean }
 
@@ -124,7 +137,7 @@ const list = (key: string): string[] => {
  * Bitbucket — and splitting its hours in two would hide half of them, so a
  * name that begins with a known one is that one.
  */
-class Clients {
+export class Clients {
   private names = new Map<string, string>()
 
   know(org: string) {
@@ -145,10 +158,13 @@ class Clients {
     return best
   }
 
-  /** The client named in a title: a segment that is exactly its name, or an address at its domain. */
+  /** The client named in a title: a segment or a parenthesis that is exactly its name, or an address at its domain. */
   inText(text: string | null | undefined): string | undefined {
     if (!text) return undefined
-    for (const segment of text.split(/\s+[|•·—–-]\s+/)) {
+    // A segment of the title, or what sits in parentheses in one — a browser
+    // profile is "Ana (Acme)".
+    const segments = text.split(/\s+[|•·—–-]\s+/)
+    for (const segment of [...segments, ...[...text.matchAll(/\(([^()]{3,40})\)/g)].map((match) => match[1])]) {
       const key = orgName(segment)
       if (key.length >= 3 && this.names.has(key)) return this.names.get(key)
     }
@@ -170,6 +186,9 @@ class Clients {
     return key.length >= 3 ? this.names.get(key) : undefined
   }
 }
+
+/** What jev answers for a window that is the person's own. */
+export const PERSONAL = 'personal'
 
 const SECOND_LEVEL = new Set(['co', 'com', 'org', 'net', 'gov', 'ac', 'edu', 'ne', 'or'])
 const FREE_MAIL = new Set(['gmail', 'googlemail', 'outlook', 'hotmail', 'live', 'msn', 'icloud', 'me', 'mac',
@@ -207,13 +226,17 @@ function uncovered(covered: [number, number][], start: number, end: number): num
   return free
 }
 
-export function timesheet(from: string, to: string, now = Date.now() / 1000): Timesheet {
+export function timesheet(from: string, to: string, now = Date.now() / 1000, answers: Record<string, OwnerAnswer> = readSettings().owners): Timesheet {
   const { prefixes, homes } = ticketKnowledge()
   const branchAt = branchLookup()
   const byProject = projectClients(to)
   const labels = new Map(all<{ key: string; project: string }>(
     `select key, project from labels where project is not null and project <> ''`).map((row) => [row.key, row.project]))
   const aiWindows = new Set(all<{ key: string }>(`select key from labels where category = 'ai'`).map((row) => row.key))
+  const categoryOf = new Map(all<{ key: string; category: string | null }>(`select key, category from labels`).map((row) => [row.key, row.category]))
+  // The client jev named for a window no rule could place.
+  const jevClient = new Map(all<{ key: string; client: string }>(
+    `select key, client from labels where client is not null and client <> ''`).map((row) => [row.key, row.client]))
   // The questions put to a coding agent, with the project each was asked in.
   // An AI app's window is titled only with the app's name; the question typed
   // while it was in front says which project it was about.
@@ -240,31 +263,45 @@ export function timesheet(from: string, to: string, now = Date.now() / 1000): Ti
   for (const org of byProject.values()) known.know(org)
   const repos = all<{ name: string; main: string; owner: string | null; worked: number }>(
     `select name, main, owner, worked from repos`)
-  const ownerOf = (owner: string): Owner => you.has(orgName(owner))
-    ? { org: owner, personal: true }
-    : { org: known.find(owner) ?? owner, personal: false }
+  // What the person said outranks every rule. "Not work" is no owner at all.
+  const said = (key: string, name: string): Owner | null | undefined => {
+    const answer = answers[key]
+    if (!answer) return undefined
+    if (answer.as === 'none') return null
+    return answer.as === 'personal' ? { org: name, personal: true } : { org: answer.client, personal: false }
+  }
+  for (const answer of Object.values(answers)) if (answer.as === 'client') known.know(answer.client)
+  const ownerOf = (owner: string): Owner | null => {
+    const answer = said(`owner:${orgName(owner)}`, owner)
+    if (answer !== undefined) return answer
+    return you.has(orgName(owner)) ? { org: owner, personal: true } : { org: known.find(owner) ?? owner, personal: false }
+  }
   // A repository cloned to try something out is not work for its owner:
   // only one with a commit of the person's own makes its owner a client.
   for (const repo of repos) {
-    if (repo.owner && repo.worked && !you.has(orgName(repo.owner))) known.know(known.find(repo.owner) ?? repo.owner)
+    if (repo.owner && repo.worked && !you.has(orgName(repo.owner)) && answers[`owner:${orgName(repo.owner)}`]?.as !== 'none') {
+      known.know(known.find(repo.owner) ?? repo.owner)
+    }
   }
 
   // A project's owner: its repository's remote, a worktree answering for its
   // repository; failing that, its tickets.
-  const repoOwner = new Map<string, Owner>()
+  const repoOwner = new Map<string, Owner | null>()
   const workOwners = new Set<string>()
   for (const repo of repos) {
     if (!repo.owner) continue
+    const answered = answers[`owner:${orgName(repo.owner)}`] !== undefined
     const owner = ownerOf(repo.owner)
-    if (!owner.personal && !repo.worked) continue
+    if (owner && !owner.personal && !repo.worked && !answered) continue
     repoOwner.set(repo.name, owner)
     if (!repoOwner.has(repo.main)) repoOwner.set(repo.main, owner)
-    workOwners.add(orgName(repo.owner))
+    if (owner) workOwners.add(orgName(repo.owner))
   }
   const projectOwner = (project: string | null | undefined): Owner | undefined => {
     if (!project) return undefined
-    const fromRepo = repoOwner.get(project)
-    if (fromRepo) return fromRepo
+    const answer = said(`repo:${project}`, project)
+    if (answer !== undefined) return answer ?? undefined
+    if (repoOwner.has(project)) return repoOwner.get(project) ?? undefined
     const client = byProject.get(project)
     return client ? { org: client, personal: false } : undefined
   }
@@ -274,6 +311,7 @@ export function timesheet(from: string, to: string, now = Date.now() / 1000): Ti
   const days = new Set<string>()
   let unassigned = 0
   let unassignedAgent = 0
+  const leftovers = new Map<string, Leftover>()
 
   const add = (owner: Owner, day: string, line: Omit<TimesheetLine, 'seconds' | 'agentSeconds' | 'days'>,
     seconds: number, agent: number) => {
@@ -316,13 +354,18 @@ export function timesheet(from: string, to: string, now = Date.now() / 1000): Ti
 
     if (page?.org) {
       if (page.site !== 'github') {
-        add({ org: page.org, personal: false }, block.day, areaOf(page), block.seconds, 0)
-        continue
-      }
-      // On GitHub, only an owner with work on this Mac is anyone's time.
-      if (you.has(orgName(page.org)) || workOwners.has(orgName(page.org))) {
-        add(ownerOf(page.org), block.day, areaOf(page), block.seconds, 0)
-        continue
+        const answer = said(`site:${orgName(page.org)}`, page.org)
+        if (answer !== null) {
+          add(answer ?? { org: page.org, personal: false }, block.day, areaOf(page), block.seconds, 0)
+          continue
+        }
+      } else if (you.has(orgName(page.org)) || workOwners.has(orgName(page.org)) || answers[`owner:${orgName(page.org)}`]) {
+        // On GitHub, only an owner with work on this Mac is anyone's time.
+        const owner = ownerOf(page.org)
+        if (owner) {
+          add(owner, block.day, areaOf(page), block.seconds, 0)
+          continue
+        }
       }
     }
     const key = page ? undefined : ticketKeys(block.title)[0] ?? onBranch(project, block.started_at)[0]
@@ -336,12 +379,33 @@ export function timesheet(from: string, to: string, now = Date.now() / 1000): Ti
       add(forProject, block.day, { what: project, kind: 'project' }, block.seconds, 0)
       continue
     }
-    const named = known.inText(block.title)
+    const place = placeOf(block)
+    const forPlace = said(`place:${place}`, place)
+    if (forPlace) {
+      add(forPlace, block.day, { what: place, kind: 'area' }, block.seconds, 0)
+      continue
+    }
+    const named = forPlace === null ? undefined : known.inText(block.title)
     if (named) {
       add({ org: named, personal: false }, block.day, { what: block.app, kind: 'area' }, block.seconds, 0)
       continue
     }
+    // Last, what jev said when asked with the person's own context.
+    const guessed = forPlace === null ? undefined : jevClient.get(window_)
+    if (guessed) {
+      add(guessed === PERSONAL ? { org: guessed, personal: true } : { org: known.find(guessed) ?? guessed, personal: false },
+        block.day, { what: place, kind: 'area' }, block.seconds, 0)
+      continue
+    }
     unassigned += block.seconds
+    // A place already said to be no one's work is not asked about again.
+    if (forPlace === null) continue
+    const leftover = leftovers.get(place) ?? { place, seconds: 0, category: categoryOf.get(window_) ?? null, windows: [] }
+    leftover.seconds += block.seconds
+    const window = leftover.windows.find((candidate) => candidate.key === window_)
+    if (window) window.seconds += block.seconds
+    else leftover.windows.push({ key: window_, app: block.app, title: block.title, seconds: block.seconds })
+    leftovers.set(place, leftover)
   }
 
   // Meetings with guests, for the part of them the Mac saw no focus: that
@@ -394,6 +458,8 @@ export function timesheet(from: string, to: string, now = Date.now() / 1000): Ti
   return {
     from, to, days: [...days].sort(), clients: ordered,
     personal: personal ? sorted(personal) : null, unassigned, unassignedAgent,
+    leftovers: [...leftovers.values()].sort((a, b) => b.seconds - a.seconds).slice(0, 40)
+      .map((leftover) => ({ ...leftover, windows: leftover.windows.sort((a, b) => b.seconds - a.seconds).slice(0, 8) })),
   }
 }
 

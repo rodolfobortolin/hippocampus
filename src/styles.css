@@ -748,7 +748,7 @@ button.piece-line:hover { background: var(--panel-high); }
 /* It covers the app rather than replacing it: the sidebar and the charts
    are right behind, and the last step lets you into them. */
 .onboarding {
-  position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto 1fr auto;
+  position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
   padding: 40px max(32px, calc((100vw - 760px) / 2)) 28px;
   background:
     radial-gradient(700px 460px at 80% -10%, rgba(255, 138, 61, 0.13), transparent 65%),
@@ -763,8 +763,10 @@ button.piece-line:hover { background: var(--panel-high); }
   display: block; height: 100%; background: var(--ember); box-shadow: 0 0 10px var(--ember);
   transform-origin: 0 50%; transition: transform 400ms var(--ease-out);
 }
+/* A step taller than the window scrolls inside, between the progress bar and
+   the buttons: the list of owners pushed "continue" off a 768-pixel screen. */
 .onb-step {
-  align-self: center; padding-block: 36px;
+  align-self: center; padding-block: 36px; max-height: 100%; overflow-y: auto; min-height: 0;
   animation: onb-in 320ms var(--ease-out) both;
 }
 .onb-step.instant { animation: none; }
@@ -944,6 +946,52 @@ button.piece-line:hover { background: var(--panel-high); }
 .sheet-controls { display: inline-flex; gap: 8px; align-items: center; }
 .sheet-controls .nav button { text-transform: none; letter-spacing: 0; font-weight: 400; }
 
+/* ---------- whose each thing is (walkthrough and Settings) ---------- */
+.owners { display: grid; gap: 14px; text-align: left; }
+.owners-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.owner {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 18px;
+  padding: 12px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--border);
+}
+/* The ones the evidence did not settle: what the person is being asked. */
+.owner.asking { border-color: rgba(255, 138, 61, 0.38); }
+.owner-what { display: grid; gap: 3px; min-width: 0; }
+.owner-what b { font-size: 14px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.owner-flag {
+  justify-self: start; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--gold); padding: 1px 7px; border-radius: 99px; border: 1px solid rgba(255, 138, 61, 0.38);
+}
+.owner-why { font-size: 12.5px; color: var(--text-mid); line-height: 1.45; }
+.owner-evidence { font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owner-answer { display: grid; justify-items: end; gap: 6px; }
+.owner-choices button { padding: 5px 10px; font-size: 12px; }
+.owner-client {
+  width: 180px; padding: 5px 9px; border-radius: 8px; font: inherit; font-size: 12.5px;
+  color: var(--text); background: var(--panel-high); border: 1px solid var(--border);
+}
+.owner-client:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.owner-undo, .owners-fold {
+  justify-self: start; padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 12px; color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px;
+}
+.owner-undo { justify-self: end; }
+.owner-undo:hover, .owners-fold:hover { color: var(--text); }
+.owners-empty { font-size: 13px; color: var(--text-dim); }
+.owners-context { display: grid; gap: 4px; }
+.owners-context b { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.owners-context span { font-size: 12.5px; color: var(--text-dim); }
+.owners-context textarea {
+  margin-top: 4px; width: 100%; resize: vertical; padding: 9px 11px; border-radius: 10px;
+  font: inherit; font-size: 13px; line-height: 1.5; color: var(--text);
+  background: var(--panel-high); border: 1px solid var(--border);
+}
+.owners-context textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.owners-context em { font-style: normal; font-size: 12px; color: var(--code); }
+@media (max-width: 720px) {
+  .owner { grid-template-columns: 1fr; }
+  .owner-answer { justify-items: start; }
+}
+
 /* ---------- the code folders (walkthrough and Settings) ---------- */
 .folders { display: grid; gap: 12px; justify-items: start; }
 .folders-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; width: 100%; }
@@ -964,3 +1012,32 @@ button.piece-line:hover { background: var(--panel-high); }
 .folders-offered { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: 100%; }
 .folders-offered li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--text-mid); }
 .folders-offered em { font-style: normal; color: var(--text-dim); }
+
+/* The wait while the repositories are read: a name at a time, and the shape
+   of the rows that are coming. The rows then arrive one after another. */
+.owners-reading { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 13px; color: var(--text-mid); min-height: 20px; }
+.owners-reading i {
+  width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--ember);
+  box-shadow: 0 0 10px var(--ember); animation: owners-pulse 1.1s ease-in-out infinite;
+}
+.owners-reading span { animation: owners-name 420ms var(--ease-out) both; font-variant-numeric: tabular-nums; }
+.owners-wait { display: grid; gap: 12px; }
+.owner.skeleton { pointer-events: none; }
+.owner.skeleton b, .owner.skeleton .owner-what span, .owner.skeleton .owner-answer span {
+  display: block; height: 10px; border-radius: 5px;
+  background: linear-gradient(90deg, var(--panel-high) 0%, rgba(255, 255, 255, 0.09) 50%, var(--panel-high) 100%);
+  background-size: 200% 100%; animation: owners-shimmer 1.4s linear infinite;
+  animation-delay: calc(var(--i, 0) * 120ms);
+}
+.owner.skeleton b { width: 38%; height: 12px; }
+.owner.skeleton .owner-what span { width: 70%; }
+.owner.skeleton .owner-answer span { width: 190px; height: 26px; border-radius: 9px; }
+.owners-list .owner:not(.skeleton) { animation: owners-in 360ms var(--ease-out) both; animation-delay: calc(min(var(--i, 0), 8) * 45ms); }
+@keyframes owners-pulse { 50% { opacity: 0.35; transform: scale(0.8); } }
+@keyframes owners-name { from { opacity: 0; transform: translateY(4px); } }
+@keyframes owners-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@keyframes owners-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .owners-reading i, .owners-reading span, .owner.skeleton b, .owner.skeleton .owner-what span,
+  .owner.skeleton .owner-answer span, .owners-list .owner:not(.skeleton) { animation: none; }
+}

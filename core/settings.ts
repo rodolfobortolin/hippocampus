@@ -98,8 +98,33 @@ export type Settings = {
    * code is spread across.
    */
   codeRoots: string[]
+  /**
+   * The person's word on whose each thing is — a repository owner, a Jira
+   * site, one repository, a place time went — keyed as core/owners.ts names
+   * them ("owner:acme", "repo:sidequest"). It outranks every rule the
+   * timesheet has: the rules guess, this was said.
+   */
+  owners: Record<string, OwnerAnswer>
+  /**
+   * Anything else that tells work from personal, in the person's words —
+   * "Watlow and prodapac are clients I serve through Valiantys". Handed to jev
+   * when it is asked which client a window with no owner was for.
+   */
+  context: string
   /** Whether the first-run walkthrough was finished or skipped. */
   onboarded: boolean
+}
+
+/** A client, under the name to show it with; the person's own; or not work at all. */
+export type OwnerAnswer = { as: 'client'; client: string } | { as: 'personal' } | { as: 'none' }
+
+function validAnswer(value: unknown): OwnerAnswer | null {
+  const answer = value as { as?: unknown; client?: unknown } | null
+  if (answer?.as === 'personal' || answer?.as === 'none') return { as: answer.as }
+  if (answer?.as === 'client' && typeof answer.client === 'string' && answer.client.trim()) {
+    return { as: 'client', client: answer.client.trim().slice(0, 60) }
+  }
+  return null
 }
 
 export type Region = 'global' | 'eu'
@@ -198,6 +223,8 @@ const DEFAULTS: Settings = {
   views: {},
   timesheet: false,
   codeRoots: config.codeRoots,
+  owners: {},
+  context: '',
   onboarded: false,
 }
 
@@ -258,6 +285,10 @@ export function readSettings(): Settings {
       timesheet: data.timesheet === true,
       // A setting stored as one folder, before there could be several, is kept.
       codeRoots: codeRootsOf(data),
+      owners: Object.fromEntries(Object.entries((data.owners ?? {}) as Record<string, unknown>)
+        .map(([key, value]) => [key, validAnswer(value)] as const)
+        .filter((entry): entry is [string, OwnerAnswer] => entry[0].length < 120 && entry[1] !== null)),
+      context: String(data.context ?? '').slice(0, 2000),
       onboarded: data.onboarded === true,
     }
   } catch {
@@ -289,8 +320,18 @@ export function saveSettings(input: Partial<Settings>): Settings {
   // The views arrive one panel at a time and are merged, never replaced: two
   // quick clicks on two panels sent two maps built from the same stale copy,
   // and the second write erased the first choice.
-  const next: Settings = { ...current, ...input, views: { ...current.views, ...(input.views ?? {}) } }
+  // The answers about owners arrive one at a time too, and merge the same
+  // way; an answer sent as null is taken back, and the rules decide again.
+  const owners: Record<string, OwnerAnswer> = { ...current.owners }
+  for (const [key, value] of Object.entries((input.owners ?? {}) as Record<string, unknown>)) {
+    const answer = validAnswer(value)
+    if (answer) owners[key] = answer
+    else delete owners[key]
+  }
+  const next: Settings = { ...current, ...input, views: { ...current.views, ...(input.views ?? {}) }, owners }
   next.codeRoots = codeRootsOf(next as unknown as Record<string, unknown>)
+  // A new context makes jev's earlier answers about clients worth asking again.
+  if (input.context !== undefined && input.context !== current.context) setMeta('context.changed', String(Math.floor(Date.now() / 1000)))
   // Storing a folder that does not exist would only produce a journal that
   // vanishes.
   if (next.vault && !fs.existsSync(next.vault)) next.vault = readSettings().vault
