@@ -115,3 +115,23 @@ test('a camera turned on mid-block marks the block, and an older helper that nev
   const silent = db.prepare('select camera from blocks order by id desc limit 1').get() as { camera: number }
   assert.equal(silent.camera, 0)
 })
+
+test('a change of window loses no time: the next block starts where the last one ended', () => {
+  db.exec('delete from blocks')
+  const collector = new FocusCollector()
+  const start = Math.floor(Date.now() / 1000) - 60
+  const at = (seconds: number) => new Date((start + seconds) * 1000).toISOString()
+  collector.push(sample({ ts: at(0), title: 'a.ts' }))
+  collector.push(sample({ ts: at(4), title: 'a.ts' }))
+  collector.push(sample({ ts: at(8), title: 'b.ts' }))
+  collector.push(sample({ ts: at(12), app: 'Slack', title: 'general' }))
+  const rows = db.prepare('select started_at, ended_at, seconds from blocks order by started_at').all() as
+    { started_at: number; ended_at: number; seconds: number }[]
+  assert.deepEqual(rows.map((row) => row.seconds), [4, 4, 4], 'four seconds a sample, none of them lost')
+  assert.equal(rows[1].started_at, rows[0].ended_at)
+  assert.equal(rows[2].started_at, rows[1].ended_at)
+  // After a long gap — the Mac asleep — nothing is bridged.
+  collector.push(sample({ ts: at(600), app: 'Slack', title: 'general' }))
+  const last = db.prepare('select started_at, seconds from blocks order by started_at desc limit 1').get() as { started_at: number; seconds: number }
+  assert.deepEqual([last.started_at, last.seconds], [start + 600, 0])
+})

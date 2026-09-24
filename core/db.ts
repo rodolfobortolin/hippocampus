@@ -281,6 +281,35 @@ for (const [column, type] of [
   }
 }
 
+// The seams between blocks, given back. A block used to start at the sample
+// that first saw it, and the few seconds since the sample before belonged to
+// no block: at over a thousand changes of window a day, 1.2 to 1.9 hours a day
+// went unmeasured. A seam that short is known to be that and nothing else, so
+// the block after it starts where the one before ended. Once.
+if (getMetaEarly('blocks.seams') !== '1') {
+  // The core and the collector open the database at the same moment: the
+  // check and the reading happen inside a write lock, or both would widen
+  // the same seams and count those seconds twice.
+  db.exec('begin immediate')
+  try {
+    if (getMetaEarly('blocks.seams') !== '1') {
+      const rows = db.prepare('select id, started_at, ended_at from blocks order by started_at, id').all() as
+        { id: number; started_at: number; ended_at: number }[]
+      const widen = db.prepare('update blocks set started_at = ?, seconds = seconds + ? where id = ?')
+      for (let i = 1; i < rows.length; i++) {
+        const seam = rows[i].started_at - rows[i - 1].ended_at
+        if (seam > 0 && seam <= 16) widen.run(rows[i - 1].ended_at, seam, rows[i].id)
+      }
+      db.prepare(`insert into meta(key, value) values ('blocks.seams', '1')
+        on conflict(key) do update set value = excluded.value`).run()
+    }
+    db.exec('commit')
+  } catch (error) {
+    db.exec('rollback')
+    throw error
+  }
+}
+
 // Which domains a meeting's guests write from: the client a meeting is for,
 // when its title does not say.
 if (!(db.prepare('pragma table_info(meetings)').all() as any[]).some((c) => c.name === 'domains')) {
@@ -312,6 +341,11 @@ db.exec(`
     select max(id) from commits where files > 0 group by ts, files, insertions, deletions
   )
 `)
+
+function getMetaEarly(key: string): string {
+  const row = db.prepare('select value from meta where key = ?').get(key) as { value?: string } | undefined
+  return row?.value ?? ''
+}
 
 export function getMeta(key: string, fallback = ''): string {
   const row = db.prepare('select value from meta where key = ?').get(key) as { value?: string } | undefined

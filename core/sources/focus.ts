@@ -213,8 +213,15 @@ export class FocusCollector {
     const title = idle || secret ? null : sample.title ?? null
     const key = `${idle ? 'idle' : 'live'}|${app}|${title ?? ''}|${sample.screen ?? ''}|${sample.playing ?? ''}`
 
-    // Buraco grande (sono, coletor parado) close o block openedAt.
+    // A long gap (sleep, the collector stopped) closes the open block.
     const gap = this.open ? ts - this.open.endedAt : 0
+    // Where the next block starts. A block used to start at the sample that
+    // first saw it, so the interval since the sample before belonged to no
+    // block at all: four seconds lost at every change of window. With over a
+    // thousand changes a day, that was 1.2 to 1.9 hours a day missing from the
+    // measure — a fifth of it. Right after another block, the new one starts
+    // where that one ended.
+    const from = this.open && gap <= config.sampleInterval * 4 ? this.open.endedAt : ts
     if (this.open && (this.open.key !== key || gap > config.sampleInterval * 4)) this.open = null
 
     if (this.open) {
@@ -228,7 +235,7 @@ export class FocusCollector {
 
     const url = idle || secret ? null : sample.url ?? null
     const result = insert.run(
-      ts, ts, 0, dayOf(ts), app, idle ? null : sample.bundle ?? null,
+      from, ts, ts - from, dayOf(ts), app, idle ? null : sample.bundle ?? null,
       title, url, hostOf(url ?? undefined), idle ? 1 : 0,
       delta.keys, delta.clicks, delta.scroll, mic, sample.camera ? 1 : 0, idle ? null : sample.screen ?? null,
       sample.sound ? 1 : 0,
@@ -236,6 +243,6 @@ export class FocusCollector {
       // marking a call in that state would invent a meeting every day.
       sample.listening ? null : sample.mediaOpen ?? null, sample.playing ?? null,
     )
-    this.open = { id: Number(result.lastInsertRowid), key, startedAt: ts, endedAt: ts }
+    this.open = { id: Number(result.lastInsertRowid), key, startedAt: from, endedAt: ts }
   }
 }
