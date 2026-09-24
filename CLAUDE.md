@@ -201,7 +201,7 @@ describes it — the Rhythm copy names Thursday at 16h because the capture picks
 that cell. `npm run site` serves it; `npm run site:build` builds it into
 `site/dist`.
 
-It is published on Vercel at https://hippocampus-black.vercel.app/ — the
+It is published on Vercel at https://gethippocampus.vercel.app/ — the
 project `hippocampus` under rodolfobortolins-projects, connected to this
 repository. `vercel.json` says how it is built, and its `ignoreCommand` skips
 the build when a push touches neither `site/`, the sphere in `src/three/`, the

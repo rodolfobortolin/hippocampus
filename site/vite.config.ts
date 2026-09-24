@@ -10,7 +10,7 @@ const { version, funding } = JSON.parse(readFileSync(path.join(__dirname, '..', 
 // Where the site lives. Every tag that has to be an absolute address — the
 // canonical link, the link previews, the sitemap — is written from this one
 // line, so moving the site is a change here and nowhere else.
-export const SITE = 'https://hippocampus-black.vercel.app/'
+export const SITE = 'https://gethippocampus.vercel.app/'
 
 // Whether the latest release carries a notarized .dmg. Until one does, the
 // download button would lead to a 404, so the page offers the source instead;
