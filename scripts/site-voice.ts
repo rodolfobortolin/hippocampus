@@ -5,8 +5,8 @@
 //   node --experimental-strip-types scripts/site-voice.ts hello    only the lines named
 //
 // The key is read from the Keychain, as the app reads it — never from an
-// argument. The files are committed, so the page calls no API and a visitor's
-// browser talks to nobody.
+// argument. The files are committed, so the page calls no voice API and a
+// visitor's browser never meets the key.
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'

@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+import { inject } from '@vercel/analytics'
 import { Core, type CoreState } from '../src/three/Core.ts'
 import { setUpMotion } from './motion.ts'
 import { setUpViewer } from './viewer.ts'
@@ -5,6 +7,11 @@ import { setUpViewer } from './viewer.ts'
 // second to answer the very click it invites.
 import { dismissGreeting, greet, greeting } from './greet.ts'
 import { GREETING, type TourStep } from './tour-script.ts'
+
+// Vercel's Web Analytics: page views counted without cookies and without
+// anything that identifies a visitor. Only on the published site; a local
+// preview counts nothing.
+inject({ mode: import.meta.env.DEV ? 'development' : 'production' })
 
 setUpMotion()
 setUpViewer()
