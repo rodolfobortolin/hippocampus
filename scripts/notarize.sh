@@ -27,11 +27,22 @@ cd "$(dirname "$0")/.."
 
 PROFILE="${HIPPOCAMPUS_NOTARY_PROFILE:-hippocampus}"
 
-if ! xcrun notarytool history --keychain-profile "$PROFILE" >/dev/null 2>&1; then
+# Two ways to prove who is asking. An App Store Connect API key — the .p8 file,
+# its key id and its issuer — is what CI uses (.github/workflows/release.yml):
+# it needs no Apple ID login and does not expire with a password. Without one,
+# the credential stored in the Keychain, as on the machine that made v0.4.0.
+# That credential disappeared from the Keychain once, between two releases on
+# the same day; the key cannot.
+if [ -n "$NOTARY_API_KEY" ] && [ -n "$NOTARY_API_KEY_ID" ] && [ -n "$NOTARY_API_ISSUER" ]; then
+  set -- --key "$NOTARY_API_KEY" --key-id "$NOTARY_API_KEY_ID" --issuer "$NOTARY_API_ISSUER"
+  echo "==> notarising with the App Store Connect API key $NOTARY_API_KEY_ID"
+elif xcrun notarytool history --keychain-profile "$PROFILE" >/dev/null 2>&1; then
+  set -- --keychain-profile "$PROFILE"
+else
   cat <<END
-Could not find the credential "$PROFILE" in the Keychain.
-
-Store it once, with an app-specific password created at appleid.apple.com:
+No way to notarise: no App Store Connect API key in NOTARY_API_KEY,
+NOTARY_API_KEY_ID and NOTARY_API_ISSUER, and no credential "$PROFILE" in the
+Keychain. Store one once, with an app-specific password from appleid.apple.com:
 
   xcrun notarytool store-credentials $PROFILE --apple-id YOU@EXAMPLE.COM --team-id YOURTEAM
 
@@ -56,7 +67,7 @@ npm run dist
 
 echo "==> notarising the app (usually a few minutes)"
 ditto -c -k --keepParent "$APP" "$OUT/notarize.zip"
-xcrun notarytool submit "$OUT/notarize.zip" --keychain-profile "$PROFILE" --wait
+xcrun notarytool submit "$OUT/notarize.zip" "$@" --wait
 rm "$OUT/notarize.zip"
 # Stapling is what lets the app open without internet: without the staple,
 # Gatekeeper has to ask Apple on every first open.
@@ -70,7 +81,7 @@ ln -s /Applications "$STAGE/Applications"
 hdiutil create -volname Hippocampus -srcfolder "$STAGE" -ov -format UDZO "$OUT/$DMG" >/dev/null
 rm -rf "$STAGE"
 codesign --sign "$IDENTITY" --timestamp "$OUT/$DMG"
-xcrun notarytool submit "$OUT/$DMG" --keychain-profile "$PROFILE" --wait
+xcrun notarytool submit "$OUT/$DMG" "$@" --wait
 xcrun stapler staple "$OUT/$DMG"
 spctl --assess --type open --context context:primary-signature -v "$OUT/$DMG"
 

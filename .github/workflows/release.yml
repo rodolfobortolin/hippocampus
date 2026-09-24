@@ -1,0 +1,123 @@
+# The notarized build, made on a clean Mac and attached to the release.
+#
+# build.yml checks what can be checked without a Mac. This one needs a Mac: it
+# compiles the Swift helpers, signs the app with the Developer ID, notarizes
+# and staples it, and attaches the three files every release needs — the .dmg
+# people download, and the zip and latest-mac.yml installed copies update
+# from. It is scripts/notarize.sh, run with an App Store Connect API key
+# instead of a credential in someone's Keychain; that credential vanished once
+# between two releases on the same day, and the release waited on it.
+#
+# It runs when a release is published, and by hand for a tag that already has
+# a release without files (the Actions tab, or
+# `gh workflow run release.yml -f tag=v1.2.3`).
+#
+# Secrets, the same five as speakly's:
+#   CSC_LINK           the Developer ID Application certificate, .p12, base64
+#   CSC_KEY_PASSWORD   its password
+#   APPLE_API_KEY      the App Store Connect API key, .p8, base64
+#   APPLE_API_KEY_ID   its key id
+#   APPLE_API_ISSUER   its issuer id
+name: release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The tag to build and attach, e.g. v0.5.0'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  notarized:
+    runs-on: macos-14  # Apple silicon, like the app
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          fetch-depth: 0
+
+      # The packaging comes from this workflow's own commit, the app from the
+      # tag: a tag cut before this workflow existed still builds the way it
+      # does now.
+      - name: Use this commit's packaging scripts
+        run: git checkout ${{ github.workflow_sha }} -- scripts/notarize.sh
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Check the secrets are there
+        run: |
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_API_KEY APPLE_API_KEY_ID APPLE_API_ISSUER; do
+            [ -n "$(printenv "$name")" ] || { echo "::error::secret $name is missing"; exit 1; }
+          done
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+
+      # The Swift helpers are signed before electron-builder runs
+      # (scripts/build-native.sh finds the identity with `security`), so the
+      # certificate has to be in a keychain first, not only handed to
+      # electron-builder.
+      - name: Put the Developer ID in a keychain of its own
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          PASS="$(uuidgen)"
+          printf '%s' "$CSC_LINK" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$PASS" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$PASS" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+          security find-identity -v -p codesigning "$KEYCHAIN" | grep "Developer ID Application"
+
+      # With asar off the bundle has tens of thousands of files, and the
+      # signer opens them all at once; speakly's releases died of EMFILE until
+      # the kernel ceiling was raised. ulimit alone does not reach it.
+      - name: Raise the open-file ceiling
+        run: sudo sysctl -w kern.maxfiles=524288 kern.maxfilesperproc=262144
+
+      - name: Build, sign, notarize and staple
+        env:
+          APPLE_API_KEY_B64: ${{ secrets.APPLE_API_KEY }}
+          NOTARY_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          NOTARY_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          # notarytool wants the .p8 as a file: outside the workspace, so it
+          # cannot be packaged, and gone when the step ends.
+          KEY_DIR="$(mktemp -d)"
+          trap 'rm -rf "$KEY_DIR"' EXIT
+          printf '%s' "$APPLE_API_KEY_B64" | base64 --decode > "$KEY_DIR/AuthKey.p8"
+          export NOTARY_API_KEY="$KEY_DIR/AuthKey.p8"
+          ulimit -n 200000
+          sh scripts/notarize.sh
+
+      - name: Attach the three files to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          [ "v$VERSION" = "$TAG" ] || { echo "::error::package.json says $VERSION, the tag is $TAG"; exit 1; }
+          ls -la "release/v$VERSION"
+          gh release upload "$TAG" release/v$VERSION/* --clobber
+
+      - name: Forget the signing keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true

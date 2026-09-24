@@ -148,11 +148,17 @@ a test failing, never in the middle of a change that is only half done.
 6. Green: `gh release create vX.Y.Z --title vX.Y.Z --notes-file <that section>`.
    The release commit on main republishes the website, whose button names the
    version from package.json — nothing to change on the site by hand.
-7. Attach a build only if it is notarized. `npm run notarize` builds, notarizes
-   and staples, and leaves three files in `release/vX.Y.Z/`: the `.dmg` people
-   download, the `-mac.zip` and `latest-mac.yml` the installed apps update
-   from. Attach all three (`gh release upload vX.Y.Z release/vX.Y.Z/*`) — a
-   release without `latest-mac.yml` is one no installed app updates to.
+7. Publishing the release starts `.github/workflows/release.yml`: on a macOS
+   runner it builds, signs, notarizes and staples, and attaches the three
+   files — the `.dmg` people download, the `-mac.zip` and `latest-mac.yml` the
+   installed apps update from. Watch it too; a release without
+   `latest-mac.yml` is one no installed app updates to. It needs five secrets
+   (listed at the top of the workflow). For a tag whose release has no files,
+   run it by hand: `gh workflow run release.yml -f tag=vX.Y.Z`. The local way
+   still works — `npm run notarize` with the Keychain credential, or with
+   `NOTARY_API_KEY`, `NOTARY_API_KEY_ID` and `NOTARY_API_ISSUER` set — and then
+   `gh release upload vX.Y.Z release/vX.Y.Z/*`. Attach a build only if it is
+   notarized.
    Without notarization macOS refuses to open it on any other Mac, so a download
    would be a trap; say in the notes that it has to be built from source.
    The first release that attaches a .dmg also sets `DOWNLOAD = true` in
