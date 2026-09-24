@@ -194,7 +194,9 @@ export function Chat({ status }: { status: Status | null }) {
   const send = (question: string) => {
     const clear = question.trim()
     if (!clear || thinking) return
-    if (!sendToCore({ type: 'question', text: clear })) {
+    // Spoken back when it was asked out loud or every answer is read aloud;
+    // the core then keeps it to a sentence or two.
+    if (!sendToCore({ type: 'question', text: clear, spoken: askedByVoice.current || alwaysAloud })) {
       // Never swallow the question quietly: the text stays in the field.
       setState('error')
       setMessages((current) => [...current, { of: 'it', text: t.chat.coreIsDown }])

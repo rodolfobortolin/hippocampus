@@ -112,7 +112,7 @@ export function FloatingCore() {
   const listening = useListening((utterance) => {
     setQuestion(utterance)
     answerRef.current = ''
-    send({ type: 'question', text: utterance })
+    send({ type: 'question', text: utterance, spoken: true })
   }, t.common)
 
   /**

@@ -6,6 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+- Answers are short: a few lines when typed, and at most two short sentences
+  when they will be heard — through the live voice or read aloud — with no
+  lists or tables spoken out.
 - Asked to do something on your screen — open, click, pick — it answers on
   the quick model, which looks and clicks without stopping to think at
   length between each step.

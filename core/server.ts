@@ -449,7 +449,7 @@ export function serve(collector?: Collector): http.Server {
      * which says it in its own words — and the pieces still go to the screen so
      * there is a transcript to read.
      */
-    const answer = async (text: string, speaks: LiveVoice | undefined) => {
+    const answer = async (text: string, speaks: LiveVoice | undefined, spoken = false) => {
       // Turning the live voice off in Settings does not reach into an open
       // session, and a session left open goes on speaking while the screen,
       // now back in push mode, reads the same answer out through the speech
@@ -463,7 +463,9 @@ export function serve(collector?: Collector): http.Server {
         const abort = new AbortController()
         running?.abort()
         running = abort
-        for await (const event of chat(text, session, { abort })) {
+        // Heard rather than read: the live voice is speaking, or the screen
+        // that asked will read the answer out.
+        for await (const event of chat(text, session, { abort, spoken: spoken || Boolean(speaks) })) {
           // Stopped: the screens were told the moment the button was pressed,
           // and anything still draining out of the session is dropped.
           if (abort.signal.aborted || event.type === 'stopped') {
@@ -527,7 +529,7 @@ export function serve(collector?: Collector): http.Server {
       const session_ = new LiveVoice({
         onRequest: (text) => {
           if (!text) return
-          void answer(text, session_)
+          void answer(text, session_, true)
         },
         onSpoken: (text) => send({ type: 'spoken', text }),
         onHeard: () => send({ type: 'listening' }),
@@ -574,7 +576,7 @@ export function serve(collector?: Collector): http.Server {
       if (payload.type !== 'question' || !payload.text) return
       // A typed question is spoken by the live session when one is open, so
       // the two ways of asking share one voice rather than talking over it.
-      await answer(String(payload.text), live)
+      await answer(String(payload.text), live, payload.spoken === true)
     })
 
     socket.on('close', () => {

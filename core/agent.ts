@@ -355,6 +355,35 @@ const WIDE: Record<Language, string> = {
   'de-DE': `Du hast auch den Rest von Claude Code auf diesem Rechner: Dateien lesen, Befehle ausführen, im Web suchen, und die hier schon eingerichteten MCP-Server. Nutze sie, wenn die Frage etwas verlangt, das die Datenbank nicht hat — das Wetter draußen, eine Datei, eine Mail, was auf einer Seite steht. Für jede Zahl über seinen Tag nimm die Werkzeuge der App, nie handgeschriebenes SQL: sie tragen die eine Definition von „aktiv", und eine improvisierte Abfrage ergibt eine andere Zahl. Sag, was du getan hast, wenn du den Rechner verlässt.`,
 }
 
+/**
+ * Short, always; shortest when it will be heard. An answer read out loud by
+ * the speech voice, or passed to the live voice to say, went on for a
+ * minute: tables, lists, every number. Written, it can carry a table when
+ * the table is the answer.
+ */
+const CONCISE: Record<Language, { written: string; spoken: string }> = {
+  'pt-BR': {
+    written: 'Seja sucinto: responda direto, em no máximo três ou quatro linhas, sem anunciar o que vai fazer nem explicar o caminho. Tabela ou lista só quando forem a resposta, ou quando ele pedir.',
+    spoken: 'Esta resposta vai ser lida em voz alta. Responda em no máximo duas frases curtas, só o essencial, sem listas, tabelas, markdown, caminhos de arquivo nem números além dos que respondem à pergunta.',
+  },
+  'en-US': {
+    written: 'Be brief: answer directly, in three or four lines at most, without announcing what you are about to do or explaining the route. A table or a list only when it is the answer, or when asked for.',
+    spoken: 'This answer will be read out loud. Answer in two short sentences at most, just the gist, with no lists, tables, markdown, file paths or numbers beyond the ones that answer the question.',
+  },
+  'es-ES': {
+    written: 'Sé breve: responde directo, en tres o cuatro líneas como mucho, sin anunciar lo que vas a hacer ni explicar el camino. Tabla o lista solo cuando sean la respuesta, o cuando lo pida.',
+    spoken: 'Esta respuesta se leerá en voz alta. Responde en dos frases cortas como mucho, solo lo esencial, sin listas, tablas, markdown, rutas de archivo ni números más allá de los que responden la pregunta.',
+  },
+  'fr-FR': {
+    written: 'Sois bref : réponds directement, en trois ou quatre lignes au plus, sans annoncer ce que tu vas faire ni expliquer le chemin. Un tableau ou une liste seulement quand c’est la réponse, ou quand il le demande.',
+    spoken: 'Cette réponse sera lue à voix haute. Réponds en deux phrases courtes au plus, juste l’essentiel, sans listes, tableaux, markdown, chemins de fichiers ni chiffres au-delà de ceux qui répondent à la question.',
+  },
+  'de-DE': {
+    written: 'Sei knapp: antworte direkt, in höchstens drei oder vier Zeilen, ohne anzukündigen, was du tust, oder den Weg zu erklären. Eine Tabelle oder Liste nur, wenn sie die Antwort ist oder verlangt wird.',
+    spoken: 'Diese Antwort wird vorgelesen. Antworte in höchstens zwei kurzen Sätzen, nur das Wesentliche, ohne Listen, Tabellen, Markdown, Dateipfade oder Zahlen über die hinaus, die die Frage beantworten.',
+  },
+}
+
 function persona(): string {
   const language = validLanguage(config.lang)
   const who = PERSONAS[language]
@@ -422,7 +451,7 @@ export function streamedText(event: any, after: boolean): string {
 const FALLBACK_MODEL = 'claude-sonnet-5'
 
 /** Talks to Claude Code, with the local database as its tools. */
-export async function* chat(prompt: string, sessionId?: string, { abort }: { abort?: AbortController } = {}): AsyncGenerator<AgentEvent> {
+export async function* chat(prompt: string, sessionId?: string, { abort, spoken = false }: { abort?: AbortController; spoken?: boolean } = {}): AsyncGenerator<AgentEvent> {
   // A model that fits the request: jev judges the complexity before it starts.
   // With HIPPOCAMPUS_MODEL set, the choice is yours and the routing steps aside.
   const route = config.claudeModel ? null : await pickModel(prompt)
@@ -443,8 +472,14 @@ export async function* chat(prompt: string, sessionId?: string, { abort }: { abo
    */
   const wide = readSettings().wideTools
 
+  // With each question, not in the system prompt: a resumed conversation
+  // keeps the system prompt it started with, and a spoken question after a
+  // typed one came back with the typed answer's lists — 1,138 characters read
+  // out loud. The tag keeps it out of the requests the collector counts.
+  const language = validLanguage(config.lang)
+  const note = spoken ? CONCISE[language].spoken : CONCISE[language].written
   const run = query({
-    prompt,
+    prompt: `${prompt}\n\n<hippocampus-note>${note}</hippocampus-note>`,
     options: {
       cwd: wide ? config.home : config.dataDir,
       ...(config.claudeModel ? { model: config.claudeModel } : route ? { model: route.model } : { model: FALLBACK_MODEL }),

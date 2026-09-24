@@ -19,6 +19,8 @@ const MACHINE_BLOCKS = [
   'command-name', 'command-message', 'command-args', 'recommended_plugins', 'environment_context',
   'system-reminder', 'send_user_message_question_reply', 'skill', 'user_instructions',
   'in-app-browser-context', 'image', 'transcript_delta',
+  // Hippocampus's own chat, telling the model how long to answer.
+  'hippocampus-note',
 ]
 const BLOCK = new RegExp(`<(${MACHINE_BLOCKS.join('|')})\\b[^>]*>[\\s\\S]*?</\\1>`, 'g')
 
