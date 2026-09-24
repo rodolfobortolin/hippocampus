@@ -3,6 +3,7 @@ import { api, type Status } from '../lib/api.ts'
 import { useLanguage } from '../lib/language.tsx'
 import { LANGUAGES, type Language } from '../lib/strings.ts'
 import { Badge } from './Icons.tsx'
+import { CodeFolders } from './CodeFolders.tsx'
 
 /**
  * The first run: what the app is, what stays where, and the few things it
@@ -29,8 +30,6 @@ type Bridge = {
 }
 const bridge = (globalThis as any).hippocampus as Bridge | undefined
 
-type Repos = { root: string; repos: number; names: string[]; readable: boolean }
-
 export function Onboarding({ status: initial }: { status: Status | null }) {
   const { t, language, settings, save } = useLanguage()
   const o = t.onboarding
@@ -39,7 +38,8 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
   const [instant, setInstant] = useState(false)
   const [status, setStatus] = useState<Status | null>(initial)
   const [name, setName] = useState(settings?.name ?? '')
-  const [repos, setRepos] = useState<Repos | null>(null)
+  // How many repositories the chosen folders hold, all of them together.
+  const [repos, setRepos] = useState<number | null>(null)
   const [blocked, setBlocked] = useState<string[]>([])
   const [typesafe, setTypesafe] = useState('')
   const [openai, setOpenai] = useState('')
@@ -59,9 +59,6 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
     return () => { alive = false; clearInterval(timer) }
   }, [step])
 
-  useEffect(() => {
-    if (step === 'code' && settings) api.repos(settings.codeRoot).then(setRepos).catch(() => setRepos(null))
-  }, [step, settings?.codeRoot])
 
   if (!settings) return null
 
@@ -75,11 +72,9 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
   }
   const finish = () => save({ onboarded: true })
 
-  const choose = async (key: 'codeRoot' | 'vault') => {
-    const chosen = await bridge?.chooseFolder?.(key === 'codeRoot' ? o.pickCode : o.pickVault)
-    if (!chosen) return
-    await save(key === 'codeRoot' ? { codeRoot: chosen } : { vault: chosen })
-    if (key === 'codeRoot') setRepos(await api.repos(chosen).catch(() => null))
+  const chooseVault = async () => {
+    const chosen = await bridge?.chooseFolder?.(o.pickVault)
+    if (chosen) await save({ vault: chosen })
   }
 
   const trusted = status?.collector.trusted
@@ -155,17 +150,7 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
           <>
             <h1>{o.codeTitle}</h1>
             <p className="onb-lead">{o.codeText}</p>
-            <div className="onb-folder">
-              <code title={settings.codeRoot}>{settings.codeRoot}</code>
-              {bridge?.chooseFolder && <button className="onb-button" onClick={() => void choose('codeRoot')}>{o.choose}</button>}
-            </div>
-            {repos && (
-              <p className={`onb-found ${repos.repos ? 'ok' : ''}`}>
-                {!repos.readable ? o.unreadable
-                  : repos.repos ? `${o.reposFound(repos.repos)} — ${repos.names.join(', ')}${repos.repos > repos.names.length ? '…' : ''}`
-                  : o.noRepos}
-              </p>
-            )}
+            <CodeFolders onCount={setRepos} />
           </>
         )
       case 'vault':
@@ -176,7 +161,7 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
             <p className="onb-lead">{o.vaultText}</p>
             <div className="onb-folder">
               <code title={settings.vault}>{settings.vault || t.settings.noVault}</code>
-              {bridge?.chooseFolder && <button className="onb-button" onClick={() => void choose('vault')}>{o.choose}</button>}
+              {bridge?.chooseFolder && <button className="onb-button" onClick={() => void chooseVault()}>{o.choose}</button>}
             </div>
           </>
         )
@@ -258,7 +243,7 @@ export function Onboarding({ status: initial }: { status: Status | null }) {
   })()
 
   // A step that is only a choice to make can be passed over with its own words.
-  const passOver = step === 'code' && !repos?.repos ? o.noCode : step === 'vault' && !settings.vault ? o.notNow : null
+  const passOver = step === 'code' && !repos ? o.noCode : step === 'vault' && !settings.vault ? o.notNow : null
 
   return (
     <div className="onboarding" role="dialog" aria-modal="true" aria-label={o.welcomeTitle}>

@@ -9,6 +9,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 - Time spent across changes of window is no longer lost. Four seconds went
   missing at every change, which came to between one and two hours a day; the
   days already measured are given that time back.
+- Code can live in more than one folder: the walkthrough and Settings list
+  each one with the repositories it holds, and offer the usual places —
+  ~/Projects, ~/Developer, ~/code — that have repositories and are not read yet.
 
 ## v0.6.0 — 2026-09-24
 

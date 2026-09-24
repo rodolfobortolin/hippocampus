@@ -17,7 +17,7 @@ import { readSettings, saveSettings, writeKey, keyState, openaiBase, type KeyNam
 import { LANGUAGES } from './languages.ts'
 import { workItems, itemDetail } from './items.ts'
 import { timesheet } from './timesheet.ts'
-import { countRepos } from './sources/git.ts'
+import { countRepos, suggestCodeRoots } from './sources/git.ts'
 import { calendarAsk, calendarStatus, setCalendarStatus, keepMeetings, forgetMeetings } from './sources/calendar.ts'
 import { LiveVoice, liveAvailable, liveInstructions, LIVE_VOICES } from './live.ts'
 import { pointing } from './screen.ts'
@@ -172,7 +172,11 @@ export function serve(collector?: Collector): http.Server {
       // The walkthrough: how many repositories a folder holds, so the person
       // sees at once whether they picked the right one.
       if (route === '/api/repos') {
-        return json(response, await countRepos(query.get('root') ?? config.codeRoot))
+        return json(response, await countRepos(query.get('root') ?? config.codeRoots[0] ?? config.home))
+      }
+      // The usual code folders with repositories in them that are not read yet.
+      if (route === '/api/repos/suggest') {
+        return json(response, await suggestCodeRoots(config.codeRoots))
       }
       // Raises the macOS Accessibility prompt, from the helper the core runs.
       if (route === '/api/permission/accessibility' && request.method === 'POST') {

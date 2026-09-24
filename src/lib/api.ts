@@ -122,8 +122,8 @@ export type Settings = {
   captures: boolean
   /** How each panel that can be drawn two ways is drawn. */
   views: Record<string, 'bars' | 'pie'>
-  /** The folder the repositories live in. */
-  codeRoot: string
+  /** The folders the repositories live in. */
+  codeRoots: string[]
   /** Whether the first-run walkthrough was finished or skipped. */
   onboarded: boolean
   /** '' until the helper has asked; then 'granted' or 'denied'. */
@@ -203,6 +203,7 @@ export const api = {
   days: () => get<StoredDay[]>('/api/days'),
   items: (from: string, to: string) => get<WorkItems>(`/api/items?from=${from}&to=${to}`),
   timesheet: (from: string, to: string) => get<Timesheet>(`/api/timesheet?from=${from}&to=${to}`),
+  suggestRoots: () => get<{ root: string; repos: number; names: string[] }[]>('/api/repos/suggest'),
   repos: (root?: string) =>
     get<{ root: string; repos: number; names: string[]; readable: boolean }>(`/api/repos${root ? `?root=${encodeURIComponent(root)}` : ''}`),
   askAccessibility: () => get<{ asked: boolean }>('/api/permission/accessibility', { method: 'POST' }),

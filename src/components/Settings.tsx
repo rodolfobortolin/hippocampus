@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import pkg from '../../package.json'
 import { useLanguage } from '../lib/language.tsx'
-import { api } from '../lib/api.ts'
+import { CodeFolders } from './CodeFolders.tsx'
 import { LANGUAGES, type Language } from '../lib/strings.ts'
 import { IconKey, IconFolder } from './Icons.tsx'
 
@@ -98,7 +98,6 @@ export function Settings() {
   const [agents, setAgents] = useState<AgentStates | null>(null)
   const [capturing, setCapturing] = useState(false)
   const [shortcutTaken, setShortcutTaken] = useState(false)
-  const [repos, setRepos] = useState<{ repos: number; readable: boolean } | null>(null)
 
   // The text fields only sync when the settings arrive or change from outside;
   // while the person is typing, what is on screen is what wins.
@@ -112,9 +111,6 @@ export function Settings() {
     bridge?.agents?.status().then(setAgents).catch(() => setAgents(null))
   }, [])
   useEffect(readAgents, [readAgents])
-  useEffect(() => {
-    if (settings?.codeRoot) api.repos(settings.codeRoot).then(setRepos).catch(() => setRepos(null))
-  }, [settings?.codeRoot])
 
   if (!settings) return <p className="empty">{t.today.loading}</p>
 
@@ -138,12 +134,6 @@ export function Settings() {
   const chooseFolder = async () => {
     const chosen = await bridge?.chooseFolder?.(t.onboarding.pickVault)
     if (chosen) void store({ vault: chosen })
-  }
-  const chooseCode = async () => {
-    const chosen = await bridge?.chooseFolder?.(t.onboarding.pickCode)
-    if (!chosen) return
-    await store({ codeRoot: chosen })
-    setRepos(await api.repos(chosen).catch(() => null))
   }
 
   const keyLabel = (which: 'jev' | 'openai') => {
@@ -320,13 +310,7 @@ export function Settings() {
 
         <div className="panel">
           <h3><IconFolder /> {t.settings.codeFolder}<em>{t.settings.codeFolderNote}</em></h3>
-          <Field label={t.onboarding.choose}
-            note={repos ? (!repos.readable ? t.onboarding.unreadable : repos.repos ? t.onboarding.reposFound(repos.repos) : t.onboarding.noRepos) : undefined}>
-            <div className="path">
-              <code title={settings.codeRoot}>{shortPath(settings.codeRoot)}</code>
-              {bridge?.chooseFolder && <button onClick={chooseCode}>{t.onboarding.choose}</button>}
-            </div>
-          </Field>
+          <CodeFolders />
         </div>
 
         <div className="panel">

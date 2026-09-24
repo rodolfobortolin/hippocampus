@@ -112,19 +112,27 @@ test('the region decides where OpenAI is reached, and a proxy still wins', async
   }
 })
 
-test('the code folder is a setting, and the collector reads it from there', async () => {
+test('the code folders are a setting, and the collector reads them from there', async () => {
   // It was fixed at ~/Documents/GitHub — where this machine keeps its
-  // repositories, and almost nobody else does.
+  // repositories, and almost nobody else does; then one folder; now several.
   const { saveSettings } = await import('../core/settings.ts')
-  const { config } = await import('../core/config.ts')
+  const { config, repoOf, isPlace } = await import('../core/config.ts')
   setMeta('settings', JSON.stringify({}))
   const before = readSettings()
-  assert.equal(before.codeRoot, config.codeRoot, 'the default stays where it always was')
+  assert.deepEqual(before.codeRoots, config.codeRoots, 'the default stays where it always was')
   assert.equal(before.onboarded, false, 'a new install walks through the introduction')
-  saveSettings({ codeRoot: temporary, onboarded: true })
-  assert.equal(readSettings().codeRoot, temporary)
+  const second = path.join(temporary, 'Projects')
+  saveSettings({ codeRoots: [temporary, second, temporary], onboarded: true })
+  assert.deepEqual(readSettings().codeRoots, [temporary, second], 'each folder once')
   assert.equal(readSettings().onboarded, true)
-  assert.equal(config.codeRoot, temporary, 'the git harvest walks the folder the person chose')
+  assert.deepEqual(config.codeRoots, [temporary, second], 'the git harvest walks the folders the person chose')
+  assert.equal(repoOf(path.join(second, 'sidequest', 'src', 'a.ts')), 'sidequest', 'a repository in any of them is a project')
+  assert.equal(isPlace('Projects'), true, 'a code folder is a place, never a project')
+})
+
+test('a code folder stored before there could be several is kept', () => {
+  setMeta('settings', JSON.stringify({ codeRoot: '/Users/someone/code' }))
+  assert.deepEqual(readSettings().codeRoots, ['/Users/someone/code'])
 })
 
 test('a panel drawn as a pie is remembered without forgetting the others', () => {

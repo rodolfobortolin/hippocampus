@@ -943,3 +943,24 @@ button.piece-line:hover { background: var(--panel-high); }
    groups, so the unit reads as a choice and the arrows as movement. */
 .sheet-controls { display: inline-flex; gap: 8px; align-items: center; }
 .sheet-controls .nav button { text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+/* ---------- the code folders (walkthrough and Settings) ---------- */
+.folders { display: grid; gap: 12px; justify-items: start; }
+.folders-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; width: 100%; }
+.folder {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--border);
+}
+.folder > div { display: grid; gap: 4px; min-width: 0; }
+.folder code { font-size: 12.5px; color: var(--text); overflow-wrap: anywhere; }
+.folder .onb-found { margin: 0; }
+.folder-remove {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  font-size: 16px; line-height: 1; color: var(--text-dim); background: none; border: 1px solid var(--border);
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.folder-remove:hover { color: var(--text); border-color: var(--border-live); }
+.folder-remove:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.folders-offered { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: 100%; }
+.folders-offered li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--text-mid); }
+.folders-offered em { font-style: normal; color: var(--text-dim); }

@@ -92,10 +92,12 @@ export type Settings = {
    */
   timesheet: boolean
   /**
-   * The folder the repositories live in. It was fixed at ~/Documents/GitHub,
-   * which is where this machine keeps them and almost nobody else does.
+   * The folders the repositories live in. It was one folder, fixed at
+   * ~/Documents/GitHub, which is where this machine keeps them and almost
+   * nobody else does; then one folder, chosen; now as many as the person's
+   * code is spread across.
    */
-  codeRoot: string
+  codeRoots: string[]
   /** Whether the first-run walkthrough was finished or skipped. */
   onboarded: boolean
 }
@@ -195,7 +197,7 @@ const DEFAULTS: Settings = {
   captures: false,
   views: {},
   timesheet: false,
-  codeRoot: config.codeRoot,
+  codeRoots: config.codeRoots,
   onboarded: false,
 }
 
@@ -218,6 +220,15 @@ function fromOldShape(raw: string): Partial<Settings> {
     journalFolder: old.pastaDiario as string, dayStartHour: old.inicioDoDia as number,
     keepTyping: old.guardarDigitacao as boolean, voice: old.voz as string,
   }
+}
+
+/** The code folders stored; a setting from before there could be several named one, as `codeRoot`. */
+function codeRootsOf(data: Record<string, unknown>): string[] {
+  if (Array.isArray(data.codeRoots)) {
+    return [...new Set(data.codeRoots.map((root) => String(root).trim()).filter(Boolean))].slice(0, 12)
+  }
+  const one = String(data.codeRoot ?? '').trim()
+  return one ? [one] : DEFAULTS.codeRoots
 }
 
 export function readSettings(): Settings {
@@ -245,7 +256,8 @@ export function readSettings(): Settings {
       views: Object.fromEntries(Object.entries((data.views ?? {}) as Record<string, unknown>)
         .filter(([key, view]) => key.length < 40 && (view === 'bars' || view === 'pie'))) as Record<string, 'bars' | 'pie'>,
       timesheet: data.timesheet === true,
-      codeRoot: String(data.codeRoot ?? '').trim() || DEFAULTS.codeRoot,
+      // A setting stored as one folder, before there could be several, is kept.
+      codeRoots: codeRootsOf(data),
       onboarded: data.onboarded === true,
     }
   } catch {
@@ -266,7 +278,7 @@ export function applySettings(settings: Settings = readSettings()): Settings {
   config.dayStartHour = settings.dayStartHour
   config.keepTyping = settings.keepTyping
   config.voice = settings.voice
-  config.codeRoot = settings.codeRoot
+  config.codeRoots = settings.codeRoots
   config.typesafeKey = readKey('jev') || (process.env.TYPESAFE_API_KEY ?? '').trim()
   config.openaiKey = readKey('openai') || (process.env.OPENAI_API_KEY ?? '').trim()
   return settings
@@ -278,6 +290,7 @@ export function saveSettings(input: Partial<Settings>): Settings {
   // quick clicks on two panels sent two maps built from the same stale copy,
   // and the second write erased the first choice.
   const next: Settings = { ...current, ...input, views: { ...current.views, ...(input.views ?? {}) } }
+  next.codeRoots = codeRootsOf(next as unknown as Record<string, unknown>)
   // Storing a folder that does not exist would only produce a journal that
   // vanishes.
   if (next.vault && !fs.existsSync(next.vault)) next.vault = readSettings().vault

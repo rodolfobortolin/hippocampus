@@ -15,7 +15,7 @@ const { db } = await import('../core/db.ts')
 const { config } = await import('../core/config.ts')
 // The code folder this machine's .env may name is not the one these sessions
 // live in; the test decides it.
-config.codeRoot = path.join(home, 'Documents', 'GitHub')
+config.codeRoots = [path.join(home, 'Documents', 'GitHub')]
 const { harvestClaudeSessions } = await import('../core/sources/ai.ts')
 
 const at = (clock: string) => new Date(`2026-09-17T${clock}-03:00`).toISOString()

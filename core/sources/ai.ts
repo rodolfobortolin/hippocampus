@@ -125,7 +125,7 @@ if (getMeta('claude.turns') !== '1') {
 if (getMeta('claude.projects') !== '1') {
   setMeta('claude.offsets', '{}')
   setMeta('claude.turn-state', '{}')
-  for (const place of ['desktop', 'documents', 'downloads', path.basename(config.home), path.basename(config.codeRoot)]) {
+  for (const place of ['desktop', 'documents', 'downloads', path.basename(config.home), ...config.codeRoots.map((root) => path.basename(root))]) {
     db.prepare('update labels set project = null where lower(project) = ?').run(place.toLowerCase())
     db.prepare('update ai_turns set project = null where lower(project) = ?').run(place.toLowerCase())
     db.prepare('update agent_minutes set project = null where lower(project) = ?').run(place.toLowerCase())

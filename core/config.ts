@@ -88,7 +88,13 @@ export const config = {
   vault: env('VAULT', ''),
   /** The subfolder of the vault where the day is written. */
   journalFolder: env('JOURNAL', 'Journal'),
-  codeRoot: env('CODE', path.join(home, 'Documents', 'GitHub')),
+  /**
+   * The folders the repositories live in. One was not enough: code sits in
+   * ~/Documents/GitHub for some, in ~/Projects and ~/Developer for others, and
+   * often in two of them at once — work in one, a side project in another.
+   * CODE may name several, separated by ':'.
+   */
+  codeRoots: env('CODE', path.join(home, 'Documents', 'GitHub')).split(':').map((root) => root.trim()).filter(Boolean),
   typesafeKey: plain('TYPESAFE_API_KEY'),
   typesafeModel: plain('TYPESAFE_MODEL', 'jev-latest'),
   openaiKey: plain('OPENAI_API_KEY'),
@@ -186,22 +192,28 @@ export function projectOf(where: string | null | undefined): string | null {
 }
 
 /**
- * The repository under the code folder that a file sits in, or null. Only
+ * The repository under a code folder that a file sits in, or null. Only
  * there: outside it, the name of the folder a file is in says nothing — a file
  * written to /tmp is not a project called "tmp".
  */
 export function repoOf(file: string | null | undefined): string | null {
   if (!file) return null
   const full = path.resolve(file)
-  const root = path.resolve(config.codeRoot)
-  return full.startsWith(root + path.sep) ? full.slice(root.length + 1).split(path.sep)[0] || null : null
+  // The deepest folder that holds it: with ~/code and ~/code/work both read,
+  // a file in ~/code/work/api is in the repository "api", not "work".
+  for (const folder of [...config.codeRoots].sort((a, b) => path.resolve(b).length - path.resolve(a).length)) {
+    const root = path.resolve(folder)
+    if (full.startsWith(root + path.sep)) return full.slice(root.length + 1).split(path.sep)[0] || null
+  }
+  return null
 }
 
 /** A folder name that is a place on every Mac, never somebody's project. */
 export function isPlace(name: string | null | undefined): boolean {
   if (!name) return true
   const places = [
-    path.basename(config.home), 'Desktop', 'Documents', 'Downloads', path.basename(path.resolve(config.codeRoot)),
+    path.basename(config.home), 'Desktop', 'Documents', 'Downloads',
+    ...config.codeRoots.map((root) => path.basename(path.resolve(root))),
   ].map((place) => place.toLowerCase())
   return places.includes(name.toLowerCase())
 }

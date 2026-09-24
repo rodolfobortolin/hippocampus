@@ -158,12 +158,17 @@ function git(repo: string, args: string[]): string {
  * control back to it.
  */
 export async function harvestGit(days = 3): Promise<{ commits: number; branches: number }> {
-  let names: string[]
-  try {
-    names = await fs.readdir(config.codeRoot)
-  } catch {
-    return { commits: 0, branches: 0 }
+  // Every code folder, each read on its own: one macOS will not let us into
+  // does not keep the others from being read.
+  const checkouts: { name: string; repo: string }[] = []
+  for (const root of config.codeRoots) {
+    try {
+      for (const name of await fs.readdir(root)) checkouts.push({ name, repo: path.join(root, name) })
+    } catch {
+      // Unreadable or gone; the walkthrough says so where the folder is shown.
+    }
   }
+  if (!checkouts.length) return { commits: 0, branches: 0 }
   let total = 0
   let switches = 0
   // Who the person is, as git and GitHub know them: whose repositories are
@@ -171,8 +176,7 @@ export async function harvestGit(days = 3): Promise<{ commits: number; branches:
   const you = new Set<string>(await signedInLogins())
   const yourDomains = new Set<string>()
 
-  for (const name of names) {
-    const repo = path.join(config.codeRoot, name)
+  for (const { name, repo } of checkouts) {
     try {
       await fs.access(path.join(repo, '.git'))
     } catch {
@@ -254,6 +258,34 @@ export async function harvestGit(days = 3): Promise<{ commits: number; branches:
   setMeta('you', JSON.stringify([...you]))
   setMeta('you.domains', JSON.stringify([...yourDomains]))
   return { commits: total, branches: switches }
+}
+
+/**
+ * Folders where people commonly keep code, looked in for the walkthrough to
+ * offer: someone whose work is in ~/Documents/GitHub and whose side projects
+ * are in ~/Projects should not have to know the app reads only one.
+ */
+const USUAL = ['Documents/GitHub', 'GitHub', 'Projects', 'projects', 'Developer', 'code', 'Code', 'src', 'dev',
+  'repos', 'git', 'workspace', 'Workspace', 'Sites', 'Documents/Projects', 'Documents/Code', 'Documents/Developer']
+
+/** The usual code folders that hold repositories and are not already read, each once. */
+export async function suggestCodeRoots(chosen: string[]): Promise<{ root: string; repos: number; names: string[] }[]> {
+  const real = async (folder: string) => {
+    try { return await fs.realpath(folder) } catch { return null }
+  }
+  const taken = new Set((await Promise.all(chosen.map(real))).filter(Boolean))
+  const seen = new Set<string>()
+  const found: { root: string; repos: number; names: string[] }[] = []
+  for (const relative of USUAL) {
+    const folder = path.join(os.homedir(), relative)
+    const resolved = await real(folder)
+    // The file system is case-insensitive here: ~/code and ~/Code are one.
+    if (!resolved || taken.has(resolved) || seen.has(resolved.toLowerCase())) continue
+    seen.add(resolved.toLowerCase())
+    const count = await countRepos(folder)
+    if (count.readable && count.repos) found.push({ root: folder, repos: count.repos, names: count.names })
+  }
+  return found
 }
 
 /**
