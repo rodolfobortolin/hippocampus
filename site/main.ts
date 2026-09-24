@@ -1,6 +1,10 @@
 import { Core, type CoreState } from '../src/three/Core.ts'
 import { setUpMotion } from './motion.ts'
 import { setUpViewer } from './viewer.ts'
+// Loaded with the page, not on the click: fetched then, the sphere took a
+// second to answer the very click it invites.
+import { dismissGreeting, greet, greeting } from './greet.ts'
+import { GREETING, type TourStep } from './tour-script.ts'
 
 setUpMotion()
 setUpViewer()
@@ -11,8 +15,8 @@ setUpViewer()
  * own: it rests, hears someone, thinks, and answers — with a voice level made
  * up to look like speech, since there is no real voice to follow.
  *
- * A click makes it listen, the way it does in the app, so the page answers
- * the first thing a curious visitor does.
+ * A click makes it say hello and offer to show you around (greet.ts), so the
+ * page answers the first thing a curious visitor does.
  */
 
 const canvas = document.getElementById('core') as HTMLCanvasElement | null
@@ -24,7 +28,7 @@ if (canvas) {
   new ResizeObserver(() => core.resize()).observe(canvas)
 
   const WORDS: Record<CoreState, string> = {
-    idle: 'click to speak',
+    idle: 'click to say hi',
     listening: 'listening…',
     thinking: 'looking it up…',
     tool: 'reading the day…',
@@ -79,36 +83,39 @@ if (canvas) {
     next()
   }
 
-  // A click is someone wanting to talk to it.
-  const orb = canvas.closest('.orb') as HTMLElement | null
-  orb?.setAttribute('tabindex', '0')
-  orb?.setAttribute('role', 'button')
-  const listen = () => {
-    clearTimeout(timer)
-    // Half strength: at full, the answer to a tap on a phone was a white blob.
-    core.pulse(0.5)
-    show('listening')
-    started = performance.now()
-    step = 2
-    timer = setTimeout(next, 2800)
-  }
-  orb?.addEventListener('click', listen)
-  orb?.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); listen() }
-  })
-
-  // "Show me": the tour takes the sphere, its voice and its level for a while.
+  // "Show me" and the greeting both borrow the sphere, its voice and its
+  // level for a while.
   const stage = {
     pause() { clearTimeout(timer); spoken = 0; show('idle') },
     resume() { spoken = null; step = 0; if (!still) next() },
     speaking(on: boolean) { core.setState(on ? 'speaking' : 'idle', { flash: false }); state = on ? 'speaking' : 'idle' },
     level(value: number) { spoken = value },
   }
+  const tour = (opening?: TourStep) =>
+    import('./tour.ts').then((module) => module.startTour(stage, { opening }))
+
+  // A click is someone wanting to talk to it: it says hello back.
+  const orb = canvas.closest('.orb') as HTMLElement | null
+  orb?.setAttribute('tabindex', '0')
+  orb?.setAttribute('role', 'button')
+  const hello = () => {
+    // Already asking: a second click is not a second hello.
+    if (!orb || greeting()) return
+    // Half strength: at full, the answer to a tap on a phone was a white blob.
+    core.pulse(0.5)
+    greet(stage, orb, () => void tour(GREETING.yes))
+  }
+  orb?.addEventListener('click', hello)
+  orb?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); hello() }
+  })
+
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tour]')) {
     button.addEventListener('click', async () => {
-      const tour = await import('./tour.ts')
-      if (tour.tourRunning()) tour.stopTour()
-      else void tour.startTour(stage)
+      dismissGreeting()
+      const module = await import('./tour.ts')
+      if (module.tourRunning()) module.stopTour()
+      else void module.startTour(stage)
     })
   }
 }

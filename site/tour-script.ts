@@ -93,3 +93,18 @@ export const TOUR: TourStep[] = [
     points: [{ at: 0.3, target: '.actions .button.primary', label: 'download' }],
   },
 ]
+
+/**
+ * A click on the sphere: it says hello and offers the tour, and the answer is
+ * given on the screen. `yes` takes the place of the tour's first line, since
+ * the sphere has already introduced itself by then.
+ */
+export const GREETING = {
+  ask: { id: 'greet', text: "Hey, nice to meet you! I'm Hippocampus. Would you like a quick private tour of how I can help you?" },
+  later: { id: 'later', text: "No problem. I'll be right here if you need me." },
+  yes: {
+    ...TOUR[0],
+    id: 'hello-yes',
+    text: "Great. I remember where your time goes on your Mac, and I can do things on your screen when you ask. Let me show you around.",
+  } satisfies TourStep,
+}

@@ -1,5 +1,5 @@
-// Generates the website tour's voice, one file per line of site/tour-script.ts,
-// into site/public/voice/. Run it after changing the script:
+// Generates the website's voice, one file per line of site/tour-script.ts —
+// the tour and the greeting — into site/public/voice/. Run it after changing the script:
 //
 //   node --experimental-strip-types scripts/site-voice.ts          every line
 //   node --experimental-strip-types scripts/site-voice.ts hello    only the lines named
@@ -12,7 +12,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readKey, openaiBase } from '../core/settings.ts'
-import { TOUR } from '../site/tour-script.ts'
+import { GREETING, TOUR } from '../site/tour-script.ts'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const out = path.join(root, 'site', 'public', 'voice')
@@ -22,8 +22,10 @@ const key = readKey('openai') || process.env.OPENAI_API_KEY
 if (!key) throw new Error('No OpenAI key in the Keychain; add it in the app\'s Settings first.')
 await mkdir(out, { recursive: true })
 
+// Every line the page can say: the tour, and the greeting a click on the sphere starts.
+const LINES = [...TOUR, GREETING.ask, GREETING.later, GREETING.yes]
 const only = process.argv.slice(2)
-for (const step of TOUR.filter((step) => !only.length || only.includes(step.id))) {
+for (const step of LINES.filter((step) => !only.length || only.includes(step.id))) {
   // The region the app's Settings chose: a key from an EU project is refused
   // at the global address.
   const response = await fetch(`${openaiBase()}/audio/speech`, {

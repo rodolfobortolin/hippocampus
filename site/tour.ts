@@ -1,4 +1,7 @@
-import { TOUR, type TourPoint } from './tour-script.ts'
+import { TOUR, type TourPoint, type TourStep } from './tour-script.ts'
+import { createVoice, type Stage } from './voice.ts'
+
+export type { Stage }
 
 /**
  * "Show me": the app showing itself.
@@ -13,15 +16,6 @@ import { TOUR, type TourPoint } from './tour-script.ts'
  * flying and no smooth scrolling: the spark appears where it points.
  */
 
-export type Stage = {
-  /** Stop the sphere acting out its conversation, and hand its level to the tour. */
-  pause(): void
-  /** Give it back to its own act. */
-  resume(): void
-  speaking(on: boolean): void
-  level(value: number): void
-}
-
 const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)'
 const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -31,7 +25,11 @@ let running: { stop: () => void } | null = null
 export function tourRunning() { return running !== null }
 export function stopTour() { running?.stop() }
 
-export async function startTour(stage: Stage) {
+/**
+ * `opening` replaces the first line: after the sphere has already said hello
+ * and been answered yes, introducing itself again sounds like it forgot.
+ */
+export async function startTour(stage: Stage, { opening }: { opening?: TourStep } = {}) {
   if (running) return
   const orb = document.querySelector<HTMLElement>('.orb')
   if (!orb) return
@@ -127,42 +125,16 @@ export async function startTour(stage: Stage) {
   }
 
   // ---------- the voice, and the sphere moving with it ----------
-  const audio = new Audio()
-  audio.preload = 'auto'
-  let context: AudioContext | undefined
-  let meter = 0
-  try {
-    context = new AudioContext()
-    const analyser = context.createAnalyser()
-    analyser.fftSize = 512
-    context.createMediaElementSource(audio).connect(analyser)
-    analyser.connect(context.destination)
-    const buffer = new Uint8Array(analyser.fftSize)
-    const tick = () => {
-      analyser.getByteTimeDomainData(buffer)
-      let sum = 0
-      for (const value of buffer) sum += ((value - 128) / 128) ** 2
-      // Held back, as the page's sphere is: at full level it blooms white.
-      stage.level(still() ? 0 : Math.min(0.6, Math.sqrt(sum / buffer.length) * 5))
-      meter = requestAnimationFrame(tick)
-    }
-    tick()
-  } catch {
-    // Without Web Audio the voice still plays; the sphere just does not move with it.
-  }
+  const voice = createVoice(stage)
 
   const stop = () => {
     if (stopped) return
     stopped = true
     running = null
-    audio.pause()
-    cancelAnimationFrame(meter)
+    voice.close()
     cancelAnimationFrame(flight)
     for (const cleanup of cleanups) cleanup()
-    void context?.close()
     spark.remove()
-    stage.speaking(false)
-    stage.level(0)
     move(home, marker)
     marker.remove()
     dock.remove()
@@ -181,7 +153,8 @@ export async function startTour(stage: Stage) {
   cleanups.push(() => orb.removeEventListener('click', onOrb, { capture: true }))
 
   // ---------- the script ----------
-  for (const step of TOUR) {
+  const script = opening ? [opening, ...TOUR.slice(1)] : TOUR
+  for (const step of script) {
     if (stopped) return
     // Out of sight while the page moves: left where it was, it ended up on
     // top of whatever scrolled under it.
@@ -189,31 +162,20 @@ export async function startTour(stage: Stage) {
     await scrollTo(step.scroll)
     if (stopped) return
     captionEl.textContent = step.text
-    audio.src = `voice/${step.id}.mp3`
     const timers: ReturnType<typeof setTimeout>[] = []
-    const ended = new Promise<void>((resolve) => {
-      audio.onended = () => resolve()
-      audio.onerror = () => setTimeout(resolve, step.text.length * 55)
+    await voice.say(step.id, step.text, (length) => {
+      for (const point of step.points) {
+        timers.push(setTimeout(() => {
+          const spot = where(point)
+          if (spot && !stopped) fly(spot, point.label)
+        }, point.at * length))
+      }
     })
-    try {
-      await audio.play()
-    } catch {
-      // Blocked or missing: the caption carries the line alone, at reading speed.
-      setTimeout(() => audio.onended?.(new Event('ended')), step.text.length * 55)
-    }
-    stage.speaking(true)
-    const length = (Number.isFinite(audio.duration) ? audio.duration : step.text.length * 0.055) * 1000
-    for (const point of step.points) {
-      timers.push(setTimeout(() => {
-        const spot = where(point)
-        if (spot && !stopped) fly(spot, point.label)
-      }, point.at * length))
-    }
-    await ended
     for (const timer of timers) clearTimeout(timer)
-    stage.speaking(false)
+    if (stopped) return
     await wait(350)
   }
+  if (stopped) return
   await wait(900)
   stop()
 }
