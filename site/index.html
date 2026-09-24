@@ -92,22 +92,24 @@
         <!-- The newest notarized release, at an address that never changes:
              GitHub resolves latest/download to the file in the latest release. -->
         <a class="button primary" href="https://github.com/rodolfobortolin/hippocampus/releases/latest/download/Hippocampus-arm64.dmg">Download for Mac</a>
-        <a class="button" href="https://github.com/rodolfobortolin/hippocampus">Source on GitHub</a>
         <!-- /download -->
         <!-- source -->
         <a class="button primary" href="https://github.com/rodolfobortolin/hippocampus">Get it on GitHub</a>
         <!-- /source -->
-        <a class="button" href="https://github.com/rodolfobortolin/hippocampus/releases/tag/v%VERSION%">v%VERSION% release notes</a>
         <!-- The app showing itself: the sphere talks through the page and
              points, the way it does on your screen. See tour.ts. -->
         <button class="button show-me" type="button" data-tour>
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>
           Show me
         </button>
+        <!-- download -->
+        <a class="button" href="https://github.com/rodolfobortolin/hippocampus">Source on GitHub</a>
+        <!-- /download -->
       </div>
-      <!-- download -->
-      <p class="fine enter" style="--i: 4">macOS 13 or later, Apple silicon. Signed and notarized; it updates itself.</p>
-      <!-- /download -->
+      <!-- Three buttons, not four: a fourth wrapped onto a line of its own. -->
+      <p class="fine enter" style="--i: 4">
+        <!-- download -->macOS 13 or later, Apple silicon. Signed and notarized; it updates itself.<!-- /download -->
+        <a href="https://github.com/rodolfobortolin/hippocampus/releases/tag/v%VERSION%">What's new in v%VERSION%</a></p>
       <p class="fine enter" style="--i: 4">No server, no account, no dashboard.
         Works best with <a href="#needs">Claude Code and jev</a>.</p>
     </div>
