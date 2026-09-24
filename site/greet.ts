@@ -68,6 +68,8 @@ export function greet(stage: Stage, orb: HTMLElement, onYes: () => void) {
       [{ opacity: 1 }, { opacity: 0, transform: 'translate(-50%, 4px) scale(0.98)' }],
       { duration: 160, easing: 'ease-out' },
     ).finished.then(() => panel.remove(), () => panel.remove())
+    // A hidden tab pauses animations, and the panel would linger until seen.
+    setTimeout(() => panel.remove(), 400)
   }
 
   const dismiss = () => { close(); stage.resume(); orb.focus({ preventScroll: true }) }

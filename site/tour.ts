@@ -1,5 +1,5 @@
 import { TOUR, type TourPoint, type TourStep } from './tour-script.ts'
-import { createVoice, type Stage } from './voice.ts'
+import { createVoice, preload, type Stage } from './voice.ts'
 
 export type { Stage }
 
@@ -110,18 +110,42 @@ export async function startTour(stage: Stage, { opening }: { opening?: TourStep 
     return { x: box.left + box.width * (point.x ?? 0.5), y: box.top + box.height * (point.y ?? 0.5) }
   }
 
+  /** Where the page can show things: under the sticky bar, above the dock. */
+  const view = () => {
+    const bar = document.querySelector('.top')?.getBoundingClientRect().bottom ?? 0
+    const floor = dock.getBoundingClientRect().top
+    return { top: Math.max(0, bar) + 12, bottom: (floor > innerHeight / 2 ? floor : innerHeight) - 12 }
+  }
+
+  const settle = () => new Promise<void>((resolve) => {
+    const done = () => { removeEventListener('scrollend', done); resolve() }
+    addEventListener('scrollend', done, { once: true })
+    setTimeout(done, still() ? 50 : 1100)
+  })
+
   const scrollTo = async (selector: string) => {
     const element = document.querySelector(selector)
     if (!element) return
     const box = element.getBoundingClientRect()
-    // Its middle a little above the screen's, so the dock does not cover it.
-    const top = window.scrollY + box.top + box.height / 2 - innerHeight * 0.44
+    const { top: roof, bottom: floor } = view()
+    // Its middle a little above the screen's, so the dock does not cover it;
+    // but a part taller than the room — the architecture on a phone — starts
+    // at its top, or what is said first is out of sight.
+    const top = box.height > floor - roof
+      ? window.scrollY + box.top - roof
+      : window.scrollY + box.top + box.height / 2 - innerHeight * 0.44
     window.scrollTo({ top: Math.max(0, top), behavior: still() ? 'auto' : 'smooth' })
-    await new Promise<void>((resolve) => {
-      const done = () => { removeEventListener('scrollend', done); resolve() }
-      addEventListener('scrollend', done, { once: true })
-      setTimeout(done, still() ? 50 : 1100)
-    })
+    await settle()
+  }
+
+  /** Brings a point into view before the spark goes to it, when it is not. */
+  const reveal = async (point: TourPoint) => {
+    const spot = where(point)
+    if (!spot) return
+    const { top: roof, bottom: floor } = view()
+    if (spot.y >= roof + 24 && spot.y <= floor - 24) return
+    window.scrollTo({ top: Math.max(0, window.scrollY + spot.y - (roof + floor) / 2), behavior: still() ? 'auto' : 'smooth' })
+    await settle()
   }
 
   // ---------- the voice, and the sphere moving with it ----------
@@ -154,6 +178,7 @@ export async function startTour(stage: Stage, { opening }: { opening?: TourStep 
 
   // ---------- the script ----------
   const script = opening ? [opening, ...TOUR.slice(1)] : TOUR
+  preload(script.map((step) => step.id))
   for (const step of script) {
     if (stopped) return
     // Out of sight while the page moves: left where it was, it ended up on
@@ -163,9 +188,14 @@ export async function startTour(stage: Stage, { opening }: { opening?: TourStep 
     if (stopped) return
     captionEl.textContent = step.text
     const timers: ReturnType<typeof setTimeout>[] = []
-    await voice.say(step.id, step.text, (length) => {
+    await voice.say(step.id, step.text, (length, heard) => {
+      // On a phone the words are heard, not read: the caption covered what
+      // was being pointed at. They come back when the voice cannot play.
+      dock.classList.toggle('silent', !heard)
       for (const point of step.points) {
-        timers.push(setTimeout(() => {
+        timers.push(setTimeout(async () => {
+          if (stopped) return
+          await reveal(point)
           const spot = where(point)
           if (spot && !stopped) fly(spot, point.label)
         }, point.at * length))

@@ -6,7 +6,8 @@ import { setUpViewer } from './viewer.ts'
 // Loaded with the page, not on the click: fetched then, the sphere took a
 // second to answer the very click it invites.
 import { dismissGreeting, greet, greeting } from './greet.ts'
-import { GREETING, type TourStep } from './tour-script.ts'
+import { GREETING, TOUR, type TourStep } from './tour-script.ts'
+import { preload, unlockAudio } from './voice.ts'
 
 // Vercel's Web Analytics: page views counted without cookies and without
 // anything that identifies a visitor. Only on the published site; a local
@@ -110,7 +111,9 @@ if (canvas) {
     if (!orb || greeting()) return
     // Half strength: at full, the answer to a tap on a phone was a white blob.
     core.pulse(0.5)
+    // The answers are loaded while the question is asked, so neither waits.
     greet(stage, orb, () => void tour(GREETING.yes))
+    preload([GREETING.later.id, GREETING.yes.id, ...TOUR.slice(1, 3).map((step) => step.id)])
   }
   orb?.addEventListener('click', hello)
   orb?.addEventListener('keydown', (event) => {
@@ -120,6 +123,9 @@ if (canvas) {
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tour]')) {
     button.addEventListener('click', async () => {
       dismissGreeting()
+      // Before the await: iOS lets audio start only inside the tap itself.
+      unlockAudio()
+      preload(TOUR.map((step) => step.id))
       const module = await import('./tour.ts')
       if (module.tourRunning()) module.stopTour()
       else void module.startTour(stage)
