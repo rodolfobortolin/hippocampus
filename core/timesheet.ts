@@ -1,5 +1,5 @@
 import { dayOf } from './config.ts'
-import { all } from './db.ts'
+import { all, getMeta } from './db.ts'
 import { labelKey } from './jev.ts'
 import { branchLookup, ticketKnowledge, orgName, workItems, NOISE } from './items.ts'
 import { readPage, ticketKeys, branchKeys, type Page } from './pages.ts'
@@ -13,18 +13,37 @@ import { readPage, ticketKeys, branchKeys, type Page } from './pages.ts'
  * much of it has no client — the draft is never made to look more complete
  * than it is.
  *
- * Every second of focus lands on one line at most, in this order: a page that
- * names its owner (a Jira ticket, a Confluence space, a repository), a ticket
- * named by a window title or by the branch the code was on, and last the
- * project the window was labelled with — whose client is the one its tickets
- * belong to. The agent's minutes are counted apart: time delegated is not time
- * at the keyboard, and whether it is billable is the person's call.
+ * Every second of focus lands on one line at most, in this order:
+ *
+ *   1. A page that names its owner — a Jira ticket, a Confluence space. On
+ *      GitHub the owner counts only when there is work there: a repository on
+ *      this Mac pointing at it. Reading someone's public repository is
+ *      reading, not working for them.
+ *   2. A ticket named by the window title or by the branch the code was on.
+ *   3. The project the window was labelled with. Its owner is the remote of
+ *      its repository — a worktree answering for the repository it belongs
+ *      to — and, without a remote, the owner most of its tickets belong to.
+ *      An AI app's window, titled only with the app's name, is in the
+ *      project of the question typed while it was in front.
+ *   4. A client already known, named in the title or in an email address in
+ *      it: a Teams chat on acme's tenant, an inbox at acme.com.
+ *
+ * Then the meetings: a meeting with guests, for the part of it the Mac saw no
+ * focus — the stand-up listened to without touching the keyboard. Its client
+ * is named by its title or by its guests' domains.
+ *
+ * Work on repositories under the person's own account is theirs, not a
+ * client's: it is shown apart, as personal, rather than hidden or billed.
+ *
+ * The agent's minutes are counted apart: time delegated is not time at the
+ * keyboard, and whether it is billable is the person's call. The ones with no
+ * owner are said too, never dropped.
  */
 
 export type TimesheetLine = {
-  /** A ticket key, or an area such as "confluence · KB" or "project harbor". */
+  /** A ticket key, an area such as "confluence · KB", a project, an app or a meeting. */
   what: string
-  kind: 'ticket' | 'area' | 'project'
+  kind: 'ticket' | 'area' | 'project' | 'meeting'
   label?: string
   seconds: number
   agentSeconds: number
@@ -45,9 +64,15 @@ export type Timesheet = {
   /** The days with focus measured — the columns. The agent's time has none of its own. */
   days: string[]
   clients: TimesheetClient[]
+  /** Work on the person's own repositories: theirs, not a client's. */
+  personal: TimesheetClient | null
   /** Focus with no client to put it on. */
   unassigned: number
+  /** Agent minutes with no client to put them on. */
+  unassignedAgent: number
 }
+
+type Owner = { org: string; personal: boolean }
 
 /** Where a page's time goes when its owner is known, and under which line. */
 function areaOf(page: Page): { what: string; kind: TimesheetLine['kind']; label?: string } {
@@ -62,9 +87,9 @@ function areaOf(page: Page): { what: string; kind: TimesheetLine['kind']; label?
 }
 
 /**
- * Which client each project works for: the owner most of its tickets belong
- * to, over the three months before the week. A project whose tickets split
- * between clients goes to the larger share — rare, and visible in the lines.
+ * Which client each project works for by its tickets: the owner most of them
+ * belong to, over the three months before the week. What decides when a
+ * project's repository has no remote to say.
  */
 function projectClients(to: string): Map<string, string> {
   const from = dayOf(new Date(`${to}T12:00:00`).getTime() / 1000 - 90 * 86_400)
@@ -84,23 +109,183 @@ function projectClients(to: string): Map<string, string> {
   return clients
 }
 
-export function timesheet(from: string, to: string): Timesheet {
+const list = (key: string): string[] => {
+  try {
+    const value = JSON.parse(getMeta(key, '[]'))
+    return Array.isArray(value) ? value.map(String) : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * The names a client goes by, and the one it is shown with. One organisation
+ * is often spelled several ways — "acme" on Jira, "acme-consultants" on
+ * Bitbucket — and splitting its hours in two would hide half of them, so a
+ * name that begins with a known one is that one.
+ */
+class Clients {
+  private names = new Map<string, string>()
+
+  know(org: string) {
+    const key = orgName(org)
+    if (key.length >= 3 && !this.names.has(key)) this.names.set(key, org)
+  }
+
+  /** The known client a name belongs to, if any. */
+  find(name: string): string | undefined {
+    const key = orgName(name)
+    if (key.length < 3) return undefined
+    const exact = this.names.get(key)
+    if (exact) return exact
+    let best: string | undefined
+    for (const [known, org] of this.names) {
+      if (known.length >= 4 && key.startsWith(known) && (!best || known.length > orgName(best).length)) best = org
+    }
+    return best
+  }
+
+  /** The client named in a title: a segment that is exactly its name, or an address at its domain. */
+  inText(text: string | null | undefined): string | undefined {
+    if (!text) return undefined
+    for (const segment of text.split(/\s+[|•·—–-]\s+/)) {
+      const key = orgName(segment)
+      if (key.length >= 3 && this.names.has(key)) return this.names.get(key)
+    }
+    for (const match of text.matchAll(/[\w.+-]+@([a-z0-9.-]+\.[a-z]{2,})/gi)) {
+      const found = this.inDomain(match[1])
+      if (found) return found
+    }
+    return undefined
+  }
+
+  /** The client a domain is: "mail.acme.co.uk" is acme. Free mail is nobody's. */
+  inDomain(domain: string): string | undefined {
+    const labels = domain.toLowerCase().split('.').filter(Boolean)
+    if (labels.length < 2) return undefined
+    let name = labels[labels.length - 2]
+    if (labels.length > 2 && SECOND_LEVEL.has(name)) name = labels[labels.length - 3]
+    if (FREE_MAIL.has(name)) return undefined
+    const key = orgName(name)
+    return key.length >= 3 ? this.names.get(key) : undefined
+  }
+}
+
+const SECOND_LEVEL = new Set(['co', 'com', 'org', 'net', 'gov', 'ac', 'edu', 'ne', 'or'])
+const FREE_MAIL = new Set(['gmail', 'googlemail', 'outlook', 'hotmail', 'live', 'msn', 'icloud', 'me', 'mac',
+  'yahoo', 'proton', 'protonmail', 'aol', 'gmx', 'zoho', 'yandex', 'uol', 'bol', 'terra', 'fastmail', 'hey'])
+
+/**
+ * A cancelled meeting some calendars keep, with the word in front of its
+ * title: "Canceled: Sprint review". The separator is required, so a meeting
+ * about cancelled orders is still a meeting.
+ */
+const CANCELLED = /^\s*(cancel+ed|cancelad[oa]s?|annul[ée]e?s?|abgesagt|storniert)\s*[:：-]/i
+
+/** Seconds of [start, end) not already in `covered`, which it then joins. Kept sorted and apart. */
+function uncovered(covered: [number, number][], start: number, end: number): number {
+  let free = 0
+  let at = start
+  for (const [a, b] of covered) {
+    if (b <= at) continue
+    if (a >= end) break
+    if (a > at) free += a - at
+    at = Math.max(at, b)
+    if (at >= end) break
+  }
+  if (at < end) free += end - at
+  covered.push([start, end])
+  covered.sort((x, y) => x[0] - y[0])
+  // Merge, so the next question walks few intervals.
+  const merged: [number, number][] = []
+  for (const span of covered) {
+    const last = merged[merged.length - 1]
+    if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1])
+    else merged.push([span[0], span[1]])
+  }
+  covered.splice(0, covered.length, ...merged)
+  return free
+}
+
+export function timesheet(from: string, to: string, now = Date.now() / 1000): Timesheet {
   const { prefixes, homes } = ticketKnowledge()
   const branchAt = branchLookup()
   const byProject = projectClients(to)
   const labels = new Map(all<{ key: string; project: string }>(
     `select key, project from labels where project is not null and project <> ''`).map((row) => [row.key, row.project]))
+  const aiWindows = new Set(all<{ key: string }>(`select key from labels where category = 'ai'`).map((row) => row.key))
+  // The questions put to a coding agent, with the project each was asked in.
+  // An AI app's window is titled only with the app's name; the question typed
+  // while it was in front says which project it was about.
+  const turns = all<{ ts: number; project: string }>(
+    `select ts, project from ai_turns where day between ? and ? and project is not null and project <> '' order by ts`,
+    dayOf(new Date(`${from}T12:00:00`).getTime() / 1000 - 86_400), dayOf(new Date(`${to}T12:00:00`).getTime() / 1000 + 86_400))
+  const askedDuring = (start: number, end: number): string | undefined => {
+    let low = 0
+    let high = turns.length
+    while (low < high) { const mid = (low + high) >> 1; if (turns[mid].ts < start - 120) low = mid + 1; else high = mid }
+    return low < turns.length && turns[low].ts <= end + 120 ? turns[low].project : undefined
+  }
   const onBranch = (repo: string | null | undefined, at: number) =>
     branchKeys(branchAt(repo, at)).filter((key) => prefixes.has(key.split('-')[0]))
 
+  // Who the person is, as git and GitHub know them.
+  const you = new Set(list('you').map(orgName).filter((key) => key.length >= 3))
+  const yourDomains = new Set(list('you.domains'))
+
+  // The clients known before this week is read: the owners of the tickets,
+  // and of the repositories on this Mac that are not the person's own.
+  const known = new Clients()
+  for (const home of homes.values()) if (home.org) known.know(home.org)
+  for (const org of byProject.values()) known.know(org)
+  const repos = all<{ name: string; main: string; owner: string | null; worked: number }>(
+    `select name, main, owner, worked from repos`)
+  const ownerOf = (owner: string): Owner => you.has(orgName(owner))
+    ? { org: owner, personal: true }
+    : { org: known.find(owner) ?? owner, personal: false }
+  // A repository cloned to try something out is not work for its owner:
+  // only one with a commit of the person's own makes its owner a client.
+  for (const repo of repos) {
+    if (repo.owner && repo.worked && !you.has(orgName(repo.owner))) known.know(known.find(repo.owner) ?? repo.owner)
+  }
+
+  // A project's owner: its repository's remote, a worktree answering for its
+  // repository; failing that, its tickets.
+  const repoOwner = new Map<string, Owner>()
+  const workOwners = new Set<string>()
+  for (const repo of repos) {
+    if (!repo.owner) continue
+    const owner = ownerOf(repo.owner)
+    if (!owner.personal && !repo.worked) continue
+    repoOwner.set(repo.name, owner)
+    if (!repoOwner.has(repo.main)) repoOwner.set(repo.main, owner)
+    workOwners.add(orgName(repo.owner))
+  }
+  const projectOwner = (project: string | null | undefined): Owner | undefined => {
+    if (!project) return undefined
+    const fromRepo = repoOwner.get(project)
+    if (fromRepo) return fromRepo
+    const client = byProject.get(project)
+    return client ? { org: client, personal: false } : undefined
+  }
+
   const clients = new Map<string, TimesheetClient>()
+  let personal: TimesheetClient | null = null
   const days = new Set<string>()
   let unassigned = 0
+  let unassignedAgent = 0
 
-  const add = (org: string, day: string, line: Omit<TimesheetLine, 'seconds' | 'agentSeconds' | 'days'>,
+  const add = (owner: Owner, day: string, line: Omit<TimesheetLine, 'seconds' | 'agentSeconds' | 'days'>,
     seconds: number, agent: number) => {
-    const id = orgName(org)
-    const client = clients.get(id) ?? { org, seconds: 0, agentSeconds: 0, days: {}, lines: [] }
+    let client: TimesheetClient
+    if (owner.personal) {
+      personal ??= { org: owner.org, seconds: 0, agentSeconds: 0, days: {}, lines: [] }
+      client = personal
+    } else {
+      const id = orgName(owner.org)
+      client = clients.get(id) ?? { org: owner.org, seconds: 0, agentSeconds: 0, days: {}, lines: [] }
+      clients.set(id, client)
+    }
     let row = client.lines.find((candidate) => candidate.what === line.what)
     if (!row) { row = { ...line, seconds: 0, agentSeconds: 0, days: {} }; client.lines.push(row) }
     if (line.label && !row.label) row.label = line.label
@@ -110,24 +295,35 @@ export function timesheet(from: string, to: string): Timesheet {
       row.days[day] = (row.days[day] ?? 0) + seconds
       client.days[day] = (client.days[day] ?? 0) + seconds
     }
-    clients.set(id, client)
   }
 
   // A ticket named outside the browser, or by the branch: its owner is where
-  // its prefix lives, or failing that the client of the project it was in.
-  const ticketOwner = (key: string, project?: string | null) =>
-    homes.get(key.split('-')[0])?.org ?? (project ? byProject.get(project) : undefined)
+  // its prefix lives, or failing that the owner of the project it was in.
+  const ticketOwner = (key: string, project?: string | null): Owner | undefined => {
+    const home = homes.get(key.split('-')[0])?.org
+    return home ? { org: home, personal: false } : projectOwner(project)
+  }
 
-  for (const block of all<{ started_at: number; seconds: number; day: string; app: string; url: string | null; title: string | null; host: string | null }>(
-    `select started_at, seconds, day, app, url, title, host from blocks where day between ? and ? and idle = 0`, from, to)) {
+  const focus: [number, number][] = []
+  for (const block of all<{ started_at: number; ended_at: number; seconds: number; day: string; app: string; url: string | null; title: string | null; host: string | null }>(
+    `select started_at, ended_at, seconds, day, app, url, title, host from blocks where day between ? and ? and idle = 0`, from, to)) {
     days.add(block.day)
+    focus.push([block.started_at, block.ended_at])
     const page = readPage(block.url, block.title)
     if (page && NOISE.has(page.kind)) continue
-    const project = labels.get(labelKey(block))
+    const window_ = labelKey(block)
+    const project = labels.get(window_) ?? (aiWindows.has(window_) ? askedDuring(block.started_at, block.ended_at) : undefined)
 
     if (page?.org) {
-      add(page.org, block.day, areaOf(page), block.seconds, 0)
-      continue
+      if (page.site !== 'github') {
+        add({ org: page.org, personal: false }, block.day, areaOf(page), block.seconds, 0)
+        continue
+      }
+      // On GitHub, only an owner with work on this Mac is anyone's time.
+      if (you.has(orgName(page.org)) || workOwners.has(orgName(page.org))) {
+        add(ownerOf(page.org), block.day, areaOf(page), block.seconds, 0)
+        continue
+      }
     }
     const key = page ? undefined : ticketKeys(block.title)[0] ?? onBranch(project, block.started_at)[0]
     const owner = key ? ticketOwner(key, project) : undefined
@@ -135,32 +331,70 @@ export function timesheet(from: string, to: string): Timesheet {
       add(owner, block.day, { what: key, kind: 'ticket' }, block.seconds, 0)
       continue
     }
-    const client = project ? byProject.get(project) : undefined
-    if (client && project) {
-      add(client, block.day, { what: project, kind: 'project' }, block.seconds, 0)
+    const forProject = projectOwner(project)
+    if (forProject && project) {
+      add(forProject, block.day, { what: project, kind: 'project' }, block.seconds, 0)
+      continue
+    }
+    const named = known.inText(block.title)
+    if (named) {
+      add({ org: named, personal: false }, block.day, { what: block.app, kind: 'area' }, block.seconds, 0)
       continue
     }
     unassigned += block.seconds
   }
 
-  // The agent's minutes, apart. Two agents in one minute on one line are one minute.
+  // Meetings with guests, for the part of them the Mac saw no focus: that
+  // time is already on its line. Two meetings at once are counted once.
+  focus.sort((a, b) => a[0] - b[0])
+  const covered: [number, number][] = []
+  for (const span of focus) uncovered(covered, span[0], span[1])
+  for (const meeting of all<{ started_at: number; ended_at: number; day: string; title: string | null; calendar: string | null; domains: string | null }>(
+    `select started_at, ended_at, day, title, calendar, domains from meetings
+     where day between ? and ? and attendees > 0 order by started_at`, from, to)) {
+    const title = (meeting.title ?? '').trim()
+    if (CANCELLED.test(title)) continue
+    const end = Math.min(meeting.ended_at, now)
+    if (end <= meeting.started_at) continue
+    const seconds = uncovered(covered, meeting.started_at, end)
+    if (seconds < 60) continue
+    // A client's domain first; the person's own only when it is the only one.
+    const domains: string[] = (() => { try { return JSON.parse(meeting.domains ?? '[]') } catch { return [] } })()
+    const theirs = domains.filter((domain) => !yourDomains.has(domain)).map((domain) => known.inDomain(domain)).find(Boolean)
+    const ours = domains.filter((domain) => yourDomains.has(domain)).map((domain) => known.inDomain(domain)).find(Boolean)
+    const client = known.inText(title) ?? theirs ?? known.inText(meeting.calendar) ?? ours
+    days.add(meeting.day)
+    if (client) add({ org: client, personal: false }, meeting.day, { what: title.slice(0, 80) || 'meeting', kind: 'meeting' }, seconds, 0)
+    else unassigned += seconds
+  }
+
+  // The agent's minutes, apart. Two agents in one minute on one line are one
+  // minute, and a minute with no owner is said, not dropped.
   const counted = new Set<string>()
   for (const row of all<{ minute: number; project: string | null; day: string }>(
     `select minute, project, day from agent_minutes where day between ? and ?`, from, to)) {
     const key = onBranch(row.project, row.minute * 60)[0]
-    const owner = key ? ticketOwner(key, row.project) : row.project ? byProject.get(row.project) : undefined
-    if (!owner) continue
+    const owner = key ? ticketOwner(key, row.project) : projectOwner(row.project)
+    if (!owner) {
+      const id = `${row.minute}:-`
+      if (!counted.has(id)) { counted.add(id); unassignedAgent += 60 }
+      continue
+    }
     const line = key ? { what: key, kind: 'ticket' as const } : { what: row.project!, kind: 'project' as const }
-    const id = `${row.minute}:${orgName(owner)}:${line.what}`
+    const id = `${row.minute}:${owner.personal ? 'you' : orgName(owner.org)}:${line.what}`
     if (counted.has(id)) continue
     counted.add(id)
     add(owner, row.day, line, 0, 60)
   }
 
-  const list = [...clients.values()]
-    .map((client) => ({ ...client, lines: client.lines.sort((a, b) => b.seconds - a.seconds || b.agentSeconds - a.agentSeconds) }))
+  const sorted = (client: TimesheetClient) =>
+    ({ ...client, lines: client.lines.sort((a, b) => b.seconds - a.seconds || b.agentSeconds - a.agentSeconds) })
+  const ordered = [...clients.values()].map(sorted)
     .sort((a, b) => b.seconds - a.seconds || b.agentSeconds - a.agentSeconds)
-  return { from, to, days: [...days].sort(), clients: list, unassigned }
+  return {
+    from, to, days: [...days].sort(), clients: ordered,
+    personal: personal ? sorted(personal) : null, unassigned, unassignedAgent,
+  }
 }
 
 const hm = (seconds: number) => {
@@ -170,20 +404,27 @@ const hm = (seconds: number) => {
 
 /**
  * The draft as a Markdown table, for the conversation and the journal: one
- * row per line, a column per day, the total, and the agent's time apart.
+ * row per line, a column per day, the total, and the agent's time apart. The
+ * person's own work follows the clients, and what has no client comes last.
  */
-export function timesheetTable(sheet: Timesheet, words: { client: string; total: string; agent: string; unassigned: string }): string {
+export function timesheetTable(sheet: Timesheet,
+  words: { client: string; total: string; agent: string; unassigned: string; personal: string }): string {
   const header = [words.client, ...sheet.days.map((day) => day.slice(5)), words.total, words.agent]
   const rows: string[][] = []
-  for (const client of sheet.clients) {
-    rows.push([`**${client.org}**`, ...sheet.days.map((day) => (client.days[day] ? `**${hm(client.days[day])}**` : '')),
+  const group = (client: TimesheetClient, name: string) => {
+    rows.push([`**${name}**`, ...sheet.days.map((day) => (client.days[day] ? `**${hm(client.days[day])}**` : '')),
       `**${hm(client.seconds)}**`, client.agentSeconds ? hm(client.agentSeconds) : ''])
     for (const line of client.lines) {
-      const name = line.label ? `${line.what} ${line.label}` : line.what
-      rows.push([`${name.replace(/\|/g, '/').slice(0, 70)}`, ...sheet.days.map((day) => (line.days[day] ? hm(line.days[day]) : '')),
+      const label = line.label ? `${line.what} ${line.label}` : line.what
+      rows.push([`${label.replace(/\|/g, '/').slice(0, 70)}`, ...sheet.days.map((day) => (line.days[day] ? hm(line.days[day]) : '')),
         hm(line.seconds), line.agentSeconds ? hm(line.agentSeconds) : ''])
     }
   }
-  if (sheet.unassigned) rows.push([`_${words.unassigned}_`, ...sheet.days.map(() => ''), hm(sheet.unassigned), ''])
+  for (const client of sheet.clients) group(client, client.org)
+  if (sheet.personal) group(sheet.personal, words.personal)
+  if (sheet.unassigned || sheet.unassignedAgent) {
+    rows.push([`_${words.unassigned}_`, ...sheet.days.map(() => ''),
+      hm(sheet.unassigned), sheet.unassignedAgent ? hm(sheet.unassignedAgent) : ''])
+  }
   return [header, header.map(() => '---'), ...rows].map((cells) => `| ${cells.join(' | ')} |`).join('\n')
 }

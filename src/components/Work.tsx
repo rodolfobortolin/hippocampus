@@ -276,11 +276,15 @@ function WeekSheet({ t }: { t: Strings }) {
 
   const MINUTE = 60
   const kept = (line: { seconds: number; agentSeconds: number }) => line.seconds >= MINUTE || line.agentSeconds >= MINUTE
-  const clients = (sheet?.clients ?? [])
-    .map((client) => ({ ...client, lines: client.lines.filter(kept) }))
-    .filter((client) => client.lines.length || kept(client))
-  const hidden = (sheet?.clients ?? []).reduce((sum, client) => sum + client.lines.filter((line) => !kept(line)).length, 0)
-  const empty = sheet && !clients.length && sheet.unassigned < MINUTE
+  // The person's own work comes after the clients, under its own name: it is
+  // theirs to see, not a client to bill.
+  const groups = [...(sheet?.clients ?? []).map((client) => ({ client, name: client.org, personal: false })),
+    ...(sheet?.personal ? [{ client: sheet.personal, name: t.work.personal, personal: true }] : [])]
+  const clients = groups
+    .map((group) => ({ ...group, client: { ...group.client, lines: group.client.lines.filter(kept) } }))
+    .filter((group) => group.client.lines.length || kept(group.client))
+  const hidden = groups.reduce((sum, group) => sum + group.client.lines.filter((line) => !kept(line)).length, 0)
+  const empty = sheet && !clients.length && sheet.unassigned < MINUTE && sheet.unassignedAgent < MINUTE
   const perDay = unit === 'week'
 
   return (
@@ -312,10 +316,10 @@ function WeekSheet({ t }: { t: Strings }) {
               </tr>
             </thead>
             <tbody>
-              {clients.map((client) => (
-                <Fragment key={client.org}>
-                  <tr className="sheet-client">
-                    <td>{client.org}</td>
+              {clients.map(({ client, name, personal }) => (
+                <Fragment key={`${personal ? 'you' : 'client'}:${client.org}`}>
+                  <tr className={personal ? 'sheet-client sheet-personal' : 'sheet-client'}>
+                    <td>{name}</td>
                     {perDay && days.map((day) => <td key={day}>{client.days[day] ? hm(client.days[day]) : ''}</td>)}
                     <td>{hm(client.seconds)}</td>
                     <td className="sheet-agent">{client.agentSeconds ? hm(client.agentSeconds) : ''}</td>
@@ -333,12 +337,12 @@ function WeekSheet({ t }: { t: Strings }) {
                   ))}
                 </Fragment>
               ))}
-              {sheet.unassigned > 0 && (
+              {(sheet.unassigned > 0 || sheet.unassignedAgent > 0) && (
                 <tr className="sheet-unassigned">
                   <td>{t.work.unassigned}</td>
                   {perDay && days.map((day) => <td key={day} />)}
                   <td>{hm(sheet.unassigned)}</td>
-                  <td />
+                  <td className="sheet-agent">{sheet.unassignedAgent ? hm(sheet.unassignedAgent) : ''}</td>
                 </tr>
               )}
             </tbody>

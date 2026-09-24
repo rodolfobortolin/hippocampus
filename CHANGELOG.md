@@ -7,6 +7,20 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 ## Unreleased
 
 - The calendar leaves out meetings that were cancelled or that you declined.
+- The timesheet draft finds the client of a repository from where it is
+  hosted, so a project without tickets is no longer left without a client, and
+  a worktree counts as the repository it belongs to.
+- Work on your own repositories shows up as its own "personal" group in the
+  timesheet, apart from the clients.
+- Browsing someone's public repository on GitHub, or a repository you only
+  cloned to try, no longer makes them a client.
+- Chats and inboxes that name a client — a Teams chat on its tenant, an inbox
+  at its domain — count toward that client.
+- Meetings with guests count in the timesheet for the time the Mac saw no
+  other work, under the client their guests are from.
+- Time in the Claude app counts toward the project of the question you asked
+  in it, and agent time with no client shows on the "no client" row instead of
+  disappearing.
 
 ## v0.5.0 — 2026-09-23
 

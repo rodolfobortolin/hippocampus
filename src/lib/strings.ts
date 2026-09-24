@@ -87,6 +87,8 @@ export type Strings = {
     sheetDay: string; sheetWeek: string; earlier: string; later: string
     hiddenLines: (n: number) => string
     unassigned: string; total: string; agentColumn: string; noTimesheet: string
+    /** The person's own work, shown apart from the clients. */
+    personal: string
   }
   /** The first-run walkthrough. */
   onboarding: {
@@ -284,7 +286,7 @@ const pt: Strings = {
     timesheet: 'rascunho de apontamento', timesheetNote: 'foco medido por cliente e peça de trabalho, para conferir; o tempo do agente vem à parte',
     thisWeek: 'esta semana', sheetDay: 'dia', sheetWeek: 'semana', earlier: 'anterior', later: 'seguinte',
     hiddenLines: (n) => n === 1 ? '1 linha com menos de um minuto não aparece' : `${n} linhas com menos de um minuto não aparecem`,
-    unassigned: 'sem cliente', total: 'total', agentColumn: 'agente', noTimesheet: 'Nenhum foco medido nesta semana.',
+    unassigned: 'sem cliente', total: 'total', agentColumn: 'agente', personal: 'pessoal', noTimesheet: 'Nenhum foco medido nesta semana.',
   },
   onboarding: {
     skip: 'pular a introdução',
@@ -549,7 +551,7 @@ const en: Strings = {
     timesheet: 'timesheet draft', timesheetNote: 'measured focus by client and piece of work, to check; the agent\'s time is apart',
     thisWeek: 'this week', sheetDay: 'day', sheetWeek: 'week', earlier: 'earlier', later: 'later',
     hiddenLines: (n) => n === 1 ? '1 line under a minute is left out' : `${n} lines under a minute are left out`,
-    unassigned: 'no client', total: 'total', agentColumn: 'agent', noTimesheet: 'No focus measured this week.',
+    unassigned: 'no client', total: 'total', agentColumn: 'agent', personal: 'personal', noTimesheet: 'No focus measured this week.',
   },
   onboarding: {
     skip: 'skip the introduction',
@@ -814,7 +816,7 @@ const es: Strings = {
     timesheet: 'borrador de horas', timesheetNote: 'foco medido por cliente y pieza de trabajo, para revisar; el tiempo del agente va aparte',
     thisWeek: 'esta semana', sheetDay: 'día', sheetWeek: 'semana', earlier: 'anterior', later: 'siguiente',
     hiddenLines: (n) => n === 1 ? '1 línea de menos de un minuto no aparece' : `${n} líneas de menos de un minuto no aparecen`,
-    unassigned: 'sin cliente', total: 'total', agentColumn: 'agente', noTimesheet: 'Ningún foco medido esta semana.',
+    unassigned: 'sin cliente', total: 'total', agentColumn: 'agente', personal: 'personal', noTimesheet: 'Ningún foco medido esta semana.',
   },
   onboarding: {
     skip: 'saltar la introducción',
@@ -1079,7 +1081,7 @@ const fr: Strings = {
     timesheet: 'brouillon de feuille de temps', timesheetNote: 'temps au premier plan par client et élément de travail, à vérifier ; le temps de l’agent est à part',
     thisWeek: 'cette semaine', sheetDay: 'jour', sheetWeek: 'semaine', earlier: 'précédent', later: 'suivant',
     hiddenLines: (n) => n === 1 ? '1 ligne de moins d’une minute n’apparaît pas' : `${n} lignes de moins d’une minute n’apparaissent pas`,
-    unassigned: 'sans client', total: 'total', agentColumn: 'agent', noTimesheet: 'Aucun temps mesuré cette semaine.',
+    unassigned: 'sans client', total: 'total', agentColumn: 'agent', personal: 'personnel', noTimesheet: 'Aucun temps mesuré cette semaine.',
   },
   onboarding: {
     skip: 'passer l’introduction',
@@ -1344,7 +1346,7 @@ const de: Strings = {
     timesheet: 'Entwurf der Zeiterfassung', timesheetNote: 'gemessener Fokus nach Kunde und Arbeitselement, zum Prüfen; die Zeit des Agenten steht getrennt',
     thisWeek: 'diese Woche', sheetDay: 'Tag', sheetWeek: 'Woche', earlier: 'früher', later: 'später',
     hiddenLines: (n) => n === 1 ? '1 Zeile unter einer Minute wird nicht gezeigt' : `${n} Zeilen unter einer Minute werden nicht gezeigt`,
-    unassigned: 'ohne Kunde', total: 'gesamt', agentColumn: 'Agent', noTimesheet: 'Diese Woche kein Fokus gemessen.',
+    unassigned: 'ohne Kunde', total: 'gesamt', agentColumn: 'Agent', personal: 'privat', noTimesheet: 'Diese Woche kein Fokus gemessen.',
   },
   onboarding: {
     skip: 'Einführung überspringen',

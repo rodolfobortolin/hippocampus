@@ -223,16 +223,16 @@ export const TIMESHEET_HEADING: Record<Language, string> = {
 }
 
 /** The words of the timesheet table, in the language it is read in. */
-export const TIMESHEET_WORDS: Record<Language, { client: string; total: string; agent: string; unassigned: string; note: string }> = {
-  'pt-BR': { client: 'cliente', total: 'total', agent: 'agente', unassigned: 'sem cliente',
+export const TIMESHEET_WORDS: Record<Language, { client: string; total: string; agent: string; unassigned: string; personal: string; note: string }> = {
+  'pt-BR': { client: 'cliente', total: 'total', agent: 'agente', unassigned: 'sem cliente', personal: 'pessoal',
     note: 'Rascunho para conferir: foco medido por cliente e peça de trabalho; o tempo do agente vem à parte.' },
-  'en-US': { client: 'client', total: 'total', agent: 'agent', unassigned: 'no client',
+  'en-US': { client: 'client', total: 'total', agent: 'agent', unassigned: 'no client', personal: 'personal',
     note: 'A draft to check: measured focus by client and piece of work; the agent\'s time is apart.' },
-  'es-ES': { client: 'cliente', total: 'total', agent: 'agente', unassigned: 'sin cliente',
+  'es-ES': { client: 'cliente', total: 'total', agent: 'agente', unassigned: 'sin cliente', personal: 'personal',
     note: 'Borrador para revisar: foco medido por cliente y pieza de trabajo; el tiempo del agente va aparte.' },
-  'fr-FR': { client: 'client', total: 'total', agent: 'agent', unassigned: 'sans client',
+  'fr-FR': { client: 'client', total: 'total', agent: 'agent', unassigned: 'sans client', personal: 'personnel',
     note: 'Brouillon à vérifier : temps au premier plan par client et élément de travail ; le temps de l’agent est à part.' },
-  'de-DE': { client: 'Kunde', total: 'gesamt', agent: 'Agent', unassigned: 'ohne Kunde',
+  'de-DE': { client: 'Kunde', total: 'gesamt', agent: 'Agent', unassigned: 'ohne Kunde', personal: 'privat',
     note: 'Entwurf zum Prüfen: gemessener Fokus nach Kunde und Arbeitselement; die Zeit des Agenten steht getrennt.' },
 }
 

@@ -717,6 +717,8 @@ button.piece-line:hover { background: var(--panel-high); }
 .sheet-line span { color: var(--text-mid); }
 .sheet-agent { color: var(--ai) !important; opacity: 0.85; }
 .sheet-unassigned td { color: var(--text-dim); font-style: italic; }
+/* Their own work: set apart from the clients, in the plain text colour. */
+.sheet-personal td { color: var(--text-mid); }
 
 /* ---------- the hands ---------- */
 

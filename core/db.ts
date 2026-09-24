@@ -185,6 +185,24 @@ create table if not exists meetings (
 );
 create index if not exists meetings_start on meetings(started_at);
 
+-- The repositories the harvest walks, and whose they are. The remote says it
+-- more reliably than anything else: a project in a repository under acme's
+-- organisation is acme's work, with or without a ticket to say so. A worktree
+-- keeps its own folder name here and names the repository it belongs to, so
+-- two folders of one repository are one project. The address is kept as host
+-- and path only: a remote can carry a token in its URL.
+create table if not exists repos (
+  name text primary key,
+  main text not null,
+  host text,
+  owner text,
+  path text,
+  -- Whether the person has a commit of their own in it: a repository cloned
+  -- to try something out is not work for whoever owns it.
+  worked integer not null default 0,
+  seen_at integer not null
+);
+
 create table if not exists meta (key text primary key, value text);
 
 -- What was written into the person's own notes at the close of a day, so the
