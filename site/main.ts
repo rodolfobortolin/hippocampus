@@ -46,9 +46,12 @@ if (canvas) {
   // rates, clipped at zero, read like syllables. It peaks near 0.6, not 1:
   // at full level the sphere bloomed to a white blob on a phone.
   let started = performance.now()
+  // During the tour the level is the real voice's, not a made-up one.
+  let spoken: number | null = null
   const voice = () => {
     const t = (performance.now() - started) / 1000
-    const level = state === 'speaking' ? Math.max(0, Math.sin(t * 7.3) * 0.35 + Math.sin(t * 2.1) * 0.25)
+    const level = spoken !== null ? spoken
+      : state === 'speaking' ? Math.max(0, Math.sin(t * 7.3) * 0.35 + Math.sin(t * 2.1) * 0.25)
       : state === 'listening' ? Math.max(0, Math.sin(t * 5.1) * 0.2 + Math.sin(t * 1.7) * 0.18)
       : 0
     core.setLevel(level)
@@ -93,4 +96,19 @@ if (canvas) {
   orb?.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); listen() }
   })
+
+  // "Show me": the tour takes the sphere, its voice and its level for a while.
+  const stage = {
+    pause() { clearTimeout(timer); spoken = 0; show('idle') },
+    resume() { spoken = null; step = 0; if (!still) next() },
+    speaking(on: boolean) { core.setState(on ? 'speaking' : 'idle', { flash: false }); state = on ? 'speaking' : 'idle' },
+    level(value: number) { spoken = value },
+  }
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tour]')) {
+    button.addEventListener('click', async () => {
+      const tour = await import('./tour.ts')
+      if (tour.tourRunning()) tour.stopTour()
+      else void tour.startTour(stage)
+    })
+  }
 }
