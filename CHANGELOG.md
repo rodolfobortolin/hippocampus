@@ -6,6 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+Nothing yet.
+
+## v0.7.0 — 2026-09-24
+
 - Time spent across changes of window is no longer lost. Four seconds went
   missing at every change, which came to between one and two hours a day; the
   days already measured are given that time back.
