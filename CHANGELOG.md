@@ -6,12 +6,17 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+Nothing yet.
+
+## v0.5.0 — 2026-09-23
+
 - Answers are short: a few lines when typed, and at most two short sentences
   when they will be heard — through the live voice or read aloud — with no
   lists or tables spoken out.
 - Asked to do something on your screen — open, click, pick — it answers on
   the quick model, which looks and clicks without stopping to think at
   length between each step.
+- When it clicks on your screen, your pointer goes back to where you left it.
 - You can stop it while it works: the send button becomes a stop button, and
   a click on the floating sphere stops it too.
 - Simple questions in the chat are answered by the quick model again. Since
