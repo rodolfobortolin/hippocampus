@@ -418,6 +418,9 @@ export function streamedText(event: any, after: boolean): string {
   return delta?.type === 'text_delta' && delta.text ? delta.text : ''
 }
 
+/** When jev does not answer in time: Sonnet, never the machine's own default (which was Opus). */
+const FALLBACK_MODEL = 'claude-sonnet-5'
+
 /** Talks to Claude Code, with the local database as its tools. */
 export async function* chat(prompt: string, sessionId?: string, { abort }: { abort?: AbortController } = {}): AsyncGenerator<AgentEvent> {
   // A model that fits the request: jev judges the complexity before it starts.
@@ -444,7 +447,11 @@ export async function* chat(prompt: string, sessionId?: string, { abort }: { abo
     prompt,
     options: {
       cwd: wide ? config.home : config.dataDir,
-      ...(config.claudeModel ? { model: config.claudeModel } : route ? { model: route.model } : {}),
+      ...(config.claudeModel ? { model: config.claudeModel } : route ? { model: route.model } : { model: FALLBACK_MODEL }),
+      // Set here rather than inherited: with nothing said, the session took
+      // the person's own Claude Code settings — xhigh effort on every
+      // question, a simple count included.
+      effort: 'low',
       ...(sessionId ? { resume: sessionId } : {}),
       permissionMode: 'bypassPermissions',
       // Stopping kills the session mid-turn: whatever it was about to look

@@ -10,7 +10,10 @@ export async function ask(prompt: string, system: string): Promise<string> {
     prompt,
     options: {
       cwd: config.dataDir,
-      ...(config.claudeModel ? { model: config.claudeModel } : {}),
+      // Explicit, not inherited from the person's Claude Code settings, which
+      // put the journal and the notes on Opus at xhigh effort.
+      model: config.claudeModel || 'claude-sonnet-5',
+      effort: 'low',
       permissionMode: 'bypassPermissions',
       systemPrompt: { type: 'preset', preset: 'claude_code', append: system },
       allowedTools: [],

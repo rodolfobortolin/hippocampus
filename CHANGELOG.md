@@ -13,6 +13,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
   a click on the floating sphere stops it too.
 - Simple questions in the chat are answered by the quick model again. Since
   20 September every question went to the largest one, whatever it asked.
+- The chat, the journal and the notes use Haiku and Sonnet only, with light
+  reasoning, instead of Opus at the effort set for Claude Code on this Mac:
+  answers start in two or three seconds.
 - The live voice closes after ten seconds with nobody talking, instead of
   listening on until a minute and a half had passed. It stays open while an
   answer is being worked on; say the word, click the sphere or use the

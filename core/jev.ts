@@ -202,9 +202,8 @@ export async function classifyDay(day: string, projects: string[]): Promise<numb
  * yours to decide, not the model's.
  */
 const LADDER = [
-  'claude-haiku-4-5-20251001',  // lookup direta
-  'claude-sonnet-5',            // cruzar fontes e resumir
-  'claude-opus-5',              // long analysis, prose, the recap
+  'claude-haiku-4-5-20251001',  // a direct lookup, and anything done on the screen
+  'claude-sonnet-5',            // crossing sources, summaries, analysis, prose
 ] as const
 
 
@@ -256,7 +255,9 @@ export async function pickModel(request: string): Promise<Routing | null> {
     // Measured on ten requests: 0.89–0.98 for "click play", "calculate on
     // Calculator", "close this window"; 0.03–0.34 for questions about the day.
     if (Number(data.answers?.screen?.noul ?? 0) >= 0.6) return { model: LADDER[0], level: 0, confidence }
-    return { model: LADDER[Math.max(0, Math.min(2, adjusted))], level: adjusted, confidence }
+    // Two rungs, not three: Opus answered the same questions many seconds
+    // later, and Rodolfo chose speed. The long-analysis level goes to Sonnet.
+    return { model: LADDER[Math.max(0, Math.min(1, adjusted))], level: adjusted, confidence }
   } catch {
     return null
   }
