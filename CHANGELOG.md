@@ -6,7 +6,7 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
-Nothing yet.
+- The calendar leaves out meetings that were cancelled or that you declined.
 
 ## v0.5.0 — 2026-09-23
 

@@ -263,6 +263,16 @@ for (const [column, type] of [
   }
 }
 
+// Which domains a meeting's guests write from: the client a meeting is for,
+// when its title does not say.
+if (!(db.prepare('pragma table_info(meetings)').all() as any[]).some((c) => c.name === 'domains')) {
+  try {
+    db.exec('alter table meetings add column domains text')
+  } catch (error) {
+    if (!/duplicate column name/.test((error as Error).message)) throw error
+  }
+}
+
 // The category keys travelled with the rename. They are identifiers stored in
 // rows, so the rows already carrying the old ones have to move too — otherwise
 // every window classified before today would read as uncategorised.

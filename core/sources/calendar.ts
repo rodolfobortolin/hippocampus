@@ -14,7 +14,11 @@ import { all, db, getMeta, setMeta } from '../db.ts'
  * to whoever asks. Here the events are only kept.
  */
 
-export type CalendarEvent = { id: string; title: string; start: number; end: number; calendar?: string; attendees?: number }
+export type CalendarEvent = {
+  id: string; title: string; start: number; end: number; calendar?: string; attendees?: number
+  /** The domains the guests write from — "acme.com" — never their addresses. */
+  domains?: string[]
+}
 export type Meeting = {
   id: string; start: number; end: number; title: string; calendar: string | null; attendees: number
   /** Seconds of it with a microphone open, from the focus samples. */
@@ -22,9 +26,18 @@ export type Meeting = {
 }
 
 const keep = db.prepare(
-  `insert into meetings (id, started_at, ended_at, day, title, calendar, attendees) values (?, ?, ?, ?, ?, ?, ?)
+  `insert into meetings (id, started_at, ended_at, day, title, calendar, attendees, domains) values (?, ?, ?, ?, ?, ?, ?, ?)
    on conflict(id) do update set started_at = excluded.started_at, ended_at = excluded.ended_at,
-     day = excluded.day, title = excluded.title, calendar = excluded.calendar, attendees = excluded.attendees`)
+     day = excluded.day, title = excluded.title, calendar = excluded.calendar, attendees = excluded.attendees,
+     domains = excluded.domains`)
+
+/** Only the part after the @, lowercased, and nothing that does not look like a domain. */
+const domainsOf = (list: unknown): string | null => {
+  if (!Array.isArray(list)) return null
+  const clean = [...new Set(list.map((value) => String(value).toLowerCase().replace(/^.*@/, ''))
+    .filter((value) => /^[a-z0-9.-]+\.[a-z]{2,}$/.test(value)))].slice(0, 20)
+  return clean.length ? JSON.stringify(clean) : null
+}
 
 /**
  * The events of one window, as the calendar has them now. A meeting that was
@@ -38,7 +51,7 @@ export function keepMeetings(from: number, to: number, events: CalendarEvent[]):
     const id = `${event.id}@${Math.round(event.start)}`
     ids.push(id)
     keep.run(id, Math.round(event.start), Math.round(event.end), dayOf(event.start),
-      event.title.slice(0, 200), event.calendar ?? null, event.attendees ?? 0)
+      event.title.slice(0, 200), event.calendar ?? null, event.attendees ?? 0, domainsOf(event.domains))
   }
   const gone = db.prepare(
     `delete from meetings where started_at >= ? and started_at < ?

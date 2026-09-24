@@ -522,15 +522,29 @@ func postJSON(_ url: URL, _ body: [String: Any]) {
 func sendEvents(_ url: URL, from: Date, to: Date) {
     let predicate = calendarStore.predicateForEvents(withStart: from, end: to, calendars: nil)
     // All-day events are days off and birthdays, not time spent in a meeting.
-    let events = calendarStore.events(matching: predicate).filter { !$0.isAllDay }
+    // A cancelled event, or one the person declined, was never time spent in
+    // it either — and the timesheet counts meetings.
+    let events = calendarStore.events(matching: predicate).filter { event in
+        if event.isAllDay || event.status == .canceled { return false }
+        let declined = event.attendees?.contains { $0.isCurrentUser && $0.participantStatus == .declined } ?? false
+        return !declined
+    }
     let list: [[String: Any]] = events.map { event in
-        [
+        // Only the domain of each guest, never the address: it says which
+        // client a meeting is for when its title does not.
+        let domains = Set((event.attendees ?? []).compactMap { guest -> String? in
+            let address = guest.url.absoluteString
+            guard let at = address.lastIndex(of: "@") else { return nil }
+            return String(address[address.index(after: at)...]).lowercased()
+        })
+        return [
             "id": event.calendarItemIdentifier,
             "title": event.title ?? "",
             "start": event.startDate.timeIntervalSince1970,
             "end": event.endDate.timeIntervalSince1970,
             "calendar": event.calendar?.title ?? "",
             "attendees": event.attendees?.count ?? 0,
+            "domains": Array(domains),
         ]
     }
     postJSON(url, ["status": "granted", "from": from.timeIntervalSince1970, "to": to.timeIntervalSince1970, "events": list])
