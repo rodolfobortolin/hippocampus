@@ -6,6 +6,10 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
+Nothing yet.
+
+## v0.6.0 — 2026-09-24
+
 - The calendar leaves out meetings that were cancelled or that you declined.
 - The timesheet draft finds the client of a repository from where it is
   hosted, so a project without tickets is no longer left without a client, and
