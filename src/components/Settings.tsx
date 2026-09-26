@@ -259,6 +259,13 @@ export function Settings() {
             </Field>
           )}
 
+          <Field label={t.settings.wakeWord} note={t.settings.wakeWordNote}>
+            <button className={`switch ${settings.wakeWord ? 'active' : ''}`} aria-pressed={settings.wakeWord}
+              onClick={() => store({ wakeWord: !settings.wakeWord })}>
+              <i />
+            </button>
+          </Field>
+
           <Field label={t.settings.caption} note={t.settings.captionNote}>
             <button className={`switch ${settings.caption !== false ? 'active' : ''}`}
               onClick={() => store({ caption: settings.caption === false })}>

@@ -269,6 +269,11 @@ export function serve(collector?: Collector): http.Server {
         return json(response, { browsers: blockedBrowsers() })
       }
 
+      // The listener asks whether it should be listening at all: the wake
+      // word is a switch in Settings, and off means the microphone closed.
+      if (route === '/api/wake' && request.method === 'GET') {
+        return json(response, { listening: readSettings().wakeWord })
+      }
       if (route === '/api/wake' && request.method === 'POST') {
         // The listener heard the wake word. Whoever is on screen decides what to
         // do: start listening, or go quiet if it was speaking.

@@ -124,6 +124,72 @@ func listen() {
     }
 }
 
+/**
+ * Whether the person wants the wake word at all, asked of the core.
+ *
+ * Listening is not free: the on-device recogniser ran at 55 to 75% of a core,
+ * with the Neural Engine's own process at 20% more, all day — 28 hours of CPU
+ * in under two days, for a word said a few times. So it is a switch in
+ * Settings, and this process follows it without being restarted: off closes
+ * the microphone and ends the recognition, which is what costs; on opens them
+ * again. The process itself stays, as launchd's login item, and asks every ten
+ * seconds.
+ */
+var wanted = false
+let asking = target.deletingLastPathComponent().appendingPathComponent("wake")
+let alive = FileManager.default
+    .homeDirectoryForCurrentUser
+    .appendingPathComponent("Library/Application Support/Hippocampus/listener.alive")
+
+/** A sign of life, in a file — only while the microphone is open because of us. */
+func mark() {
+    if wanted { try? Date().description.write(to: alive, atomically: true, encoding: .utf8) }
+}
+
+func stopListening() {
+    task?.cancel()
+    task = nil
+    request = nil
+    engine.stop()
+    engine.inputNode.removeTap(onBus: 0)
+    // Without the sign of life, the collector counts an open microphone as a
+    // call again — it is someone else's now.
+    try? FileManager.default.removeItem(at: alive)
+    print("wake word off — microphone closed")
+    fflush(stdout)
+}
+
+func follow(_ on: Bool) {
+    guard on != wanted else { return }
+    wanted = on
+    if on {
+        do {
+            try startMicrophone()
+            listen()
+            mark()
+            print("listening for \"\(triggers.first ?? "")\" — on device, no cloud")
+        } catch {
+            FileHandle.standardError.write("could not open the microphone: \(error)\n".data(using: .utf8)!)
+            exit(1)
+        }
+    } else {
+        stopListening()
+    }
+    fflush(stdout)
+}
+
+/** Asks the core; a core that does not answer leaves things as they are. */
+func check() {
+    var ask = URLRequest(url: asking)
+    ask.timeoutInterval = 3
+    URLSession.shared.dataTask(with: ask) { data, response, _ in
+        guard (response as? HTTPURLResponse)?.statusCode == 200, let data,
+              let answer = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let on = answer["listening"] as? Bool else { return }
+        DispatchQueue.main.async { follow(on) }
+    }.resume()
+}
+
 /** Opens the microphone, or reopens it with whatever format the device has now. */
 func startMicrophone() throws {
     engine.stop()
@@ -144,12 +210,6 @@ SFSpeechRecognizer.requestAuthorization { estado in
     }
 
     DispatchQueue.main.async {
-        do {
-            try startMicrophone()
-        } catch {
-            FileHandle.standardError.write("could not open the microphone: \(error)\n".data(using: .utf8)!)
-            exit(1)
-        }
         // When another program opens the microphone with echo cancellation —
         // the live voice does, through WebRTC — macOS reconfigures the device
         // and this engine stops without an error. The process stayed up and
@@ -157,6 +217,7 @@ SFSpeechRecognizer.requestAuthorization { estado in
         NotificationCenter.default.addObserver(
             forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
         ) { _ in
+            guard wanted else { return }
             do {
                 try startMicrophone()
                 listen()
@@ -169,27 +230,24 @@ SFSpeechRecognizer.requestAuthorization { estado in
             }
             fflush(stdout)
         }
-        listen()
-        print("listening for \"\(triggers.first ?? "")\" — on device, no cloud")
-        fflush(stdout)
 
-        // A sign of life, in a file. The collector needs to know the microphone
-        // is busy because of us, or it counts a call where there was none; and
-        // this process does not show up in NSWorkspace, because it never
-        // becomes an application — it is just a loop with a recogniser inside.
-        let alive = FileManager.default
-            .homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/Hippocampus/listener.alive")
-        func mark() { try? Date().description.write(to: alive, atomically: true, encoding: .utf8) }
-        mark()
+        // Nothing opens until the core says the wake word is wanted.
+        check()
+        Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { _ in check() }
+
+        // The sign of life the collector reads. It needs to know the
+        // microphone is busy because of us, or it counts a call where there
+        // was none; and this process does not show up in NSWorkspace, because
+        // it never becomes an application — it is just a loop with a
+        // recogniser inside.
         Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in mark() }
 
         // Twelve a second is enough for the eye and cheap on localhost; below
         // that the sphere moves in steps instead of with the voice.
-        Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { _ in report() }
+        Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { _ in if wanted { report() } }
 
         // The recognition session degrades over time; restart it hourly.
-        Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { _ in listen() }
+        Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { _ in if wanted { listen() } }
     }
 }
 

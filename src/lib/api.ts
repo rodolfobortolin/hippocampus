@@ -114,6 +114,8 @@ export type Settings = {
   region: 'global' | 'eu'
   /** Whether the floating core writes what it heard and what it answered. */
   caption: boolean
+  /** Whether the listener waits for the wake word; off closes the microphone. */
+  wakeWord: boolean
   /** Whether the conversation may reach beyond this app's own database. */
   wideTools: boolean
   calendar: boolean

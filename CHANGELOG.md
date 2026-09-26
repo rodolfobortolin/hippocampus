@@ -6,7 +6,9 @@ release is cut are in `CLAUDE.md`, under "CI and releases".
 
 ## Unreleased
 
-Nothing yet.
+- Listening for the word "Hippocampus" is a switch in Settings. Off closes the
+  microphone and stops the speech recognition that ran all day, which took
+  over half a core; the shortcut and a click on the sphere still call it.
 
 ## v0.7.0 — 2026-09-24
 

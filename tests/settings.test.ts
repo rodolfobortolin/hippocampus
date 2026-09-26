@@ -157,3 +157,16 @@ test('writing notes on its own is asked for, and a choice already made is kept',
   setMeta('settings', JSON.stringify({ language: 'en-US' }))
   assert.equal(readSettings().captures, false)
 })
+
+test('the wake word is a switch, on unless turned off, and the listener can ask for it', async () => {
+  const { saveSettings } = await import('../core/settings.ts')
+  setMeta('settings', JSON.stringify({}))
+  assert.equal(readSettings().wakeWord, true, 'what it did before is what it does until asked')
+  saveSettings({ wakeWord: false })
+  assert.equal(readSettings().wakeWord, false)
+  const server = fs.readFileSync(path.join(import.meta.dirname, '..', 'core', 'server.ts'), 'utf8')
+  assert.match(server, /route === '\/api\/wake' && request\.method === 'GET'/, 'the listener asks here every ten seconds')
+  const listener = fs.readFileSync(path.join(import.meta.dirname, '..', 'native', 'listener.swift'), 'utf8')
+  assert.match(listener, /appendingPathComponent\("wake"\)/)
+  saveSettings({ wakeWord: true })
+})

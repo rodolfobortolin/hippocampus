@@ -54,6 +54,14 @@ export type Settings = {
    */
   caption: boolean
   /**
+   * Whether the listener waits for the wake word. Waiting is the macOS
+   * recogniser running all day on the microphone — over half a core with the
+   * Neural Engine's process on top — so it is a choice, and the listener
+   * follows it within ten seconds: off closes the microphone. The shortcut and
+   * a click on the sphere call the core either way.
+   */
+  wakeWord: boolean
+  /**
    * Whether the conversation may use anything beyond this app's own database.
    *
    * Off, it answers only from what was measured on this machine, and nothing
@@ -214,6 +222,7 @@ const DEFAULTS: Settings = {
   liveVoice: 'marin',
   region: 'global',
   caption: true,
+  wakeWord: true,
   wideTools: false,
   calendar: false,
   // Off for someone installing it fresh: a stranger's app writing into their
@@ -277,6 +286,7 @@ export function readSettings(): Settings {
       liveVoice: String(data.liveVoice ?? DEFAULTS.liveVoice),
       region: data.region === 'eu' ? 'eu' : 'global',
       caption: data.caption !== false,
+      wakeWord: data.wakeWord !== false,
       wideTools: data.wideTools === true,
       calendar: data.calendar === true,
       captures: data.captures ?? DEFAULTS.captures,
